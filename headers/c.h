@@ -66,6 +66,7 @@
 #  mangle int16_t  int16
 #  mangle int8_t   int8
 #  mangle int64_t  int64
+#  mangle cuchar   uint8
 #else
 #  ifdef _WIN32
 #  ifdef ROCKSDB_DLL
