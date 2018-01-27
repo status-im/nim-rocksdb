@@ -47,18 +47,31 @@
 
 #pragma once
 
-#ifdef _WIN32
-#ifdef ROCKSDB_DLL
-#ifdef ROCKSDB_LIBRARY_EXPORTS
-#define ROCKSDB_LIBRARY_API __declspec(dllexport)
+#ifdef C2NIM
+#  def ROCKSDB_LIBRARY_API
+#  dynlib librocksdb
+#  cdecl
+#  if defined(windows)
+#    define librocksdb "librocksdb.dll"
+#  elif defined(macosx)
+#    define librocksdb "librocksdb.dylib"
+#  else
+#    define librocksdb "librocksdb.so"
+#  endif
 #else
-#define ROCKSDB_LIBRARY_API __declspec(dllimport)
-#endif
-#else
-#define ROCKSDB_LIBRARY_API
-#endif
-#else
-#define ROCKSDB_LIBRARY_API
+#  ifdef _WIN32
+#  ifdef ROCKSDB_DLL
+#  ifdef ROCKSDB_LIBRARY_EXPORTS
+#  define ROCKSDB_LIBRARY_API __declspec(dllexport)
+#  else
+#  define ROCKSDB_LIBRARY_API __declspec(dllimport)
+#  endif
+#  else
+#  define ROCKSDB_LIBRARY_API
+#  endif
+#  else
+#  define ROCKSDB_LIBRARY_API
+#  endif
 #endif
 
 #ifdef __cplusplus
