@@ -8,16 +8,28 @@ matrix:
     # Build and test using both gcc and clang
     # For faster testing we don't test clang on linux, only on macOS
     - os: linux
-      env: CHANNEL=stable
+      env:
+        - CHANNEL=stable
+        - CHANNEL=devel
       compiler: gcc
-
-    - os: linux
-      env: CHANNEL=devel
-      compiler: gcc
+      sudo: required
+      services:
+        - docker
+      before_install:
+        # RocksDB is packaged for 16.04+ only
+        # 16.04 on Travis requires docker
+        - docker pull ubuntu:16.04
+      addons:
+        apt:
+          packages:
+            - librocksdb-dev
 
     - os: osx
       env: CHANNEL=stable
       compiler: clang
+      before_install:
+        - brew update
+        - brew install rocksdb
 
   allow_failures:
     # Ignore failures when building against the devel Nim branch
@@ -26,27 +38,31 @@ matrix:
     - os: osx
   fast_finish: true
 
-addons:
-  apt:
-    packages:
-      - librocksdb-dev
-
-before_install:
-  # MacOS only
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install homebrew/rocksdb; fi
-
 install:
-  - export CHOOSENIM_NO_ANALYTICS=1
-  - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
-  - sh init.sh -y
-  - export PATH=~/.nimble/bin:$PATH
-  - echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile
-  - choosenim $CHANNEL
+  - if [ $TRAVIS_OS_NAME = osx ]; then
+      export CHOOSENIM_NO_ANALYTICS=1;
+      curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh;
+      sh init.sh -y;
+      export PATH=~/.nimble/bin:$PATH;
+      echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile;
+      choosenim $CHANNEL;
+    fi;
+  - if [ $TRAVIS_OS_NAME = linux ]; then
+      docker exec $(docker ps -aq) /bin/bash -c 'export CHOOSENIM_NO_ANALYTICS=1';
+      docker exec $(docker ps -aq) /bin/bash -c 'curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh';
+      docker exec $(docker ps -aq) /bin/bash -c 'sh init.sh -y';
+      docker exec $(docker ps -aq) /bin/bash -c 'export PATH=~/.nimble/bin:$PATH';
+      docker exec $(docker ps -aq) /bin/bash -c 'echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile';
+      docker exec $(docker ps -aq) /bin/bash -c "choosenim $CHANNEL";
+    fi;
 
 script:
-    - nimble refresh
-    - nimble test_c
+    - if [ $TRAVIS_OS_NAME = osx ]; then
+        nimble refresh;
+        nimble test_c;
+    - if [ $TRAVIS_OS_NAME = linux ]; then
+        docker exec $(docker ps -aq) /bin/bash -c 'nimble refresh';
+        docker exec $(docker ps -aq) /bin/bash -c 'nimble test_c';
 
 branches:
   except:
