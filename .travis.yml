@@ -1,0 +1,53 @@
+language: c
+
+cache: ccache
+
+matrix:
+  include:
+    # Build and test against the master (stable) and devel branches of Nim
+    # Build and test using both gcc and clang
+    # For faster testing we don't test clang on linux, only on macOS
+    - os: linux
+      env: CHANNEL=stable
+      compiler: gcc
+
+    - os: linux
+      env: CHANNEL=devel
+      compiler: gcc
+
+    - os: osx
+      env: CHANNEL=stable
+      compiler: clang
+
+  allow_failures:
+    # Ignore failures when building against the devel Nim branch
+    # Also ignore OSX, due to very long build time for Travis
+    - env: CHANNEL=devel
+    - os: osx
+  fast_finish: true
+
+addons:
+  apt:
+    packages:
+      - librocksdb-dev
+
+before_install:
+  # MacOS only
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install homebrew/rocksdb; fi
+
+install:
+  - export CHOOSENIM_NO_ANALYTICS=1
+  - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
+  - sh init.sh -y
+  - export PATH=~/.nimble/bin:$PATH
+  - echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile
+  - choosenim $CHANNEL
+
+script:
+    - nimble refresh
+    - nimble test_c
+
+branches:
+  except:
+    - gh-pages
