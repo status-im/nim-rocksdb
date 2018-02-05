@@ -1,4 +1,4 @@
-import rocksdb, cpuinfo
+import ../src/rocksdb, cpuinfo
 
 const
   dbPath: cstring = "/tmp/rocksdb_simple_example"
@@ -28,17 +28,22 @@ proc main() =
 
   # Put key-value
   var writeOptions = rocksdb_writeoptions_create()
-  let key: cstring = "key"
-  let value: cstring = "value"
-  rocksdb_put(db, writeOptions, key, key.len, value, value.len, err)
+  let key = "key"
+  let put_value = "value"
+  rocksdb_put(db, writeOptions, key.cstring, key.len, put_value.cstring, put_value.len, err)
   doAssert err.isNil
 
   # Get value
   var readOptions = rocksdb_readoptions_create()
   var len: csize
-  let returned_value = rocksdb_get(db, readOptions, key, key.len, addr len, err)
+  let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err) # Important: rocksdb_get is not null-terminated
   doAssert err.isNil
-  doAssert returned_value == value
+
+  # Copy it to a regular Nim string (copyMem workaround because raw value is NOT null-terminated)
+  var get_value = newString(len)
+  copyMem(addr get_value[0], unsafeAddr raw_value[0], len * sizeof(char))
+
+  doAssert get_value == put_value
 
   # create new backup in a directory specified by DBBackupPath
   rocksdb_backup_engine_create_new_backup(be, db, err)

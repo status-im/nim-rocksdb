@@ -10,26 +10,23 @@ matrix:
     - os: linux
       env:
         - CHANNEL=stable
-        - CHANNEL=devel
+        # - CHANNEL=devel
       compiler: gcc
       sudo: required
       services:
         - docker
       before_install:
-        # RocksDB is packaged for 16.04+ only
-        # 16.04 on Travis requires docker
-        - docker pull ubuntu:16.04
-      addons:
-        apt:
-          packages:
-            - librocksdb-dev
+        # RocksDB is packaged for Ubuntu 16.04+ or Debian Stretch only
+        # Travis only supports 14.04 at the moment
+        - docker pull yglukhov/nim-base
 
-    - os: osx
-      env: CHANNEL=stable
-      compiler: clang
-      before_install:
-        - brew update
-        - brew install rocksdb
+    ## Travis OSX version is too old and does not have rocksdb
+    # - os: osx
+    #   env: CHANNEL=stable
+    #   compiler: clang
+    #   before_install:
+    #     - brew update
+    #     - brew install rocksdb
 
   allow_failures:
     # Ignore failures when building against the devel Nim branch
@@ -48,21 +45,18 @@ install:
       choosenim $CHANNEL;
     fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then
-      docker exec $(docker ps -aq) /bin/bash -c 'export CHOOSENIM_NO_ANALYTICS=1';
-      docker exec $(docker ps -aq) /bin/bash -c 'curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh';
-      docker exec $(docker ps -aq) /bin/bash -c 'sh init.sh -y';
-      docker exec $(docker ps -aq) /bin/bash -c 'export PATH=~/.nimble/bin:$PATH';
-      docker exec $(docker ps -aq) /bin/bash -c 'echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile';
-      docker exec $(docker ps -aq) /bin/bash -c "choosenim $CHANNEL";
+      docker run yglukhov/nim-base nim --version;
     fi;
 
 script:
     - if [ $TRAVIS_OS_NAME = osx ]; then
         nimble refresh;
         nimble test_c;
+      fi;
     - if [ $TRAVIS_OS_NAME = linux ]; then
-        docker exec $(docker ps -aq) /bin/bash -c 'nimble refresh';
-        docker exec $(docker ps -aq) /bin/bash -c 'nimble test_c';
+        docker run -v "$(pwd):/project" -w /project yglukhov/nim-base run "apt-get -qq update && apt-get install -y librocksdb-dev && nimble test_c";
+      fi;
+
 
 branches:
   except:

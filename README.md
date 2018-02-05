@@ -1,6 +1,6 @@
 # Nim-RocksDB
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+[![Linux/macOS Build Status (Travis)](https://img.shields.io/travis/status-im/nim-rocksdb/master.svg?label=Linux%20/%20MacOS "Linux / MacOS build status (Travis)")](https://travis-ci.org/mratsim/Arraymancer) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 
 A Nim wrapper for [Facebook's RocksDB](https://github.com/facebook/rocksdb), a persistent key-value store for Flash and RAM Storage.
 
@@ -43,17 +43,22 @@ proc main() =
 
   # Put key-value
   var writeOptions = rocksdb_writeoptions_create()
-  let key: cstring = "key"
-  let value: cstring = "value"
-  rocksdb_put(db, writeOptions, key, key.len, value, value.len, err)
+  let key = "key"
+  let put_value = "value"
+  rocksdb_put(db, writeOptions, key.cstring, key.len, put_value.cstring, put_value.len, err)
   doAssert err.isNil
 
   # Get value
   var readOptions = rocksdb_readoptions_create()
   var len: csize
-  let returned_value = rocksdb_get(db, readOptions, key, key.len, addr len, err)
+  let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err) # Important: rocksdb_get is not null-terminated
   doAssert err.isNil
-  doAssert returned_value == value
+
+  # Copy it to a regular Nim string (copyMem workaround because raw value is NOT null-terminated)
+  var get_value = newString(len)
+  copyMem(addr get_value[0], unsafeAddr raw_value[0], len * sizeof(char))
+
+  doAssert get_value == put_value
 
   # create new backup in a directory specified by DBBackupPath
   rocksdb_backup_engine_create_new_backup(be, db, err)
