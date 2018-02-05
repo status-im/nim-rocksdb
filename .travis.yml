@@ -10,7 +10,7 @@ matrix:
     - os: linux
       env:
         - CHANNEL=stable
-        - CHANNEL=devel
+        # - CHANNEL=devel
       compiler: gcc
       sudo: required
       services:
@@ -45,14 +45,9 @@ install:
       choosenim $CHANNEL;
     fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then
-      docker exec $(docker ps -aq) /bin/sh -c 'export CHOOSENIM_NO_ANALYTICS=1';
-      docker exec $(docker ps -aq) /bin/sh -c 'curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh';
-      docker exec $(docker ps -aq) /bin/sh -c 'sh init.sh -y';
-      docker exec $(docker ps -aq) /bin/sh -c 'export PATH=~/.nimble/bin:$PATH';
-      docker exec $(docker ps -aq) /bin/sh -c 'echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile';
-      docker exec $(docker ps -aq) /bin/sh -c "choosenim $CHANNEL";
-      docker exec $(docker ps -aq) /bin/sh -c 'sudo apt-get -qq update';
-      docker exec $(docker ps -aq) /bin/sh -c 'sudo apt-get -qq install librosckdb-dev';
+      docker run yglukhov/nim-base nim --version;
+      docker run yglukhov/nim-base 'sudo apt-get -qq update';
+      docker run yglukhov/nim-base 'sudo apt-get -qq install librosckdb-dev';
     fi;
 
 script:
@@ -60,8 +55,8 @@ script:
         nimble refresh;
         nimble test_c;
     - if [ $TRAVIS_OS_NAME = linux ]; then
-        docker exec $(docker ps -aq) /bin/bash -c 'nimble refresh';
-        docker exec $(docker ps -aq) /bin/bash -c 'nimble test_c';
+        docker run -v "$(pwd):/project" -w /project yglukhov/nim-base 'nimble test_c';
+
 
 branches:
   except:
