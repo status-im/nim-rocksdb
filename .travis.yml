@@ -46,8 +46,8 @@ install:
     fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then
       docker run yglukhov/nim-base nim --version;
-      docker run yglukhov/nim-base 'sudo apt-get -qq update';
-      docker run yglukhov/nim-base 'sudo apt-get -qq install librosckdb-dev';
+      docker exec yglukhov/nim-base apt-get -qq update;
+      docker exec yglukhov/nim-base apt-get -y install librosckdb-dev;
     fi;
 
 script:
