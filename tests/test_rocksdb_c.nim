@@ -38,17 +38,22 @@ suite "RocksDB C wrapper tests":
 
     # Put key-value
     var writeOptions = rocksdb_writeoptions_create()
-    let key: cstring = "key"
-    let value: cstring = "value"
-    rocksdb_put(db, writeOptions, key, key.len, value, value.len, err)
+    let key = "key"
+    let put_value = "value"
+    rocksdb_put(db, writeOptions, key.cstring, key.len, put_value.cstring, put_value.len, err)
     check: err.isNil
 
     # Get value
     var readOptions = rocksdb_readoptions_create()
     var len: csize
-    let returned_value = rocksdb_get(db, readOptions, key, key.len, addr len, err) # Important: rocksdb_get is not null-terminated
+    let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err) # Important: rocksdb_get is not null-terminated
     check: err.isNil
-    check: $returned_value == $value # Convert to Nim string first to avoid null-terminated issues
+
+    # Copy it to a regular Nim string (workaround because non-null terminated)
+    var get_value = newString(len)
+    copyMem(addr get_value[0], unsafeAddr raw_value[0], len * sizeof(char))
+
+    check: $get_value == $put_value
 
     # create new backup in a directory specified by DBBackupPath
     rocksdb_backup_engine_create_new_backup(be, db, err)
