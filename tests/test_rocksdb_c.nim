@@ -49,7 +49,7 @@ suite "RocksDB C wrapper tests":
     let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err) # Important: rocksdb_get is not null-terminated
     check: err.isNil
 
-    # Copy it to a regular Nim string (workaround because non-null terminated)
+    # Copy it to a regular Nim string (copyMem workaround because non-null terminated)
     var get_value = newString(len)
     copyMem(addr get_value[0], unsafeAddr raw_value[0], len * sizeof(char))
 
