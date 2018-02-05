@@ -10,7 +10,7 @@ requires "nim >= 0.17.2"
 
 proc test(name: string, lang: string = "c") =
   if not dirExists "build":
-    mkDir "bin"
+    mkDir "build"
   if not dirExists "nimcache":
     mkDir "nimcache"
   --run
