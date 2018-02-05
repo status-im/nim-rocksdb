@@ -19,17 +19,14 @@ matrix:
         # RocksDB is packaged for 16.04+ only
         # 16.04 on Travis requires docker
         - docker pull ubuntu:16.04
-      addons:
-        apt:
-          packages:
-            - librocksdb-dev
 
-    - os: osx
-      env: CHANNEL=stable
-      compiler: clang
-      before_install:
-        - brew update
-        - brew install rocksdb
+    ## Travis OSX version is too old and does not have rocksdb
+    # - os: osx
+    #   env: CHANNEL=stable
+    #   compiler: clang
+    #   before_install:
+    #     - brew update
+    #     - brew install rocksdb
 
   allow_failures:
     # Ignore failures when building against the devel Nim branch
@@ -54,6 +51,8 @@ install:
       docker exec $(docker ps -aq) /bin/bash -c 'export PATH=~/.nimble/bin:$PATH';
       docker exec $(docker ps -aq) /bin/bash -c 'echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile';
       docker exec $(docker ps -aq) /bin/bash -c "choosenim $CHANNEL";
+      docker exec $(docker ps -aq) /bin/bash -c 'apt-get -qq update'
+      docker exec $(docker ps -aq) /bin/bash -c 'apt-get -qq install librosckdb-dev'
     fi;
 
 script:
