@@ -46,8 +46,6 @@ install:
     fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then
       docker run yglukhov/nim-base nim --version;
-      docker run yglukhov/nim-base --name nim-rocksdb apt-get -qq update;
-      docker run yglukhov/nim-base --name nim-rocksdb apt-get -y install librocksdb-dev;
     fi;
 
 script:
@@ -55,7 +53,7 @@ script:
         nimble refresh;
         nimble test_c;
     - if [ $TRAVIS_OS_NAME = linux ]; then
-        docker run -v "$(pwd):/project" -w /project yglukhov/nim-base --name nim-rocksdb 'nimble test_c';
+        docker run -v "$(pwd):/project" -w /project yglukhov/nim-base run "apt-get -qq update && apt-get install -y librocksdb-dev && nimble test_c";
 
 
 branches:
