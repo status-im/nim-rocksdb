@@ -16,9 +16,9 @@ matrix:
       services:
         - docker
       before_install:
-        # RocksDB is packaged for 16.04+ only
-        # 16.04 on Travis requires docker
-        - docker pull ubuntu:16.04
+        # RocksDB is packaged for Ubuntu 16.04+ or Debian Stretch only
+        # Travis only supports 14.04 at the moment
+        - docker pull yglukhov/nim-base
 
     ## Travis OSX version is too old and does not have rocksdb
     # - os: osx
@@ -45,14 +45,14 @@ install:
       choosenim $CHANNEL;
     fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then
-      docker exec $(docker ps -aq) /bin/bash -c 'export CHOOSENIM_NO_ANALYTICS=1';
-      docker exec $(docker ps -aq) /bin/bash -c 'curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh';
-      docker exec $(docker ps -aq) /bin/bash -c 'sh init.sh -y';
-      docker exec $(docker ps -aq) /bin/bash -c 'export PATH=~/.nimble/bin:$PATH';
-      docker exec $(docker ps -aq) /bin/bash -c 'echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile';
-      docker exec $(docker ps -aq) /bin/bash -c "choosenim $CHANNEL";
-      docker exec $(docker ps -aq) /bin/bash -c 'apt-get -qq update';
-      docker exec $(docker ps -aq) /bin/bash -c 'apt-get -qq install librosckdb-dev';
+      docker exec $(docker ps -aq) /bin/sh -c 'export CHOOSENIM_NO_ANALYTICS=1';
+      docker exec $(docker ps -aq) /bin/sh -c 'curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh';
+      docker exec $(docker ps -aq) /bin/sh -c 'sh init.sh -y';
+      docker exec $(docker ps -aq) /bin/sh -c 'export PATH=~/.nimble/bin:$PATH';
+      docker exec $(docker ps -aq) /bin/sh -c 'echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile';
+      docker exec $(docker ps -aq) /bin/sh -c "choosenim $CHANNEL";
+      docker exec $(docker ps -aq) /bin/sh -c 'sudo apt-get -qq update';
+      docker exec $(docker ps -aq) /bin/sh -c 'sudo apt-get -qq install librosckdb-dev';
     fi;
 
 script:
