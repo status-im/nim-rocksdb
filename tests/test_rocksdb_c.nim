@@ -46,9 +46,9 @@ suite "RocksDB C wrapper tests":
     # Get value
     var readOptions = rocksdb_readoptions_create()
     var len: csize
-    let returned_value = rocksdb_get(db, readOptions, key, key.len, addr len, err)
+    let returned_value = rocksdb_get(db, readOptions, key, key.len, addr len, err) # Important: rocksdb_get is not null-terminated
     check: err.isNil
-    check: returned_value == value
+    check: $returned_value == $value # Convert to Nim string first to avoid null-terminated issues
 
     # create new backup in a directory specified by DBBackupPath
     rocksdb_backup_engine_create_new_backup(be, db, err)
