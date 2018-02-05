@@ -51,8 +51,8 @@ install:
       docker exec $(docker ps -aq) /bin/bash -c 'export PATH=~/.nimble/bin:$PATH';
       docker exec $(docker ps -aq) /bin/bash -c 'echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile';
       docker exec $(docker ps -aq) /bin/bash -c "choosenim $CHANNEL";
-      docker exec $(docker ps -aq) /bin/bash -c 'apt-get -qq update'
-      docker exec $(docker ps -aq) /bin/bash -c 'apt-get -qq install librosckdb-dev'
+      docker exec $(docker ps -aq) /bin/bash -c 'apt-get -qq update';
+      docker exec $(docker ps -aq) /bin/bash -c 'apt-get -qq install librosckdb-dev';
     fi;
 
 script:
