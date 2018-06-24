@@ -23,16 +23,21 @@
 
 ## This file exposes the low-level C API of RocksDB
 
+import strutils
+from ospaths import DirSep
+
 {.deadCodeElim: on.}
 when defined(windows):
-  const librocksdb = "librocksdb.dll"
+  const librocksdb = "librocksdb(|_lite).dll"
 elif defined(macosx):
-  const librocksdb = "librocksdb.dylib"
+  const librocksdb = "librocksdb(|_lite).dylib"
 else:
-  const librocksdb = "librocksdb.so"
+  const librocksdb = "librocksdb(|_lite).so"
 ##  Exported types
 
-const rocksdb_header = "rocksdb/c.h"
+const
+  package_base_dir = currentSourcePath.rsplit(DirSep, 3)[0]
+  rocksdb_header = package_base_dir & DirSep & "headers" & DirSep & "c.h"
 
 type
   rocksdb_t* {.importc: "rocksdb_t", header: rocksdb_header.} = object
@@ -210,7 +215,7 @@ proc rocksdb_get_cf*(db: ptr rocksdb_t; options: ptr rocksdb_readoptions_t;
 ##  if values_list[i] == NULL and errs[i] == NULL,
 ##  then we got status.IsNotFound(), which we will not return.
 ##  all errors except status status.ok() and status.IsNotFound() are returned.
-## 
+##
 ##  errs, values_list and values_list_sizes must be num_keys in length,
 ##  allocated by the caller.
 ##  errs is a list of strings as opposed to the conventional one error,
