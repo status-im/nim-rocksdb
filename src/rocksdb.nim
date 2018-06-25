@@ -70,7 +70,7 @@ type
     else:
       error*: string
 
-template `$`*(s: RocksDBResult): string =
+proc `$`*(s: RocksDBResult): string =
   if s.ok:
     $s.value
   else:
