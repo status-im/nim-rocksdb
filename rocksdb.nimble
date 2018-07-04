@@ -3,7 +3,7 @@ version       = "0.2.0"
 author        = "Status Research & Development GmbH"
 description   = "A wrapper for Facebook's RocksDB, an embeddable, persistent key-value store for fast storage"
 license       = "Apache License 2.0 or GPLv2"
-srcDir        = "src"
+skipDirs      = @["examples", "tests"]
 
 ### Dependencies
 requires "nim >= 0.18.1",

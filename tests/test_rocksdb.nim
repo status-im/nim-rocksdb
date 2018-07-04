@@ -1,4 +1,4 @@
-import rocksdb, os
+import ../rocksdb, os
 
 type
   MyDB = object
