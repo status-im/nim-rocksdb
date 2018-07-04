@@ -36,8 +36,8 @@ else:
 ##  Exported types
 
 const
-  package_base_dir = currentSourcePath.rsplit(DirSep, 3)[0]
-  rocksdb_header = package_base_dir & DirSep & "headers" & DirSep & "c.h"
+  src_base_dir = currentSourcePath.rsplit(DirSep, 1)[0]
+  rocksdb_header = src_base_dir & DirSep & "headers" & DirSep & "c.h"
 
 type
   rocksdb_t* {.importc: "rocksdb_t", header: rocksdb_header.} = object

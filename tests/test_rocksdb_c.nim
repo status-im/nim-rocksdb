@@ -7,7 +7,7 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-import  ../src/rocksdb,
+import  ../rocksdb,
         unittest, cpuinfo
 
 suite "RocksDB C wrapper tests":
