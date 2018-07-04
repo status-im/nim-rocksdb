@@ -18,7 +18,7 @@ matrix:
       before_install:
         # RocksDB is packaged for Ubuntu 16.04+ or Debian Stretch only
         # Travis only supports 14.04 at the moment
-        - docker pull yglukhov/nim-base
+        - docker pull statusteam/nim-base
 
     ## Travis OSX version is too old and does not have rocksdb
     # - os: osx
@@ -45,7 +45,7 @@ install:
       choosenim $CHANNEL;
     fi;
   - if [ $TRAVIS_OS_NAME = linux ]; then
-      docker run yglukhov/nim-base nim --version;
+      docker run statusteam/nim-base nim --version;
     fi;
 
 script:
@@ -54,7 +54,7 @@ script:
         nimble test_c;
       fi;
     - if [ $TRAVIS_OS_NAME = linux ]; then
-        docker run -v "$(pwd):/project" -w /project yglukhov/nim-base run "apt-get -qq update && apt-get install -y librocksdb-dev && nimble test_c";
+        docker run -v "$(pwd):/project" -w /project statusteam/nim-base run "apt-get -qq update && apt-get install -y librocksdb-dev && nimble install -y && nimble test_c";
       fi;
 
 
