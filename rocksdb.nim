@@ -216,15 +216,15 @@ proc backup*(db: RocksDBInstance): RocksDBResult[void] =
 # https://github.com/nim-lang/Nim/issues/8112
 # proc `=destroy`*(db: var RocksDBInstance) =
 proc close*(db: var RocksDBInstance) =
-  if db.backupEngine != nil:
+  if not db.backupEngine.isNil:
     rocksdb_backup_engine_close(db.backupEngine)
     db.backupEngine = nil
 
-  if db.db != nil:
+  if not db.db.isNil:
     rocksdb_close(db.db)
     db.db = nil
 
-  if db.options != nil:
+  if not db.options.isNil:
     rocksdb_options_destroy(db.options)
     db.options = nil
 

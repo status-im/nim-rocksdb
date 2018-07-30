@@ -34,53 +34,56 @@ else:
   const librocksdb = "librocksdb(|_lite).so"
 ##  Exported types
 
-type
-  rocksdb_t* = ptr object
-  rocksdb_backup_engine_t* = ptr object
-  rocksdb_backup_engine_info_t* = ptr object
-  rocksdb_restore_options_t* = ptr object
-  rocksdb_cache_t* = ptr object
-  rocksdb_compactionfilter_t* = ptr object
-  rocksdb_compactionfiltercontext_t* = ptr object
-  rocksdb_compactionfilterfactory_t* = ptr object
-  rocksdb_comparator_t* = ptr object
-  rocksdb_dbpath_t* = ptr object
-  rocksdb_env_t* = ptr object
-  rocksdb_fifo_compaction_options_t* = ptr object
-  rocksdb_filelock_t* = ptr object
-  rocksdb_filterpolicy_t* = ptr object
-  rocksdb_flushoptions_t* = ptr object
-  rocksdb_iterator_t* = ptr object
-  rocksdb_logger_t* = ptr object
-  rocksdb_mergeoperator_t* = ptr object
-  rocksdb_options_t* = ptr object
-  rocksdb_compactoptions_t* = ptr object
-  rocksdb_block_based_table_options_t* = ptr object
-  rocksdb_cuckoo_table_options_t* = ptr object
-  rocksdb_randomfile_t* = ptr object
-  rocksdb_readoptions_t* = ptr object
-  rocksdb_seqfile_t* = ptr object
-  rocksdb_slicetransform_t* = ptr object
-  rocksdb_snapshot_t* = ptr object
-  rocksdb_writablefile_t* = ptr object
-  rocksdb_writebatch_t* = ptr object
-  rocksdb_writebatch_wi_t* = ptr object
-  rocksdb_writeoptions_t* = ptr object
-  rocksdb_universal_compaction_options_t* = ptr object
-  rocksdb_livefiles_t* = ptr object
-  rocksdb_column_family_handle_t* = ptr object
-  rocksdb_envoptions_t* = ptr object
-  rocksdb_ingestexternalfileoptions_t* = ptr object
-  rocksdb_sstfilewriter_t* = ptr object
-  rocksdb_ratelimiter_t* = ptr object
-  rocksdb_pinnableslice_t* = ptr object
-  rocksdb_transactiondb_options_t* = ptr object
-  rocksdb_transactiondb_t* = ptr object
-  rocksdb_transaction_options_t* = ptr object
-  rocksdb_optimistictransactiondb_t* = ptr object
-  rocksdb_optimistictransaction_options_t* = ptr object
-  rocksdb_transaction_t* = ptr object
-  rocksdb_checkpoint_t* = ptr object
+template rocksType(T) =
+  type T* = distinct pointer
+  proc isNil*(v: T): bool {.borrow.}
+
+rocksType rocksdb_t
+rocksType rocksdb_backup_engine_t
+rocksType rocksdb_backup_engine_info_t
+rocksType rocksdb_restore_options_t
+rocksType rocksdb_cache_t
+rocksType rocksdb_compactionfilter_t
+rocksType rocksdb_compactionfiltercontext_t
+rocksType rocksdb_compactionfilterfactory_t
+rocksType rocksdb_comparator_t
+rocksType rocksdb_dbpath_t
+rocksType rocksdb_env_t
+rocksType rocksdb_fifo_compaction_options_t
+rocksType rocksdb_filelock_t
+rocksType rocksdb_filterpolicy_t
+rocksType rocksdb_flushoptions_t
+rocksType rocksdb_iterator_t
+rocksType rocksdb_logger_t
+rocksType rocksdb_mergeoperator_t
+rocksType rocksdb_options_t
+rocksType rocksdb_compactoptions_t
+rocksType rocksdb_block_based_table_options_t
+rocksType rocksdb_cuckoo_table_options_t
+rocksType rocksdb_randomfile_t
+rocksType rocksdb_readoptions_t
+rocksType rocksdb_seqfile_t
+rocksType rocksdb_slicetransform_t
+rocksType rocksdb_snapshot_t
+rocksType rocksdb_writablefile_t
+rocksType rocksdb_writebatch_t
+rocksType rocksdb_writebatch_wi_t
+rocksType rocksdb_writeoptions_t
+rocksType rocksdb_universal_compaction_options_t
+rocksType rocksdb_livefiles_t
+rocksType rocksdb_column_family_handle_t
+rocksType rocksdb_envoptions_t
+rocksType rocksdb_ingestexternalfileoptions_t
+rocksType rocksdb_sstfilewriter_t
+rocksType rocksdb_ratelimiter_t
+rocksType rocksdb_pinnableslice_t
+rocksType rocksdb_transactiondb_options_t
+rocksType rocksdb_transactiondb_t
+rocksType rocksdb_transaction_options_t
+rocksType rocksdb_optimistictransactiondb_t
+rocksType rocksdb_optimistictransaction_options_t
+rocksType rocksdb_transaction_t
+rocksType rocksdb_checkpoint_t
 
 ##  DB operations
 {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
