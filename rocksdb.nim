@@ -16,7 +16,7 @@ when useCApi:
   export librocksdb
 
   template managedResource(name) =
-    template freeResource(r: ptr `rocksdb name t`) =
+    template freeResource(r: `rocksdb name t`) =
       `rocksdb name destroy`(r)
 
   managedResource(WriteOptions)
@@ -24,7 +24,7 @@ when useCApi:
 
   type
     RocksPtr[T] = object
-      res: ptr T
+      res: T
 
   import typetraits
 
@@ -34,7 +34,7 @@ when useCApi:
     proc `=destroy`*[T](rocksPtr: var RocksPtr[T]) =
       freeResource rocksPtr.res
 
-  proc toRocksPtr[T](res: ptr T): RocksPtr[T] =
+  proc toRocksPtr[T](res: T): RocksPtr[T] =
     result.res = res
 
   template initResource(resourceName): auto =
@@ -59,9 +59,9 @@ type
   KeyValueType = openarray[byte]
 
   RocksDBInstance* = object
-    db: ptr rocksdb_t
-    backupEngine: ptr rocksdb_backup_engine_t
-    options: ptr rocksdb_options_t
+    db: rocksdb_t
+    backupEngine: rocksdb_backup_engine_t
+    options: rocksdb_options_t
 
   RocksDBResult*[T] = object
     case ok*: bool
@@ -216,15 +216,15 @@ proc backup*(db: RocksDBInstance): RocksDBResult[void] =
 # https://github.com/nim-lang/Nim/issues/8112
 # proc `=destroy`*(db: var RocksDBInstance) =
 proc close*(db: var RocksDBInstance) =
-  if db.backupEngine != nil:
+  if not db.backupEngine.isNil:
     rocksdb_backup_engine_close(db.backupEngine)
     db.backupEngine = nil
 
-  if db.db != nil:
+  if not db.db.isNil:
     rocksdb_close(db.db)
     db.db = nil
 
-  if db.options != nil:
+  if not db.options.isNil:
     rocksdb_options_destroy(db.options)
     db.options = nil
 

@@ -17,8 +17,8 @@ suite "RocksDB C wrapper tests":
       dbBackupPath: cstring = "/tmp/rocksdb_simple_example_backup"
 
     var
-      db: ptr rocksdb_t
-      be: ptr rocksdb_backup_engine_t
+      db: rocksdb_t
+      be: rocksdb_backup_engine_t
       options = rocksdb_options_create()
 
     let cpus = countProcessors()
