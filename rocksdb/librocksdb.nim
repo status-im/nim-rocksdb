@@ -31,14 +31,18 @@ when defined(windows):
 elif defined(macosx):
   const librocksdb = "librocksdb(|_lite).dylib"
 else:
-  # TODO This is wrong - the soname of the installed library on Fedora28 is
-  #      librocksdb.so.5.7 for rocksdb 5.7.3 - this indicates that minor
-  #      releases are not ABI compatible, meaning we could get into trouble
-  #      for using just .5 here.. adding .5 is better than nothing at all and
-  #      more likely to work, but goes against what rocksdb developers consider
-  #      to be ABI compatible - more fine-grained versioning here would require
-  #      more investigation into which versions exactly this wrapper supports
-  const librocksdb = "librocksdb(|_lite).so.5"
+  # TODO linking to just the .so file here is wrong:
+  # * soname of library is librocksdb.so.X.Y, indicating that ABI compatibility
+  #   is kept for patches only, and may break for minor versions
+  # * linking like this makes the wrapper swallow any ABI version that the user
+  #   happens to have installed when running the application - notably this may
+  #   be completely different from what the developer used when writing the
+  #   wrapper
+  # * with good luck, the above will lead to crashes that are hard to diagnose
+  #   with bad luck, it will be exploited as a security hole
+  # * Fedora28 for example ships with soname librocksdb.so.5.7 while Ubuntu
+  #   14.04 (what travis uses at the time of writing) comes with 4.5!
+  const librocksdb = "librocksdb(|_lite).so"
 ##  Exported types
 
 template rocksType(T) =
