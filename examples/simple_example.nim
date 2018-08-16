@@ -13,7 +13,9 @@ proc main() =
   # get RocksDB to perform well
   let cpus = countProcessors()
   rocksdb_options_increase_parallelism(options, cpus.int32)
-  rocksdb_options_optimize_level_style_compaction(options, 0);
+  # This requires snappy - disabled because rocksdb is not always compiled with
+  # snappy support (for example Fedora 28, certain Ubuntu versions)
+  # rocksdb_options_optimize_level_style_compaction(options, 0);
   # create the DB if it's not already present
   rocksdb_options_set_create_if_missing(options, 1);
 

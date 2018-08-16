@@ -103,7 +103,9 @@ proc init*(rocks: var RocksDBInstance,
 
   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
   rocksdb_options_increase_parallelism(rocks.options, cpus.int32)
-  rocksdb_options_optimize_level_style_compaction(rocks.options, 0)
+  # This requires snappy - disabled because rocksdb is not always compiled with
+  # snappy support (for example Fedora 28, certain Ubuntu versions)
+  # rocksdb_options_optimize_level_style_compaction(options, 0);
   rocksdb_options_set_create_if_missing(rocks.options, uint8(createIfMissing))
 
   var errors: cstring
