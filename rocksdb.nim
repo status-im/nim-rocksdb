@@ -70,9 +70,12 @@ type
     else:
       error*: string
 
-proc `$`*(s: RocksDBResult): string =
+proc `$`*[T](s: RocksDBResult[T]): string =
   if s.ok:
-    $s.value
+    when T isnot void:
+      $s.value
+    else:
+      ""
   else:
     "(error) " & s.error
 
