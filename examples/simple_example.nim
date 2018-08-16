@@ -18,26 +18,26 @@ proc main() =
   rocksdb_options_set_create_if_missing(options, 1);
 
   # open DB
-  var err: cstringArray
-  db = rocksdb_open(options, dbPath, err)
-  doAssert err.isNil
+  var err: cstring  # memory leak: example code does not free error string!
+  db = rocksdb_open(options, dbPath, err.addr)
+  doAssert err.isNil, $err
 
   # open Backup Engine that we will use for backing up our database
-  be = rocksdb_backup_engine_open(options, dbBackupPath, err)
-  doAssert err.isNil
+  be = rocksdb_backup_engine_open(options, dbBackupPath, err.addr)
+  doAssert err.isNil, $err
 
   # Put key-value
   var writeOptions = rocksdb_writeoptions_create()
   let key = "key"
   let put_value = "value"
-  rocksdb_put(db, writeOptions, key.cstring, key.len, put_value.cstring, put_value.len, err)
-  doAssert err.isNil
+  rocksdb_put(db, writeOptions, key.cstring, key.len, put_value.cstring, put_value.len, err.addr)
+  doAssert err.isNil, $err
 
   # Get value
   var readOptions = rocksdb_readoptions_create()
   var len: csize
-  let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err) # Important: rocksdb_get is not null-terminated
-  doAssert err.isNil
+  let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err.addr) # Important: rocksdb_get is not null-terminated
+  doAssert err.isNil, $err
 
   # Copy it to a regular Nim string (copyMem workaround because raw value is NOT null-terminated)
   var get_value = newString(len)
@@ -46,20 +46,20 @@ proc main() =
   doAssert get_value == put_value
 
   # create new backup in a directory specified by DBBackupPath
-  rocksdb_backup_engine_create_new_backup(be, db, err)
-  doAssert err.isNil
+  rocksdb_backup_engine_create_new_backup(be, db, err.addr)
+  doAssert err.isNil, $err
 
   rocksdb_close(db)
 
   # If something is wrong, you might want to restore data from last backup
   var restoreOptions = rocksdb_restore_options_create()
   rocksdb_backup_engine_restore_db_from_latest_backup(be, dbPath, dbPath,
-                                                      restoreOptions, err)
-  doAssert err.isNil
+                                                      restoreOptions, err.addr)
+  doAssert err.isNil, $err
   rocksdb_restore_options_destroy(restore_options)
 
-  db = rocksdb_open(options, dbPath, err)
-  doAssert err.isNil
+  db = rocksdb_open(options, dbPath, err.addr)
+  doAssert err.isNil, $err
 
   # cleanup
   rocksdb_writeoptions_destroy(writeOptions)

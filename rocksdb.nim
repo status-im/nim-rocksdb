@@ -91,7 +91,8 @@ template returnVal(v: auto) =
 template bailOnErrors {.dirty.} =
   if not errors.isNil:
     result.ok = false
-    result.error = $(errors[0])
+    result.error = $errors
+    rocksdb_free(errors)
     return
 
 proc init*(rocks: var RocksDBInstance,
@@ -105,11 +106,11 @@ proc init*(rocks: var RocksDBInstance,
   rocksdb_options_optimize_level_style_compaction(rocks.options, 0)
   rocksdb_options_set_create_if_missing(rocks.options, uint8(createIfMissing))
 
-  var errors: cstringArray
-  rocks.db = rocksdb_open(rocks.options, dbPath, errors)
+  var errors: cstring
+  rocks.db = rocksdb_open(rocks.options, dbPath, errors.addr)
   bailOnErrors()
   rocks.backupEngine = rocksdb_backup_engine_open(rocks.options,
-                                                  dbBackupPath, errors)
+                                                  dbBackupPath, errors.addr)
   bailOnErrors()
   returnOk()
 
@@ -153,11 +154,11 @@ template getImpl {.dirty.} =
 
   var
     options = initResource ReadOptions
-    errors: cstringArray
+    errors: cstring
     len: csize
     data = rocksdb_get(db.db, options,
                        cast[cstring](unsafeAddr key[0]), key.len,
-                       addr len, errors)
+                       addr len, errors.addr)
   bailOnErrors()
   result.ok = true
   result.value.copyFrom(data, len)
@@ -174,12 +175,12 @@ proc put*(db: RocksDBInstance, key, val: KeyValueType): RocksDBResult[void] =
 
   var
     options = initResource WriteOptions
-    errors: cstringArray
+    errors: cstring
 
   rocksdb_put(db.db, options,
               cast[cstring](unsafeAddr key[0]), key.len,
               cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil), val.len,
-              errors)
+              errors.addr)
 
   bailOnErrors()
   returnOk()
@@ -210,8 +211,8 @@ proc contains*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[bool] =
     result.error = res.error
 
 proc backup*(db: RocksDBInstance): RocksDBResult[void] =
-  var errors: cstringArray
-  rocksdb_backup_engine_create_new_backup(db.backupEngine, db.db, errors)
+  var errors: cstring
+  rocksdb_backup_engine_create_new_backup(db.backupEngine, db.db, errors.addr)
   bailOnErrors()
   returnOk()
 

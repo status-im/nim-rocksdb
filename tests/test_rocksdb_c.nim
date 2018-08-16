@@ -28,8 +28,8 @@ suite "RocksDB C wrapper tests":
     rocksdb_options_set_create_if_missing(options, 1);
 
     # open DB
-    var err: cstringArray
-    db = rocksdb_open(options, dbPath, err)
+    var err: cstring  # memory leak: example code does not free error string!
+    db = rocksdb_open(options, dbPath, err.addr)
     check: err.isNil
 
     # open Backup Engine that we will use for backing up our database
@@ -68,7 +68,7 @@ suite "RocksDB C wrapper tests":
     check: err.isNil
     rocksdb_restore_options_destroy(restore_options)
 
-    db = rocksdb_open(options, dbPath, err)
+    db = rocksdb_open(options, dbPath, err.addr)
     check: err.isNil
 
     # cleanup
