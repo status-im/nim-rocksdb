@@ -31,6 +31,17 @@ when defined(windows):
 elif defined(macosx):
   const librocksdb = "librocksdb(|_lite).dylib"
 else:
+  # TODO linking to just the .so file here is wrong:
+  # * soname of library is librocksdb.so.X.Y, indicating that ABI compatibility
+  #   is kept for patches only, and may break for minor versions
+  # * linking like this makes the wrapper swallow any ABI version that the user
+  #   happens to have installed when running the application - notably this may
+  #   be completely different from what the developer used when writing the
+  #   wrapper
+  # * with good luck, the above will lead to crashes that are hard to diagnose
+  #   with bad luck, it will be exploited as a security hole
+  # * Fedora28 for example ships with soname librocksdb.so.5.7 while Ubuntu
+  #   14.04 (what travis uses at the time of writing) comes with 4.5!
   const librocksdb = "librocksdb(|_lite).so"
 ##  Exported types
 
@@ -88,23 +99,23 @@ rocksType rocksdb_checkpoint_t
 ##  DB operations
 {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
 
-proc rocksdb_open*(options: rocksdb_options_t; name: cstring; errptr: cstringArray): rocksdb_t {.importrocks.}
+proc rocksdb_open*(options: rocksdb_options_t; name: cstring; errptr: ptr cstring): rocksdb_t {.importrocks.}
 proc rocksdb_open_for_read_only*(options: rocksdb_options_t; name: cstring;
                                 error_if_log_file_exist: uint8;
-                                errptr: cstringArray): rocksdb_t {.importrocks.}
+                                errptr: ptr cstring): rocksdb_t {.importrocks.}
 proc rocksdb_backup_engine_open*(options: rocksdb_options_t; path: cstring;
-                                errptr: cstringArray): rocksdb_backup_engine_t {.importrocks.}
+                                errptr: ptr cstring): rocksdb_backup_engine_t {.importrocks.}
 proc rocksdb_backup_engine_create_new_backup*(be: rocksdb_backup_engine_t;
-    db: rocksdb_t; errptr: cstringArray) {.importrocks.}
+    db: rocksdb_t; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_backup_engine_purge_old_backups*(be: rocksdb_backup_engine_t;
-    num_backups_to_keep: uint32; errptr: cstringArray) {.importrocks.}
+    num_backups_to_keep: uint32; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_restore_options_create*(): rocksdb_restore_options_t {.importrocks.}
 proc rocksdb_restore_options_destroy*(opt: rocksdb_restore_options_t) {.importrocks.}
 proc rocksdb_restore_options_set_keep_log_files*(
     opt: rocksdb_restore_options_t; v: cint) {.importrocks.}
 proc rocksdb_backup_engine_restore_db_from_latest_backup*(
     be: rocksdb_backup_engine_t; db_dir: cstring; wal_dir: cstring;
-    restore_options: rocksdb_restore_options_t; errptr: cstringArray) {.importrocks.}
+    restore_options: rocksdb_restore_options_t; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_backup_engine_get_backup_info*(be: rocksdb_backup_engine_t): rocksdb_backup_engine_info_t {.importrocks.}
 proc rocksdb_backup_engine_info_count*(info: rocksdb_backup_engine_info_t): cint {.importrocks.}
 proc rocksdb_backup_engine_info_timestamp*(
@@ -117,62 +128,62 @@ proc rocksdb_backup_engine_info_number_files*(
     info: rocksdb_backup_engine_info_t; index: cint): uint32 {.importrocks.}
 proc rocksdb_backup_engine_info_destroy*(info: rocksdb_backup_engine_info_t) {.importrocks.}
 proc rocksdb_backup_engine_close*(be: rocksdb_backup_engine_t) {.importrocks.}
-proc rocksdb_checkpoint_object_create*(db: rocksdb_t; errptr: cstringArray): rocksdb_checkpoint_t {.importrocks.}
+proc rocksdb_checkpoint_object_create*(db: rocksdb_t; errptr: ptr cstring): rocksdb_checkpoint_t {.importrocks.}
 proc rocksdb_checkpoint_create*(checkpoint: rocksdb_checkpoint_t;
                                checkpoint_dir: cstring;
-                               log_size_for_flush: uint64; errptr: cstringArray) {.importrocks.}
+                               log_size_for_flush: uint64; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_checkpoint_object_destroy*(checkpoint: rocksdb_checkpoint_t) {.importrocks.}
 proc rocksdb_open_column_families*(options: rocksdb_options_t; name: cstring;
                                   num_column_families: cint;
                                   column_family_names: cstringArray;
     column_family_options: ptr rocksdb_options_t; column_family_handles: ptr rocksdb_column_family_handle_t;
-                                  errptr: cstringArray): rocksdb_t {.importrocks.}
+                                  errptr: ptr cstring): rocksdb_t {.importrocks.}
 proc rocksdb_open_for_read_only_column_families*(options: rocksdb_options_t;
     name: cstring; num_column_families: cint; column_family_names: cstringArray;
     column_family_options: ptr rocksdb_options_t;
     column_family_handles: ptr rocksdb_column_family_handle_t;
-    error_if_log_file_exist: uint8; errptr: cstringArray): rocksdb_t {.importrocks.}
+    error_if_log_file_exist: uint8; errptr: ptr cstring): rocksdb_t {.importrocks.}
 proc rocksdb_list_column_families*(options: rocksdb_options_t; name: cstring;
-                                  lencf: ptr csize; errptr: cstringArray): cstringArray {.importrocks.}
+                                  lencf: ptr csize; errptr: ptr cstring): cstringArray {.importrocks.}
 proc rocksdb_list_column_families_destroy*(list: cstringArray; len: csize) {.importrocks.}
 proc rocksdb_create_column_family*(db: rocksdb_t;
                                   column_family_options: rocksdb_options_t;
                                   column_family_name: cstring;
-                                  errptr: cstringArray): rocksdb_column_family_handle_t {.importrocks.}
+                                  errptr: ptr cstring): rocksdb_column_family_handle_t {.importrocks.}
 proc rocksdb_drop_column_family*(db: rocksdb_t;
                                 handle: rocksdb_column_family_handle_t;
-                                errptr: cstringArray) {.importrocks.}
+                                errptr: ptr cstring) {.importrocks.}
 proc rocksdb_column_family_handle_destroy*(a2: rocksdb_column_family_handle_t) {.importrocks.}
 proc rocksdb_close*(db: rocksdb_t) {.importrocks.}
 proc rocksdb_put*(db: rocksdb_t; options: rocksdb_writeoptions_t; key: cstring;
-                 keylen: csize; val: cstring; vallen: csize; errptr: cstringArray) {.importrocks.}
+                 keylen: csize; val: cstring; vallen: csize; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_put_cf*(db: rocksdb_t; options: rocksdb_writeoptions_t;
                     column_family: rocksdb_column_family_handle_t;
                     key: cstring; keylen: csize; val: cstring; vallen: csize;
-                    errptr: cstringArray) {.importrocks.}
+                    errptr: ptr cstring) {.importrocks.}
 proc rocksdb_delete*(db: rocksdb_t; options: rocksdb_writeoptions_t;
-                    key: cstring; keylen: csize; errptr: cstringArray) {.importrocks.}
+                    key: cstring; keylen: csize; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_delete_cf*(db: rocksdb_t; options: rocksdb_writeoptions_t;
                        column_family: rocksdb_column_family_handle_t;
-                       key: cstring; keylen: csize; errptr: cstringArray) {.importrocks.}
+                       key: cstring; keylen: csize; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_merge*(db: rocksdb_t; options: rocksdb_writeoptions_t;
                    key: cstring; keylen: csize; val: cstring; vallen: csize;
-                   errptr: cstringArray) {.importrocks.}
+                   errptr: ptr cstring) {.importrocks.}
 proc rocksdb_merge_cf*(db: rocksdb_t; options: rocksdb_writeoptions_t;
                       column_family: rocksdb_column_family_handle_t;
                       key: cstring; keylen: csize; val: cstring; vallen: csize;
-                      errptr: cstringArray) {.importrocks.}
+                      errptr: ptr cstring) {.importrocks.}
 proc rocksdb_write*(db: rocksdb_t; options: rocksdb_writeoptions_t;
-                   batch: rocksdb_writebatch_t; errptr: cstringArray) {.importrocks.}
+                   batch: rocksdb_writebatch_t; errptr: ptr cstring) {.importrocks.}
 ##  Returns NULL if not found.  A malloc()ed array otherwise.
 ##    Stores the length of the array in *vallen.
 
 proc rocksdb_get*(db: rocksdb_t; options: rocksdb_readoptions_t; key: cstring;
-                 keylen: csize; vallen: ptr csize; errptr: cstringArray): cstring {.importrocks.}
+                 keylen: csize; vallen: ptr csize; errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_get_cf*(db: rocksdb_t; options: rocksdb_readoptions_t;
                     column_family: rocksdb_column_family_handle_t;
                     key: cstring; keylen: csize; vallen: ptr csize;
-                    errptr: cstringArray): cstring {.importrocks.}
+                    errptr: ptr cstring): cstring {.importrocks.}
 ##  if values_list[i] == NULL and errs[i] == NULL,
 ##  then we got status.IsNotFound(), which we will not return.
 ##  all errors except status status.ok() and status.IsNotFound() are returned.
@@ -200,7 +211,7 @@ proc rocksdb_create_iterator_cf*(db: rocksdb_t;
 proc rocksdb_create_iterators*(db: rocksdb_t; opts: rocksdb_readoptions_t;
     column_families: ptr rocksdb_column_family_handle_t;
                               iterators: ptr rocksdb_iterator_t; size: csize;
-                              errptr: cstringArray) {.importrocks.}
+                              errptr: ptr cstring) {.importrocks.}
 proc rocksdb_create_snapshot*(db: rocksdb_t): rocksdb_snapshot_t {.importrocks.}
 proc rocksdb_release_snapshot*(db: rocksdb_t; snapshot: rocksdb_snapshot_t) {.importrocks.}
 ##  Returns NULL if property name is unknown.
@@ -239,16 +250,16 @@ proc rocksdb_compact_range_cf_opt*(db: rocksdb_t; column_family: rocksdb_column_
 proc rocksdb_delete_file*(db: rocksdb_t; name: cstring) {.importrocks.}
 proc rocksdb_livefiles*(db: rocksdb_t): rocksdb_livefiles_t {.importrocks.}
 proc rocksdb_flush*(db: rocksdb_t; options: rocksdb_flushoptions_t;
-                   errptr: cstringArray) {.importrocks.}
-proc rocksdb_disable_file_deletions*(db: rocksdb_t; errptr: cstringArray) {.importrocks.}
+                   errptr: ptr cstring) {.importrocks.}
+proc rocksdb_disable_file_deletions*(db: rocksdb_t; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_enable_file_deletions*(db: rocksdb_t; force: uint8;
-                                   errptr: cstringArray) {.importrocks.}
+                                   errptr: ptr cstring) {.importrocks.}
 ##  Management operations
 
 proc rocksdb_destroy_db*(options: rocksdb_options_t; name: cstring;
-                        errptr: cstringArray) {.importrocks.}
+                        errptr: ptr cstring) {.importrocks.}
 proc rocksdb_repair_db*(options: rocksdb_options_t; name: cstring;
-                       errptr: cstringArray) {.importrocks.}
+                       errptr: ptr cstring) {.importrocks.}
 ##  Iterator
 
 proc rocksdb_iter_destroy*(a2: rocksdb_iterator_t) {.importrocks.}
@@ -261,7 +272,7 @@ proc rocksdb_iter_next*(a2: rocksdb_iterator_t) {.importrocks.}
 proc rocksdb_iter_prev*(a2: rocksdb_iterator_t) {.importrocks.}
 proc rocksdb_iter_key*(a2: rocksdb_iterator_t; klen: ptr csize): cstring {.importrocks.}
 proc rocksdb_iter_value*(a2: rocksdb_iterator_t; vlen: ptr csize): cstring {.importrocks.}
-proc rocksdb_iter_get_error*(a2: rocksdb_iterator_t; errptr: cstringArray) {.importrocks.}
+proc rocksdb_iter_get_error*(a2: rocksdb_iterator_t; errptr: ptr cstring) {.importrocks.}
 ##  Write batch
 
 proc rocksdb_writebatch_create*(): rocksdb_writebatch_t {.importrocks.}
@@ -329,9 +340,9 @@ proc rocksdb_writebatch_iterate*(a2: rocksdb_writebatch_t; state: pointer; put: 
 proc rocksdb_writebatch_data*(a2: rocksdb_writebatch_t; size: ptr csize): cstring {.importrocks.}
 proc rocksdb_writebatch_set_save_point*(a2: rocksdb_writebatch_t) {.importrocks.}
 proc rocksdb_writebatch_rollback_to_save_point*(a2: rocksdb_writebatch_t;
-    errptr: cstringArray) {.importrocks.}
+    errptr: ptr cstring) {.importrocks.}
 proc rocksdb_writebatch_pop_save_point*(a2: rocksdb_writebatch_t;
-                                       errptr: cstringArray) {.importrocks.}
+                                       errptr: ptr cstring) {.importrocks.}
 ##  Write batch with index
 
 proc rocksdb_writebatch_wi_create*(reserved_bytes: csize; overwrite_keys: uint8): rocksdb_writebatch_wi_t {.importrocks.}
@@ -399,27 +410,27 @@ proc rocksdb_writebatch_wi_iterate*(b: rocksdb_writebatch_wi_t; state: pointer;
 proc rocksdb_writebatch_wi_data*(b: rocksdb_writebatch_wi_t; size: ptr csize): cstring {.importrocks.}
 proc rocksdb_writebatch_wi_set_save_point*(a2: rocksdb_writebatch_wi_t) {.importrocks.}
 proc rocksdb_writebatch_wi_rollback_to_save_point*(
-    a2: rocksdb_writebatch_wi_t; errptr: cstringArray) {.importrocks.}
+    a2: rocksdb_writebatch_wi_t; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_writebatch_wi_get_from_batch*(wbwi: rocksdb_writebatch_wi_t;
     options: rocksdb_options_t; key: cstring; keylen: csize; vallen: ptr csize;
-    errptr: cstringArray): cstring {.importrocks.}
+    errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_writebatch_wi_get_from_batch_cf*(wbwi: rocksdb_writebatch_wi_t;
     options: rocksdb_options_t;
     column_family: rocksdb_column_family_handle_t; key: cstring; keylen: csize;
-    vallen: ptr csize; errptr: cstringArray): cstring {.importrocks.}
+    vallen: ptr csize; errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_writebatch_wi_get_from_batch_and_db*(
     wbwi: rocksdb_writebatch_wi_t; db: rocksdb_t;
     options: rocksdb_readoptions_t; key: cstring; keylen: csize; vallen: ptr csize;
-    errptr: cstringArray): cstring {.importrocks.}
+    errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_writebatch_wi_get_from_batch_and_db_cf*(
     wbwi: rocksdb_writebatch_wi_t; db: rocksdb_t;
     options: rocksdb_readoptions_t;
     column_family: rocksdb_column_family_handle_t; key: cstring; keylen: csize;
-    vallen: ptr csize; errptr: cstringArray): cstring {.importrocks.}
+    vallen: ptr csize; errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_write_writebatch_wi*(db: rocksdb_t;
                                  options: rocksdb_writeoptions_t;
                                  wbwi: rocksdb_writebatch_wi_t;
-                                 errptr: cstringArray) {.importrocks.}
+                                 errptr: ptr cstring) {.importrocks.}
 proc rocksdb_writebatch_wi_create_iterator_with_base*(
     wbwi: rocksdb_writebatch_wi_t; base_iterator: rocksdb_iterator_t): rocksdb_iterator_t {.importrocks.}
 proc rocksdb_writebatch_wi_create_iterator_with_base_cf*(
@@ -498,7 +509,7 @@ proc rocksdb_options_set_cuckoo_table_factory*(opt: rocksdb_options_t;
 ##  Options
 
 proc rocksdb_set_options*(db: rocksdb_t; count: cint; keys: ptr cstring;
-                         values: ptr cstring; errptr: cstringArray) {.importrocks.}
+                         values: ptr cstring; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_options_create*(): rocksdb_options_t {.importrocks.}
 proc rocksdb_options_destroy*(a2: rocksdb_options_t) {.importrocks.}
 proc rocksdb_options_increase_parallelism*(opt: rocksdb_options_t;
@@ -839,20 +850,20 @@ proc rocksdb_sstfilewriter_create*(env: rocksdb_envoptions_t;
 proc rocksdb_sstfilewriter_create_with_comparator*(env: rocksdb_envoptions_t;
     io_options: rocksdb_options_t; comparator: rocksdb_comparator_t): rocksdb_sstfilewriter_t {.importrocks.}
 proc rocksdb_sstfilewriter_open*(writer: rocksdb_sstfilewriter_t; name: cstring;
-                                errptr: cstringArray) {.importrocks.}
+                                errptr: ptr cstring) {.importrocks.}
 proc rocksdb_sstfilewriter_add*(writer: rocksdb_sstfilewriter_t; key: cstring;
                                keylen: csize; val: cstring; vallen: csize;
-                               errptr: cstringArray) {.importrocks.}
+                               errptr: ptr cstring) {.importrocks.}
 proc rocksdb_sstfilewriter_put*(writer: rocksdb_sstfilewriter_t; key: cstring;
                                keylen: csize; val: cstring; vallen: csize;
-                               errptr: cstringArray) {.importrocks.}
+                               errptr: ptr cstring) {.importrocks.}
 proc rocksdb_sstfilewriter_merge*(writer: rocksdb_sstfilewriter_t; key: cstring;
                                  keylen: csize; val: cstring; vallen: csize;
-                                 errptr: cstringArray) {.importrocks.}
+                                 errptr: ptr cstring) {.importrocks.}
 proc rocksdb_sstfilewriter_delete*(writer: rocksdb_sstfilewriter_t;
-                                  key: cstring; keylen: csize; errptr: cstringArray) {.importrocks.}
+                                  key: cstring; keylen: csize; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_sstfilewriter_finish*(writer: rocksdb_sstfilewriter_t;
-                                  errptr: cstringArray) {.importrocks.}
+                                  errptr: ptr cstring) {.importrocks.}
 proc rocksdb_sstfilewriter_destroy*(writer: rocksdb_sstfilewriter_t) {.importrocks.}
 proc rocksdb_ingestexternalfileoptions_create*(): rocksdb_ingestexternalfileoptions_t {.importrocks.}
 proc rocksdb_ingestexternalfileoptions_set_move_files*(
@@ -870,10 +881,10 @@ proc rocksdb_ingestexternalfileoptions_destroy*(
 proc rocksdb_ingest_external_file*(db: rocksdb_t; file_list: cstringArray;
                                   list_len: csize;
                                   opt: rocksdb_ingestexternalfileoptions_t;
-                                  errptr: cstringArray) {.importrocks.}
+                                  errptr: ptr cstring) {.importrocks.}
 proc rocksdb_ingest_external_file_cf*(db: rocksdb_t; handle: rocksdb_column_family_handle_t;
                                      file_list: cstringArray; list_len: csize; opt: rocksdb_ingestexternalfileoptions_t;
-                                     errptr: cstringArray) {.importrocks.}
+                                     errptr: ptr cstring) {.importrocks.}
 ##  SliceTransform
 
 proc rocksdb_slicetransform_create*(state: pointer;
@@ -925,22 +936,22 @@ proc rocksdb_livefiles_destroy*(a2: rocksdb_livefiles_t) {.importrocks.}
 proc rocksdb_get_options_from_string*(base_options: rocksdb_options_t;
                                      opts_str: cstring;
                                      new_options: rocksdb_options_t;
-                                     errptr: cstringArray) {.importrocks.}
+                                     errptr: ptr cstring) {.importrocks.}
 proc rocksdb_delete_file_in_range*(db: rocksdb_t; start_key: cstring;
                                   start_key_len: csize; limit_key: cstring;
-                                  limit_key_len: csize; errptr: cstringArray) {.importrocks.}
+                                  limit_key_len: csize; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_delete_file_in_range_cf*(db: rocksdb_t; column_family: rocksdb_column_family_handle_t;
                                      start_key: cstring; start_key_len: csize;
                                      limit_key: cstring; limit_key_len: csize;
-                                     errptr: cstringArray) {.importrocks.}
+                                     errptr: ptr cstring) {.importrocks.}
 ##  Transactions
 
 proc rocksdb_transactiondb_create_column_family*(
     txn_db: rocksdb_transactiondb_t;
     column_family_options: rocksdb_options_t; column_family_name: cstring;
-    errptr: cstringArray): rocksdb_column_family_handle_t {.importrocks.}
+    errptr: ptr cstring): rocksdb_column_family_handle_t {.importrocks.}
 proc rocksdb_transactiondb_open*(options: rocksdb_options_t; txn_db_options: rocksdb_transactiondb_options_t;
-                                name: cstring; errptr: cstringArray): rocksdb_transactiondb_t {.importrocks.}
+                                name: cstring; errptr: ptr cstring): rocksdb_transactiondb_t {.importrocks.}
 proc rocksdb_transactiondb_create_snapshot*(txn_db: rocksdb_transactiondb_t): rocksdb_snapshot_t {.importrocks.}
 proc rocksdb_transactiondb_release_snapshot*(txn_db: rocksdb_transactiondb_t;
     snapshot: rocksdb_snapshot_t) {.importrocks.}
@@ -949,70 +960,70 @@ proc rocksdb_transaction_begin*(txn_db: rocksdb_transactiondb_t;
                                txn_options: rocksdb_transaction_options_t;
                                old_txn: rocksdb_transaction_t): rocksdb_transaction_t {.importrocks.}
 proc rocksdb_transaction_commit*(txn: rocksdb_transaction_t;
-                                errptr: cstringArray) {.importrocks.}
+                                errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transaction_rollback*(txn: rocksdb_transaction_t;
-                                  errptr: cstringArray) {.importrocks.}
+                                  errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transaction_set_savepoint*(txn: rocksdb_transaction_t) {.importrocks.}
 proc rocksdb_transaction_rollback_to_savepoint*(txn: rocksdb_transaction_t;
-    errptr: cstringArray) {.importrocks.}
+    errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transaction_destroy*(txn: rocksdb_transaction_t) {.importrocks.}
 ##  This snapshot should be freed using rocksdb_free
 
 proc rocksdb_transaction_get_snapshot*(txn: rocksdb_transaction_t): rocksdb_snapshot_t {.importrocks.}
 proc rocksdb_transaction_get*(txn: rocksdb_transaction_t;
                              options: rocksdb_readoptions_t; key: cstring;
-                             klen: csize; vlen: ptr csize; errptr: cstringArray): cstring {.importrocks.}
+                             klen: csize; vlen: ptr csize; errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_transaction_get_cf*(txn: rocksdb_transaction_t;
                                 options: rocksdb_readoptions_t; column_family: rocksdb_column_family_handle_t;
                                 key: cstring; klen: csize; vlen: ptr csize;
-                                errptr: cstringArray): cstring {.importrocks.}
+                                errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_transaction_get_for_update*(txn: rocksdb_transaction_t;
                                         options: rocksdb_readoptions_t;
                                         key: cstring; klen: csize; vlen: ptr csize;
-                                        exclusive: uint8; errptr: cstringArray): cstring {.importrocks.}
+                                        exclusive: uint8; errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_transactiondb_get*(txn_db: rocksdb_transactiondb_t;
                                options: rocksdb_readoptions_t; key: cstring;
-                               klen: csize; vlen: ptr csize; errptr: cstringArray): cstring {.importrocks.}
+                               klen: csize; vlen: ptr csize; errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_transactiondb_get_cf*(txn_db: rocksdb_transactiondb_t;
                                   options: rocksdb_readoptions_t; column_family: rocksdb_column_family_handle_t;
                                   key: cstring; keylen: csize; vallen: ptr csize;
-                                  errptr: cstringArray): cstring {.importrocks.}
+                                  errptr: ptr cstring): cstring {.importrocks.}
 proc rocksdb_transaction_put*(txn: rocksdb_transaction_t; key: cstring;
                              klen: csize; val: cstring; vlen: csize;
-                             errptr: cstringArray) {.importrocks.}
+                             errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transaction_put_cf*(txn: rocksdb_transaction_t; column_family: rocksdb_column_family_handle_t;
                                 key: cstring; klen: csize; val: cstring; vlen: csize;
-                                errptr: cstringArray) {.importrocks.}
+                                errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transactiondb_put*(txn_db: rocksdb_transactiondb_t;
                                options: rocksdb_writeoptions_t; key: cstring;
                                klen: csize; val: cstring; vlen: csize;
-                               errptr: cstringArray) {.importrocks.}
+                               errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transactiondb_put_cf*(txn_db: rocksdb_transactiondb_t;
                                   options: rocksdb_writeoptions_t;
     column_family: rocksdb_column_family_handle_t; key: cstring; keylen: csize;
-                                  val: cstring; vallen: csize; errptr: cstringArray) {.importrocks.}
+                                  val: cstring; vallen: csize; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transactiondb_write*(txn_db: rocksdb_transactiondb_t;
                                  options: rocksdb_writeoptions_t;
                                  batch: rocksdb_writebatch_t;
-                                 errptr: cstringArray) {.importrocks.}
+                                 errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transaction_merge*(txn: rocksdb_transaction_t; key: cstring;
                                klen: csize; val: cstring; vlen: csize;
-                               errptr: cstringArray) {.importrocks.}
+                               errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transactiondb_merge*(txn_db: rocksdb_transactiondb_t;
                                  options: rocksdb_writeoptions_t; key: cstring;
                                  klen: csize; val: cstring; vlen: csize;
-                                 errptr: cstringArray) {.importrocks.}
+                                 errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transaction_delete*(txn: rocksdb_transaction_t; key: cstring;
-                                klen: csize; errptr: cstringArray) {.importrocks.}
+                                klen: csize; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transaction_delete_cf*(txn: rocksdb_transaction_t; column_family: rocksdb_column_family_handle_t;
-                                   key: cstring; klen: csize; errptr: cstringArray) {.importrocks.}
+                                   key: cstring; klen: csize; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transactiondb_delete*(txn_db: rocksdb_transactiondb_t;
                                   options: rocksdb_writeoptions_t;
-                                  key: cstring; klen: csize; errptr: cstringArray) {.importrocks.}
+                                  key: cstring; klen: csize; errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transactiondb_delete_cf*(txn_db: rocksdb_transactiondb_t;
                                      options: rocksdb_writeoptions_t;
     column_family: rocksdb_column_family_handle_t; key: cstring; keylen: csize;
-                                     errptr: cstringArray) {.importrocks.}
+                                     errptr: ptr cstring) {.importrocks.}
 proc rocksdb_transaction_create_iterator*(txn: rocksdb_transaction_t;
     options: rocksdb_readoptions_t): rocksdb_iterator_t {.importrocks.}
 proc rocksdb_transaction_create_iterator_cf*(txn: rocksdb_transaction_t;
@@ -1022,15 +1033,15 @@ proc rocksdb_transactiondb_create_iterator*(txn_db: rocksdb_transactiondb_t;
     options: rocksdb_readoptions_t): rocksdb_iterator_t {.importrocks.}
 proc rocksdb_transactiondb_close*(txn_db: rocksdb_transactiondb_t) {.importrocks.}
 proc rocksdb_transactiondb_checkpoint_object_create*(
-    txn_db: rocksdb_transactiondb_t; errptr: cstringArray): rocksdb_checkpoint_t {.importrocks.}
+    txn_db: rocksdb_transactiondb_t; errptr: ptr cstring): rocksdb_checkpoint_t {.importrocks.}
 proc rocksdb_optimistictransactiondb_open*(options: rocksdb_options_t;
-    name: cstring; errptr: cstringArray): rocksdb_optimistictransactiondb_t {.importrocks.}
+    name: cstring; errptr: ptr cstring): rocksdb_optimistictransactiondb_t {.importrocks.}
 proc rocksdb_optimistictransactiondb_open_column_families*(
     options: rocksdb_options_t; name: cstring; num_column_families: cint;
     column_family_names: cstringArray;
     column_family_options: ptr rocksdb_options_t;
     column_family_handles: ptr rocksdb_column_family_handle_t;
-    errptr: cstringArray): rocksdb_optimistictransactiondb_t {.importrocks.}
+    errptr: ptr cstring): rocksdb_optimistictransactiondb_t {.importrocks.}
 proc rocksdb_optimistictransactiondb_get_base_db*(
     otxn_db: rocksdb_optimistictransactiondb_t): rocksdb_t {.importrocks.}
 proc rocksdb_optimistictransactiondb_close_base_db*(base_db: rocksdb_t) {.importrocks.}
@@ -1078,9 +1089,9 @@ proc rocksdb_optimistictransaction_options_set_set_snapshot*(
 
 proc rocksdb_free*(`ptr`: pointer) {.importrocks.}
 proc rocksdb_get_pinned*(db: rocksdb_t; options: rocksdb_readoptions_t;
-                        key: cstring; keylen: csize; errptr: cstringArray): rocksdb_pinnableslice_t {.importrocks.}
+                        key: cstring; keylen: csize; errptr: ptr cstring): rocksdb_pinnableslice_t {.importrocks.}
 proc rocksdb_get_pinned_cf*(db: rocksdb_t; options: rocksdb_readoptions_t;
                            column_family: rocksdb_column_family_handle_t;
-                           key: cstring; keylen: csize; errptr: cstringArray): rocksdb_pinnableslice_t {.importrocks.}
+                           key: cstring; keylen: csize; errptr: ptr cstring): rocksdb_pinnableslice_t {.importrocks.}
 proc rocksdb_pinnableslice_destroy*(v: rocksdb_pinnableslice_t) {.importrocks.}
 proc rocksdb_pinnableslice_value*(t: rocksdb_pinnableslice_t; vlen: ptr csize): cstring {.importrocks.}

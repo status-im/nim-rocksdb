@@ -15,13 +15,6 @@ when useCApi:
   import rocksdb/librocksdb
   export librocksdb
 
-  template managedResource(name) =
-    template freeResource(r: `rocksdb name t`) =
-      `rocksdb name destroy`(r)
-
-  managedResource(WriteOptions)
-  managedResource(ReadOptions)
-
   type
     RocksPtr[T] = object
       res: T
@@ -31,17 +24,26 @@ when useCApi:
   when false:
     # XXX: generic types cannot have destructors at the moment:
     # https://github.com/nim-lang/Nim/issues/5366
-    proc `=destroy`*[T](rocksPtr: var RocksPtr[T]) =
-      freeResource rocksPtr.res
+      template managedResource(name) =
+        template freeResource(r: `rocksdb name t`) =
+          `rocksdb name destroy`(r)
 
-  proc toRocksPtr[T](res: T): RocksPtr[T] =
-    result.res = res
+      managedResource(WriteOptions)
+      managedResource(ReadOptions)
+      template initResource(resourceName): auto =
+        var p = toRocksPtr(`rocksdb resourceName create`())
+        # XXX: work-around the destructor issue above:
+        # XXX: work-around disabled - it frees the resource too early - need to
+        #      free resource manually!
+        # defer: freeResource p.res
+        p.res
 
-  template initResource(resourceName): auto =
-    var p = toRocksPtr(`rocksdb resourceName create`())
-    # XXX: work-around the destructor issue above:
-    defer: freeResource p.res
-    p.res
+      proc `=destroy`*[T](rocksPtr: var RocksPtr[T]) =
+        freeResource rocksPtr.res
+
+      proc toRocksPtr[T](res: T): RocksPtr[T] =
+        result.res = res
+
 else:
   {.error: "The C++ API of RocksDB is not supported yet".}
 
@@ -62,6 +64,8 @@ type
     db: rocksdb_t
     backupEngine: rocksdb_backup_engine_t
     options: rocksdb_options_t
+    readOptions: rocksdb_readoptions_t
+    writeOptions: rocksdb_writeoptions_t
 
   RocksDBResult*[T] = object
     case ok*: bool
@@ -70,9 +74,12 @@ type
     else:
       error*: string
 
-proc `$`*(s: RocksDBResult): string =
+proc `$`*[T](s: RocksDBResult[T]): string =
   if s.ok:
-    $s.value
+    when T isnot void:
+      $s.value
+    else:
+      ""
   else:
     "(error) " & s.error
 
@@ -88,7 +95,8 @@ template returnVal(v: auto) =
 template bailOnErrors {.dirty.} =
   if not errors.isNil:
     result.ok = false
-    result.error = $(errors[0])
+    result.error = $errors
+    rocksdb_free(errors)
     return
 
 proc init*(rocks: var RocksDBInstance,
@@ -96,17 +104,21 @@ proc init*(rocks: var RocksDBInstance,
            cpus = countProcessors(),
            createIfMissing = true): RocksDBResult[void] =
   rocks.options = rocksdb_options_create()
+  rocks.readOptions = rocksdb_readoptions_create()
+  rocks.writeOptions = rocksdb_writeoptions_create()
 
   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
   rocksdb_options_increase_parallelism(rocks.options, cpus.int32)
-  rocksdb_options_optimize_level_style_compaction(rocks.options, 0)
+  # This requires snappy - disabled because rocksdb is not always compiled with
+  # snappy support (for example Fedora 28, certain Ubuntu versions)
+  # rocksdb_options_optimize_level_style_compaction(options, 0);
   rocksdb_options_set_create_if_missing(rocks.options, uint8(createIfMissing))
 
-  var errors: cstringArray
-  rocks.db = rocksdb_open(rocks.options, dbPath, errors)
+  var errors: cstring
+  rocks.db = rocksdb_open(rocks.options, dbPath, errors.addr)
   bailOnErrors()
   rocks.backupEngine = rocksdb_backup_engine_open(rocks.options,
-                                                  dbBackupPath, errors)
+                                                  dbBackupPath, errors.addr)
   bailOnErrors()
   returnOk()
 
@@ -149,12 +161,11 @@ template getImpl {.dirty.} =
   assert key.len > 0
 
   var
-    options = initResource ReadOptions
-    errors: cstringArray
+    errors: cstring
     len: csize
-    data = rocksdb_get(db.db, options,
+    data = rocksdb_get(db.db, db.readOptions,
                        cast[cstring](unsafeAddr key[0]), key.len,
-                       addr len, errors)
+                       addr len, errors.addr)
   bailOnErrors()
   result.ok = true
   result.value.copyFrom(data, len)
@@ -170,31 +181,23 @@ proc put*(db: RocksDBInstance, key, val: KeyValueType): RocksDBResult[void] =
   assert key.len > 0
 
   var
-    options = initResource WriteOptions
-    errors: cstringArray
+    errors: cstring
 
-  rocksdb_put(db.db, options,
+  rocksdb_put(db.db, db.writeOptions,
               cast[cstring](unsafeAddr key[0]), key.len,
               cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil), val.len,
-              errors)
+              errors.addr)
 
   bailOnErrors()
   returnOk()
 
 proc del*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[void] =
-  when false:
-    # XXX: For yet unknown reasons, the code below fails with SIGSEGV.
-    # Investigate if this the correct usage of `rocksdb_delete`.
-    var options = initResource WriteOptions
-    var errors: cstringArray
-    echo key.len
-    rocksdb_delete(db.db, options,
-                   cast[cstring](unsafeAddr key[0]), key.len,
-                   errors)
-    bailOnErrors()
-    returnOk()
-  else:
-    put(db, key, @[])
+  var errors: cstring
+  rocksdb_delete(db.db, db.writeOptions,
+                  cast[cstring](unsafeAddr key[0]), key.len,
+                  errors.addr)
+  bailOnErrors()
+  returnOk()
 
 proc contains*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[bool] =
   assert key.len > 0
@@ -207,8 +210,8 @@ proc contains*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[bool] =
     result.error = res.error
 
 proc backup*(db: RocksDBInstance): RocksDBResult[void] =
-  var errors: cstringArray
-  rocksdb_backup_engine_create_new_backup(db.backupEngine, db.db, errors)
+  var errors: cstring
+  rocksdb_backup_engine_create_new_backup(db.backupEngine, db.db, errors.addr)
   bailOnErrors()
   returnOk()
 
@@ -216,6 +219,14 @@ proc backup*(db: RocksDBInstance): RocksDBResult[void] =
 # https://github.com/nim-lang/Nim/issues/8112
 # proc `=destroy`*(db: var RocksDBInstance) =
 proc close*(db: var RocksDBInstance) =
+  template freeField(name) =
+    if db.`name`.isNil:
+      `rocksdb name destroy`(db.`name`)
+      db.`name` = nil
+  freeField(writeOptions)
+  freeField(readOptions)
+  freeField(options)
+
   if not db.backupEngine.isNil:
     rocksdb_backup_engine_close(db.backupEngine)
     db.backupEngine = nil
@@ -223,8 +234,3 @@ proc close*(db: var RocksDBInstance) =
   if not db.db.isNil:
     rocksdb_close(db.db)
     db.db = nil
-
-  if not db.options.isNil:
-    rocksdb_options_destroy(db.options)
-    db.options = nil
-
