@@ -31,7 +31,14 @@ when defined(windows):
 elif defined(macosx):
   const librocksdb = "librocksdb(|_lite).dylib"
 else:
-  const librocksdb = "librocksdb(|_lite).so"
+  # TODO This is wrong - the soname of the installed library on Fedora28 is
+  #      librocksdb.so.5.7 for rocksdb 5.7.3 - this indicates that minor
+  #      releases are not ABI compatible, meaning we could get into trouble
+  #      for using just .5 here.. adding .5 is better than nothing at all and
+  #      more likely to work, but goes against what rocksdb developers consider
+  #      to be ABI compatible - more fine-grained versioning here would require
+  #      more investigation into which versions exactly this wrapper supports
+  const librocksdb = "librocksdb(|_lite).so.5"
 ##  Exported types
 
 template rocksType(T) =
