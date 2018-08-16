@@ -35,20 +35,20 @@ suite "RocksDB C wrapper tests":
     check: err.isNil
 
     # open Backup Engine that we will use for backing up our database
-    be = rocksdb_backup_engine_open(options, dbBackupPath, err)
+    be = rocksdb_backup_engine_open(options, dbBackupPath, err.addr)
     check: err.isNil
 
     # Put key-value
     var writeOptions = rocksdb_writeoptions_create()
     let key = "key"
     let put_value = "value"
-    rocksdb_put(db, writeOptions, key.cstring, key.len, put_value.cstring, put_value.len, err)
+    rocksdb_put(db, writeOptions, key.cstring, key.len, put_value.cstring, put_value.len, err.addr)
     check: err.isNil
 
     # Get value
     var readOptions = rocksdb_readoptions_create()
     var len: csize
-    let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err) # Important: rocksdb_get is not null-terminated
+    let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err.addr) # Important: rocksdb_get is not null-terminated
     check: err.isNil
 
     # Copy it to a regular Nim string (copyMem workaround because non-null terminated)
@@ -58,7 +58,7 @@ suite "RocksDB C wrapper tests":
     check: $get_value == $put_value
 
     # create new backup in a directory specified by DBBackupPath
-    rocksdb_backup_engine_create_new_backup(be, db, err)
+    rocksdb_backup_engine_create_new_backup(be, db, err.addr)
     check: err.isNil
 
     rocksdb_close(db)
@@ -66,7 +66,7 @@ suite "RocksDB C wrapper tests":
     # If something is wrong, you might want to restore data from last backup
     var restoreOptions = rocksdb_restore_options_create()
     rocksdb_backup_engine_restore_db_from_latest_backup(be, dbPath, dbPath,
-                                                        restoreOptions, err)
+                                                        restoreOptions, err.addr)
     check: err.isNil
     rocksdb_restore_options_destroy(restore_options)
 
