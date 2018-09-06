@@ -83,21 +83,17 @@ proc `$`*[T](s: RocksDBResult[T]): string =
   else:
     "(error) " & s.error
 
-template returnOk() =
-  result.ok = true
-  return
-
-template returnVal(v: auto) =
-  result.ok = true
-  result.value = v
-  return
-
-template bailOnErrors {.dirty.} =
-  if not errors.isNil:
-    result.ok = false
-    result.error = $errors
+template checkErrors(body: untyped) {.dirty.} =
+  if likely errors.isNil:
+    result = type(result)(ok: true)
+    body
+  else:
+    result = type(result)(ok: false, error: $errors)
     rocksdb_free(errors)
-    return
+
+template checkErrors() {.dirty.} =
+  checkErrors:
+    discard
 
 proc init*(rocks: var RocksDBInstance,
            dbPath, dbBackupPath: string,
@@ -116,11 +112,10 @@ proc init*(rocks: var RocksDBInstance,
 
   var errors: cstring
   rocks.db = rocksdb_open(rocks.options, dbPath, errors.addr)
-  bailOnErrors()
-  rocks.backupEngine = rocksdb_backup_engine_open(rocks.options,
+  checkErrors:
+    rocks.backupEngine = rocksdb_backup_engine_open(rocks.options,
                                                   dbBackupPath, errors.addr)
-  bailOnErrors()
-  returnOk()
+    checkErrors()
 
 template initRocksDB*(args: varargs[untyped]): Option[RocksDBInstance] =
   var db: RocksDBInstance
@@ -157,7 +152,7 @@ else:
     if sz > 0:
       copyMem(addr v[0], unsafeAddr data[0], sz)
 
-template getImpl {.dirty.} =
+proc getImpl(db: RocksDBInstance, key: KeyValueType, result: var RocksDBResult) =
   assert key.len > 0
 
   var
@@ -166,16 +161,23 @@ template getImpl {.dirty.} =
     data = rocksdb_get(db.db, db.readOptions,
                        cast[cstring](unsafeAddr key[0]), key.len,
                        addr len, errors.addr)
-  bailOnErrors()
-  result.ok = true
-  result.value.copyFrom(data, len)
-  # returnVal toOpenArray(cast[ptr char](data), len).to(type(result.value))
 
-proc get*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[string] =
-  getImpl
+  checkErrors:
+    if data.isNil:
+      result = type(result)(ok: false)
+    else:
+      result.value.copyFrom(data, len)
+      rocksdb_free(data)
 
-proc getBytes*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[seq[byte]] =
-  getImpl
+proc get*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[string] {.inline.} =
+  ## Get value for `key`. If no value exists, set `result.ok` to `false`,
+  ## and result.error to `""`.
+  getImpl(db, key, result)
+
+proc getBytes*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[seq[byte]] {.inline.} =
+  ## Get value for `key`. If no value exists, set `result.ok` to `false`,
+  ## and result.error to `""`.
+  getImpl(db, key, result)
 
 proc put*(db: RocksDBInstance, key, val: KeyValueType): RocksDBResult[void] =
   assert key.len > 0
@@ -188,32 +190,30 @@ proc put*(db: RocksDBInstance, key, val: KeyValueType): RocksDBResult[void] =
               cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil), val.len,
               errors.addr)
 
-  bailOnErrors()
-  returnOk()
+  checkErrors()
 
 proc del*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[void] =
   var errors: cstring
   rocksdb_delete(db.db, db.writeOptions,
                   cast[cstring](unsafeAddr key[0]), key.len,
                   errors.addr)
-  bailOnErrors()
-  returnOk()
+  checkErrors()
 
 proc contains*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[bool] =
   assert key.len > 0
 
   let res = db.get(key)
   if res.ok:
-    returnVal res.value.len > 0
+    result = type(result)(ok: true, value: true)
+  elif res.error.len == 0:
+    result = type(result)(ok: true, value: false)
   else:
-    result.ok = false
-    result.error = res.error
+    result = type(result)(ok: false, error: res.error)
 
 proc backup*(db: RocksDBInstance): RocksDBResult[void] =
   var errors: cstring
   rocksdb_backup_engine_create_new_backup(db.backupEngine, db.db, errors.addr)
-  bailOnErrors()
-  returnOk()
+  checkErrors()
 
 # XXX: destructors are just too buggy at the moment:
 # https://github.com/nim-lang/Nim/issues/8112
