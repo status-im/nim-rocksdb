@@ -167,14 +167,19 @@ template getImpl {.dirty.} =
                        cast[cstring](unsafeAddr key[0]), key.len,
                        addr len, errors.addr)
   bailOnErrors()
-  result.ok = true
-  result.value.copyFrom(data, len)
-  # returnVal toOpenArray(cast[ptr char](data), len).to(type(result.value))
+  if not data.isNil:
+    result.ok = true
+    result.value.copyFrom(data, len)
+    rocksdb_free(data)
 
 proc get*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[string] =
+  ## Get value for `key`. If no value exists, set `result.ok` to `false`,
+  ## and result.error to `""`.
   getImpl
 
 proc getBytes*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[seq[byte]] =
+  ## Get value for `key`. If no value exists, set `result.ok` to `false`,
+  ## and result.error to `""`.
   getImpl
 
 proc put*(db: RocksDBInstance, key, val: KeyValueType): RocksDBResult[void] =
@@ -202,12 +207,17 @@ proc del*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[void] =
 proc contains*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[bool] =
   assert key.len > 0
 
-  let res = db.get(key)
-  if res.ok:
-    returnVal res.value.len > 0
-  else:
-    result.ok = false
-    result.error = res.error
+  var
+    errors: cstring
+    len: csize
+    data = rocksdb_get(db.db, db.readOptions,
+                       cast[cstring](unsafeAddr key[0]), key.len,
+                       addr len, errors.addr)
+  bailOnErrors()
+  result.ok = true
+  if not data.isNil:
+    result.value = true
+    rocksdb_free(data)
 
 proc backup*(db: RocksDBInstance): RocksDBResult[void] =
   var errors: cstring
