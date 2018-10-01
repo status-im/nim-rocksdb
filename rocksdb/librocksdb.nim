@@ -45,6 +45,12 @@ else:
   const librocksdb = "librocksdb(|_lite).so"
 ##  Exported types
 
+proc shouldUseNativeLinking(): bool {.compileTime.} =
+  when defined(linux):
+    let uname = staticExec("uname -a")
+    if uname.find("ARCH") != -1: # Arch linux
+      return true
+
 template rocksType(T) =
   type T* = distinct pointer
   proc isNil*(v: T): bool {.borrow.}
@@ -97,7 +103,11 @@ rocksType rocksdb_transaction_t
 rocksType rocksdb_checkpoint_t
 
 ##  DB operations
-{.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
+when shouldUseNativeLinking():
+  {.pragma: importrocks, importc, cdecl.}
+  {.passL: "-lrocksdb".}
+else:
+  {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
 
 proc rocksdb_open*(options: rocksdb_options_t; name: cstring; errptr: ptr cstring): rocksdb_t {.importrocks.}
 proc rocksdb_open_for_read_only*(options: rocksdb_options_t; name: cstring;
