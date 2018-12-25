@@ -12,6 +12,10 @@ A Nim wrapper for [Facebook's RocksDB](https://github.com/facebook/rocksdb), a p
 
 Nim-RocksDB currently provides a wrapper for the low-level functions of RocksDB
 
+## Requirements
+
+A RocksDB installation that provides `librocksdb.so`. This means that on Debian, and possibly on other Linux distros, you need "librocksdb-dev", not just a versioned "librocksdbX.Y" package that only provides `librocksdb.so.X.Y.Z`.
+
 ## Usage
 
 See [simple_example](examples/simple_example.nim)
