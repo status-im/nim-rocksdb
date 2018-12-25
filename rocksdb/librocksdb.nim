@@ -47,9 +47,7 @@ else:
 
 proc shouldUseNativeLinking(): bool {.compileTime.} =
   when defined(linux):
-    let uname = staticExec("uname -a")
-    if uname.find("ARCH") != -1: # Arch linux
-      return true
+    return true
 
 template rocksType(T) =
   type T* = distinct pointer
