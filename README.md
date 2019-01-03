@@ -35,7 +35,9 @@ additional terms or conditions.
 
 ## License
 
-Licensed and distributed under either of
+### Wrapper License
+
+This repository is licensed and distributed under either of
 
 * MIT license: [LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT
 
@@ -44,3 +46,11 @@ or
 * Apache License, Version 2.0, ([LICENSE-APACHEv2](LICENSE-APACHEv2) or http://www.apache.org/licenses/LICENSE-2.0)
 
 at your option. This file may not be copied, modified, or distributed except according to those terms.
+
+### Dependency License
+
+RocksDB is developed and maintained by Facebook Database Engineering Team.
+It is built on earlier work on LevelDB by Sanjay Ghemawat (sanjay@google.com)
+and Jeff Dean (jeff@google.com)
+
+RocksDB is dual-licensed under both the [GPLv2](https://github.com/facebook/rocksdb/blob/master/COPYING) and Apache License, Version 2.0, ([LICENSE-APACHEv2](LICENSE-APACHEv2) or http://www.apache.org/licenses/LICENSE-2.0).  You may select, at your option, one of the above-listed licenses.
