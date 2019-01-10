@@ -7,7 +7,8 @@ skipDirs      = @["examples", "tests"]
 
 ### Dependencies
 requires "nim >= 0.18.1",
-         "ranges"
+         "ranges",
+         "tempfile"
 
 proc test(name: string, lang: string = "c") =
   if not dirExists "build":
@@ -17,11 +18,9 @@ proc test(name: string, lang: string = "c") =
   --run
   --nimcache: "nimcache"
   switch("out", ("./build/" & name))
+  --threads: on
   setCommand lang, "tests/" & name & ".nim"
 
-task test_c, "Run tests for the C wrapper":
-  test "test_rocksdb_c"
-
-task test, "Run tests for the Nim API":
-  test "test_rocksdb"
+task test, "Run tests":
+  test "all"
 

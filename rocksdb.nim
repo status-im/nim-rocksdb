@@ -171,6 +171,8 @@ template getImpl {.dirty.} =
     result.ok = true
     result.value.copyFrom(data, len)
     rocksdb_free(data)
+  else:
+    result.error = $errors
 
 proc get*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[string] =
   ## Get value for `key`. If no value exists, set `result.ok` to `false`,
