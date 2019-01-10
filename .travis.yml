@@ -51,7 +51,7 @@ install:
 script:
     - if [ $TRAVIS_OS_NAME = osx ]; then
         nimble refresh;
-        nimble test_c;
+        nimble test;
       fi;
     - if [ $TRAVIS_OS_NAME = linux ]; then
         docker run -v "$(pwd):/project" -w /project statusteam/nim-base run "apt-get -qq update && apt-get install -y librocksdb-dev && nimble install -y && nimble test";
