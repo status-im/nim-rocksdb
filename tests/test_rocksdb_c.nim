@@ -1,5 +1,5 @@
 # Nim-RocksDB
-# Copyright 2018 Status Research & Development GmbH
+# Copyright 2018-2019 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -7,15 +7,22 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-import  ../rocksdb,
-        unittest, cpuinfo
+import
+  cpuinfo, os, unittest,
+  tempfile,
+  ../rocksdb
 
 suite "RocksDB C wrapper tests":
-  test "Simple create-update-close example":
-    const
-      dbPath: cstring = "/tmp/rocksdb_simple_example"
-      dbBackupPath: cstring = "/tmp/rocksdb_simple_example_backup"
+  setup:
+    let
+      dbPath: cstring = mkdtemp()
+      dbBackupPath: cstring = mkdtemp()
 
+  teardown:
+    removeDir($dbPath)
+    removeDir($dbBackupPath)
+
+  test "Simple create-update-close example":
     var
       db: rocksdb_t
       be: rocksdb_backup_engine_t
@@ -79,3 +86,4 @@ suite "RocksDB C wrapper tests":
     rocksdb_options_destroy(options)
     rocksdb_backup_engine_close(be)
     rocksdb_close(db)
+

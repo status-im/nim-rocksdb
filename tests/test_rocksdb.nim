@@ -1,4 +1,16 @@
-import ../rocksdb, os
+# Nim-RocksDB
+# Copyright 2018-2019 Status Research & Development GmbH
+# Licensed under either of
+#
+#  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+#  * GPL license, version 2.0, ([LICENSE-GPLv2](LICENSE-GPLv2) or https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+#
+# at your option. This file may not be copied, modified, or distributed except according to those terms.
+
+import
+  os, unittest,
+  tempfile,
+  ../rocksdb
 
 type
   MyDB = object
@@ -17,34 +29,40 @@ proc initMyDb(path: string): MyDB =
   var s = result.rocksdb.init(dataDir, backupsDir)
   doAssert s.ok, $s
 
-proc main =
-  var db = initMyDb("/tmp/mydb")
-  defer: close(db.rocksdb)
+suite "Nim API tests":
+  setup:
+    var
+      dbDir = mkdtemp()
+      db = initMyDb(dbDir)
 
-  let key = @[byte(1), 2, 3, 4, 5]
-  let otherKey = @[byte(1), 2, 3, 4, 5, 6]
-  let val = @[byte(1), 2, 3, 4, 5]
+  teardown:
+    close(db.rocksdb)
+    removeDir(dbDir)
 
-  var s = db.rocksdb.put(key, val)
-  doAssert s.ok, $s
+  test "Basic operations":
+    let key = @[byte(1), 2, 3, 4, 5]
+    let otherKey = @[byte(1), 2, 3, 4, 5, 6]
+    let val = @[byte(1), 2, 3, 4, 5]
 
-  var r1 = db.rocksdb.getBytes(key)
-  doAssert r1.ok and r1.value == val, $r1
+    var s = db.rocksdb.put(key, val)
+    check s.ok
 
-  var r2 = db.rocksdb.getBytes(otherKey)
-  doAssert r2.ok and r2.value.len == 0, $r2
+    var r1 = db.rocksdb.getBytes(key)
+    check r1.ok and r1.value == val
 
-  var e1 = db.rocksdb.contains(key)
-  doAssert e1.ok and e1.value == true, $e1
+    var r2 = db.rocksdb.getBytes(otherKey)
+    # there's no error string for missing keys
+    check r2.ok == false and r2.error.len == 0
 
-  var e2 = db.rocksdb.contains(otherKey)
-  doAssert e2.ok and e2.value == false, $e2
+    var e1 = db.rocksdb.contains(key)
+    check e1.ok and e1.value == true
 
-  s = db.rocksdb.del(key)
-  doAssert s.ok, $s
+    var e2 = db.rocksdb.contains(otherKey)
+    check e2.ok and e2.value == false
 
-  e1 = db.rocksdb.contains(key)
-  doAssert e1.ok and e1.value == false, $e1
+    s = db.rocksdb.del(key)
+    check s.ok
 
-main()
+    e1 = db.rocksdb.contains(key)
+    check e1.ok and e1.value == false
 

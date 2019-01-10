@@ -54,7 +54,7 @@ script:
         nimble test_c;
       fi;
     - if [ $TRAVIS_OS_NAME = linux ]; then
-        docker run -v "$(pwd):/project" -w /project statusteam/nim-base run "apt-get -qq update && apt-get install -y librocksdb-dev && nimble install -y && nimble test_c";
+        docker run -v "$(pwd):/project" -w /project statusteam/nim-base run "apt-get -qq update && apt-get install -y librocksdb-dev && nimble install -y && nimble test";
       fi;
 
 
