@@ -21,12 +21,13 @@ matrix:
         - docker pull statusteam/nim-base
 
     ## Travis OSX version is too old and does not have rocksdb
-    # - os: osx
-    #   env: CHANNEL=stable
-    #   compiler: clang
-    #   before_install:
-    #     - brew update
-    #     - brew install rocksdb
+    - os: osx
+      env: CHANNEL=stable
+      compiler: clang
+      addons:
+        homebrew:
+          packages:
+            - rocksdb
 
   allow_failures:
     # Ignore failures when building against the devel Nim branch
