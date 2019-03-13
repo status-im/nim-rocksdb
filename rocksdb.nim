@@ -158,7 +158,7 @@ else:
       copyMem(addr v[0], unsafeAddr data[0], sz)
 
 template getImpl {.dirty.} =
-  assert key.len > 0
+  doAssert key.len > 0
 
   var
     errors: cstring
@@ -185,7 +185,7 @@ proc getBytes*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[seq[byte]]
   getImpl
 
 proc put*(db: RocksDBInstance, key, val: KeyValueType): RocksDBResult[void] =
-  assert key.len > 0
+  doAssert key.len > 0
 
   var
     errors: cstring
@@ -207,7 +207,7 @@ proc del*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[void] =
   returnOk()
 
 proc contains*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[bool] =
-  assert key.len > 0
+  doAssert key.len > 0
 
   var
     errors: cstring
