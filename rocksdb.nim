@@ -101,6 +101,7 @@ template bailOnErrors {.dirty.} =
 
 proc init*(rocks: var RocksDBInstance,
            dbPath, dbBackupPath: string,
+           readOnly = false,
            cpus = countProcessors(),
            createIfMissing = true): RocksDBResult[void] =
   rocks.options = rocksdb_options_create()
@@ -115,7 +116,10 @@ proc init*(rocks: var RocksDBInstance,
   rocksdb_options_set_create_if_missing(rocks.options, uint8(createIfMissing))
 
   var errors: cstring
-  rocks.db = rocksdb_open(rocks.options, dbPath, errors.addr)
+  if readOnly:
+    rocks.db = rocksdb_open_for_read_only(rocks.options, dbPath, 0'u8, errors.addr)
+  else:
+    rocks.db = rocksdb_open(rocks.options, dbPath, errors.addr)
   bailOnErrors()
   rocks.backupEngine = rocksdb_backup_engine_open(rocks.options,
                                                   dbBackupPath, errors.addr)
