@@ -1,63 +1,44 @@
 language: c
 
-cache: ccache
+# https://docs.travis-ci.com/user/caching/
+cache:
+  directories:
+    - NimBinaries
+    - rocksdbCache
+
+git:
+  # when multiple CI builds are queued, the tested commit needs to be in the last X commits cloned with "--depth X"
+  depth: 10
 
 matrix:
   include:
-    # Build and test against the master (stable) and devel branches of Nim
     # Build and test using both gcc and clang
     # For faster testing we don't test clang on linux, only on macOS
     - os: linux
-      env:
-        - CHANNEL=stable
-        # - CHANNEL=devel
       compiler: gcc
       sudo: required
-      services:
-        - docker
       before_install:
-        # RocksDB is packaged for Ubuntu 16.04+ or Debian Stretch only
-        # Travis only supports 14.04 at the moment
-        - docker pull statusteam/nim-base
-
-    ## Travis OSX version is too old and does not have rocksdb
+        - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
     - os: osx
-      env: CHANNEL=stable
       compiler: clang
-      addons:
-        homebrew:
-          packages:
-            - rocksdb
-
-  #allow_failures:
-    ## Ignore failures when building against the devel Nim branch
-    ## Also ignore OSX, due to very long build time for Travis
-    #- env: CHANNEL=devel
-    #- os: osx
-  fast_finish: true
+      before_install:
+        - launchctl setenv LIBRARY_PATH /usr/local/lib # for RocksDB
 
 install:
-  - if [ $TRAVIS_OS_NAME = osx ]; then
-      export CHOOSENIM_NO_ANALYTICS=1;
-      curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh;
-      sh init.sh -y;
-      export PATH=~/.nimble/bin:$PATH;
-      echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile;
-      choosenim $CHANNEL;
-    fi;
-  - if [ $TRAVIS_OS_NAME = linux ]; then
-      docker run statusteam/nim-base nim --version;
-    fi;
+  # build nim from our own branch - this to avoid the day-to-day churn and
+  # regressions of the fast-paced Nim development while maintaining the
+  # flexibility to apply patches
+  - curl -O -L -s -S https://raw.githubusercontent.com/status-im/nimbus/devel/build_nim.sh
+  - env MAKE="make -j2" bash build_nim.sh Nim csources dist/nimble NimBinaries
+  - export PATH=$PWD/Nim/bin:$PATH
+
+  # build our own rocksdb to test with a fixed version that we think works
+  - curl -O -L -s -S https://raw.githubusercontent.com/status-im/nimbus/devel/build_rocksdb.sh
+  - bash build_rocksdb.sh rocksdbCache
 
 script:
-    - if [ $TRAVIS_OS_NAME = osx ]; then
-        nimble refresh;
-        nimble test;
-      fi;
-    - if [ $TRAVIS_OS_NAME = linux ]; then
-        docker run -v "$(pwd):/project" -w /project statusteam/nim-base run "apt-get -qq update && apt-get install -y librocksdb-dev && nimble install -y && nimble test";
-      fi;
-
+  - nimble install -y
+  - nimble test
 
 branches:
   except:
