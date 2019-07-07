@@ -7,7 +7,7 @@ skipDirs      = @["examples", "tests"]
 
 ### Dependencies
 requires "nim >= 0.18.1",
-         "ranges",
+         "stew",
          "tempfile"
 
 proc test(name: string, lang: string = "c") =

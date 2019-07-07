@@ -7,7 +7,7 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-import cpuinfo, options, ranges
+import cpuinfo, options, stew/ranges
 
 const useCApi = true
 
