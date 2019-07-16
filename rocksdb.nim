@@ -103,7 +103,8 @@ proc init*(rocks: var RocksDBInstance,
            dbPath, dbBackupPath: string,
            readOnly = false,
            cpus = countProcessors(),
-           createIfMissing = true): RocksDBResult[void] =
+           createIfMissing = true,
+           maxOpenFiles = -1): RocksDBResult[void] =
   rocks.options = rocksdb_options_create()
   rocks.readOptions = rocksdb_readoptions_create()
   rocks.writeOptions = rocksdb_writeoptions_create()
@@ -114,6 +115,9 @@ proc init*(rocks: var RocksDBInstance,
   # snappy support (for example Fedora 28, certain Ubuntu versions)
   # rocksdb_options_optimize_level_style_compaction(options, 0);
   rocksdb_options_set_create_if_missing(rocks.options, uint8(createIfMissing))
+  # default set to keep all files open (-1), allow setting it to a specific
+  # value, e.g. in case the application limit would be reached.
+  rocksdb_options_set_max_open_files(rocks.options, maxOpenFiles.cint)
 
   var errors: cstring
   if readOnly:
