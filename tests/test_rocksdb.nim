@@ -7,6 +7,8 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
+{.used.}
+
 import
   os, unittest,
   tempfile,
@@ -27,7 +29,7 @@ proc initMyDb(path: string): MyDB =
   createDir(backupsDir)
 
   var s = result.rocksdb.init(dataDir, backupsDir)
-  doAssert s.ok, $s
+  doAssert s.isOk, $s
 
 suite "Nim API tests":
   setup:
@@ -45,24 +47,24 @@ suite "Nim API tests":
     let val = @[byte(1), 2, 3, 4, 5]
 
     var s = db.rocksdb.put(key, val)
-    check s.ok
+    check s.isok
 
     var r1 = db.rocksdb.getBytes(key)
-    check r1.ok and r1.value == val
+    check r1.isok and r1.value == val
 
     var r2 = db.rocksdb.getBytes(otherKey)
     # there's no error string for missing keys
-    check r2.ok == false and r2.error.len == 0
+    check r2.isok == false and r2.error.len == 0
 
     var e1 = db.rocksdb.contains(key)
-    check e1.ok and e1.value == true
+    check e1.isok and e1.value == true
 
     var e2 = db.rocksdb.contains(otherKey)
-    check e2.ok and e2.value == false
+    check e2.isok and e2.value == false
 
     s = db.rocksdb.del(key)
-    check s.ok
+    check s.isok
 
     e1 = db.rocksdb.contains(key)
-    check e1.ok and e1.value == false
+    check e1.isok and e1.value == false
 

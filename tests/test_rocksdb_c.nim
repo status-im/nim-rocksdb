@@ -7,6 +7,8 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
+{.used.}
+
 import
   cpuinfo, os, unittest,
   tempfile,
@@ -49,18 +51,21 @@ suite "RocksDB C wrapper tests":
     var writeOptions = rocksdb_writeoptions_create()
     let key = "key"
     let put_value = "value"
-    rocksdb_put(db, writeOptions, key.cstring, key.len, put_value.cstring, put_value.len, err.addr)
+    rocksdb_put(
+      db, writeOptions, key.cstring, csize_t(key.len),
+      put_value.cstring, csize_t(put_value.len), err.addr)
     check: err.isNil
 
     # Get value
     var readOptions = rocksdb_readoptions_create()
-    var len: csize
-    let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err.addr) # Important: rocksdb_get is not null-terminated
+    var len: csize_t
+    let raw_value = rocksdb_get(
+      db, readOptions, key, csize_t(key.len), addr len, err.addr) # Important: rocksdb_get is not null-terminated
     check: err.isNil
 
     # Copy it to a regular Nim string (copyMem workaround because non-null terminated)
-    var get_value = newString(len)
-    copyMem(addr get_value[0], unsafeAddr raw_value[0], len * sizeof(char))
+    var get_value = newString(int(len))
+    copyMem(addr get_value[0], unsafeAddr raw_value[0], int(len) * sizeof(char))
 
     check: $get_value == $put_value
 
@@ -86,4 +91,3 @@ suite "RocksDB C wrapper tests":
     rocksdb_options_destroy(options)
     rocksdb_backup_engine_close(be)
     rocksdb_close(db)
-

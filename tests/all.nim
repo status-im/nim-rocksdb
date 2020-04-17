@@ -10,4 +10,3 @@
 import
   ./test_rocksdb_c,
   ./test_rocksdb
-

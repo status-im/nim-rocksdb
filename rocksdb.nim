@@ -7,42 +7,17 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-import cpuinfo, options, stew/ranges
+{.push raises: [Defect].}
+
+import cpuinfo, options, stew/results
+
+export results
 
 const useCApi = true
 
 when useCApi:
   import rocksdb/librocksdb
   export librocksdb
-
-  type
-    RocksPtr[T] = object
-      res: T
-
-  import typetraits
-
-  when false:
-    # XXX: generic types cannot have destructors at the moment:
-    # https://github.com/nim-lang/Nim/issues/5366
-      template managedResource(name) =
-        template freeResource(r: `rocksdb name t`) =
-          `rocksdb name destroy`(r)
-
-      managedResource(WriteOptions)
-      managedResource(ReadOptions)
-      template initResource(resourceName): auto =
-        var p = toRocksPtr(`rocksdb resourceName create`())
-        # XXX: work-around the destructor issue above:
-        # XXX: work-around disabled - it frees the resource too early - need to
-        #      free resource manually!
-        # defer: freeResource p.res
-        p.res
-
-      proc `=destroy`*[T](rocksPtr: var RocksPtr[T]) =
-        freeResource rocksPtr.res
-
-      proc toRocksPtr[T](res: T): RocksPtr[T] =
-        result.res = res
 
 else:
   {.error: "The C++ API of RocksDB is not supported yet".}
@@ -57,8 +32,8 @@ else:
 
 type
   # TODO: Replace this with a converter concept that will
-  # handle openarray[char] and openarray[byte] in the same way.
-  KeyValueType = openarray[byte]
+  # handle openArray[char] and openArray[byte] in the same way.
+  KeyValueType = openArray[byte]
 
   RocksDBInstance* = object
     db: rocksdb_t
@@ -67,35 +42,11 @@ type
     readOptions: rocksdb_readoptions_t
     writeOptions: rocksdb_writeoptions_t
 
-  RocksDBResult*[T] = object
-    case ok*: bool
-    of true:
-      when T isnot void: value*: T
-    else:
-      error*: string
-
-proc `$`*[T](s: RocksDBResult[T]): string =
-  if s.ok:
-    when T isnot void:
-      $s.value
-    else:
-      ""
-  else:
-    "(error) " & s.error
-
-template returnOk() =
-  result.ok = true
-  return
-
-template returnVal(v: auto) =
-  result.ok = true
-  result.value = v
-  return
+  RocksDBResult*[T] = Result[T, string]
 
 template bailOnErrors {.dirty.} =
   if not errors.isNil:
-    result.ok = false
-    result.error = $errors
+    result.err($errors)
     rocksdb_free(errors)
     return
 
@@ -128,7 +79,7 @@ proc init*(rocks: var RocksDBInstance,
   rocks.backupEngine = rocksdb_backup_engine_open(rocks.options,
                                                   dbBackupPath, errors.addr)
   bailOnErrors()
-  returnOk()
+  ok()
 
 template initRocksDB*(args: varargs[untyped]): Option[RocksDBInstance] =
   var db: RocksDBInstance
@@ -137,103 +88,91 @@ template initRocksDB*(args: varargs[untyped]): Option[RocksDBInstance] =
   else:
     some(db)
 
-when false:
-  # TODO: These should be in the standard lib somewhere.
-  proc to*(chars: openarray[char], S: typedesc[string]): string =
-    result = newString(chars.len)
-    copyMem(addr result[0], unsafeAddr chars[0], chars.len * sizeof(char))
+# TODO: These should be in the standard lib somewhere.
+proc to(chars: openArray[char], S: typedesc[string]): string =
+  result = newString(chars.len)
+  copyMem(addr result[0], unsafeAddr chars[0], chars.len * sizeof(char))
 
-  proc to*(chars: openarray[char], S: typedesc[seq[byte]]): seq[byte] =
-    result = newSeq[byte](chars.len)
-    copyMem(addr result[0], unsafeAddr chars[0], chars.len * sizeof(char))
+proc to(chars: openArray[char], S: typedesc[seq[byte]]): seq[byte] =
+  result = newSeq[byte](chars.len)
+  copyMem(addr result[0], unsafeAddr chars[0], chars.len * sizeof(char))
 
-  template toOpenArray*[T](p: ptr T, sz: int): openarray[T] =
-    # XXX: The `TT` type is a work-around the fact that the `T`
-    # generic param is not resolved properly within the body of
-    # the template: https://github.com/nim-lang/Nim/issues/7995
-    type TT = type(p[])
-    let arr = cast[ptr UncheckedArray[TT]](p)
-    toOpenArray(arr[], 0, sz)
-else:
-  proc copyFrom(v: var seq[byte], data: cstring, sz: int) =
-    v = newSeq[byte](sz)
-    if sz > 0:
-      copyMem(addr v[0], unsafeAddr data[0], sz)
-
-  proc copyFrom(v: var string, data: cstring, sz: int) =
-    v = newString(sz)
-    if sz > 0:
-      copyMem(addr v[0], unsafeAddr data[0], sz)
-
-template getImpl {.dirty.} =
-  doAssert key.len > 0
+template getImpl(T: type) {.dirty.} =
+  if key.len <= 0:
+    return err("rocksdb: key cannot be empty on get")
 
   var
     errors: cstring
-    len: csize
+    len: csize_t
     data = rocksdb_get(db.db, db.readOptions,
-                       cast[cstring](unsafeAddr key[0]), key.len,
-                       addr len, errors.addr)
+                       cast[cstring](unsafeAddr key[0]), csize_t(key.len),
+                       addr len, addr errors)
   bailOnErrors()
   if not data.isNil:
-    result.ok = true
-    result.value.copyFrom(data, len)
+    result = ok(toOpenArray(data, 0, int(len) - 1).to(T))
     rocksdb_free(data)
   else:
-    result.error = $errors
+    result = err("")
 
 proc get*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[string] =
   ## Get value for `key`. If no value exists, set `result.ok` to `false`,
   ## and result.error to `""`.
-  getImpl
+  getImpl(string)
 
 proc getBytes*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[seq[byte]] =
   ## Get value for `key`. If no value exists, set `result.ok` to `false`,
   ## and result.error to `""`.
-  getImpl
+  getImpl(seq[byte])
 
 proc put*(db: RocksDBInstance, key, val: KeyValueType): RocksDBResult[void] =
-  doAssert key.len > 0
+  if key.len <= 0:
+    return err("rocksdb: key cannot be empty on put")
 
   var
     errors: cstring
 
   rocksdb_put(db.db, db.writeOptions,
-              cast[cstring](unsafeAddr key[0]), key.len,
-              cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil), val.len,
+              cast[cstring](unsafeAddr key[0]), csize_t(key.len),
+              cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil),
+              csize_t(val.len),
               errors.addr)
 
   bailOnErrors()
-  returnOk()
+  ok()
 
 proc del*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[void] =
+  if key.len <= 0:
+    return err("rocksdb: key cannot be empty on del")
+
   var errors: cstring
   rocksdb_delete(db.db, db.writeOptions,
-                  cast[cstring](unsafeAddr key[0]), key.len,
+                  cast[cstring](unsafeAddr key[0]), csize_t(key.len),
                   errors.addr)
   bailOnErrors()
-  returnOk()
+  ok()
 
 proc contains*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[bool] =
-  doAssert key.len > 0
+  if key.len <= 0:
+    return err("rocksdb: key cannot be empty on contains")
 
   var
     errors: cstring
-    len: csize
+    len: csize_t
     data = rocksdb_get(db.db, db.readOptions,
-                       cast[cstring](unsafeAddr key[0]), key.len,
+                       cast[cstring](unsafeAddr key[0]), csize_t(key.len),
                        addr len, errors.addr)
   bailOnErrors()
-  result.ok = true
   if not data.isNil:
-    result.value = true
     rocksdb_free(data)
+    ok(true)
+  else:
+    ok(false)
 
 proc backup*(db: RocksDBInstance): RocksDBResult[void] =
   var errors: cstring
   rocksdb_backup_engine_create_new_backup(db.backupEngine, db.db, errors.addr)
   bailOnErrors()
-  returnOk()
+  ok()
 
 # XXX: destructors are just too buggy at the moment:
 # https://github.com/nim-lang/Nim/issues/8112
