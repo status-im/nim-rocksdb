@@ -115,6 +115,9 @@ proc get*(db: RocksDBInstance, key: openArray[byte], onData: DataProc): RocksDBR
                        addr len, addr errors)
   bailOnErrors()
   if not data.isNil:
+    # TODO onData may raise a Defect - in theory we could catch it and free the
+    #      memory but this has a small overhead - setjmp (C) or RTTI (C++) -
+    #      reconsider this once the exception dust settles
     onData(toOpenArrayByte(data, 0, int(len) - 1))
     rocksdb_free(data)
     ok(true)
