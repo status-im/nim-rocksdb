@@ -9,7 +9,7 @@
 
 {.push raises: [Defect].}
 
-import cpuinfo, options, stew/results
+import cpuinfo, options, stew/[byteutils, results]
 
 export results
 
@@ -31,16 +31,14 @@ else:
     res
 
 type
-  # TODO: Replace this with a converter concept that will
-  # handle openArray[char] and openArray[byte] in the same way.
-  KeyValueType = openArray[byte]
-
   RocksDBInstance* = object
     db: rocksdb_t
     backupEngine: rocksdb_backup_engine_t
     options: rocksdb_options_t
     readOptions: rocksdb_readoptions_t
     writeOptions: rocksdb_writeoptions_t
+
+  DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [Defect].}
 
   RocksDBResult*[T] = Result[T, string]
 
@@ -88,15 +86,6 @@ template initRocksDB*(args: varargs[untyped]): Option[RocksDBInstance] =
   else:
     some(db)
 
-# TODO: These should be in the standard lib somewhere.
-proc to(chars: openArray[char], S: typedesc[string]): string =
-  result = newString(chars.len)
-  copyMem(addr result[0], unsafeAddr chars[0], chars.len * sizeof(char))
-
-proc to(chars: openArray[char], S: typedesc[seq[byte]]): seq[byte] =
-  result = newSeq[byte](chars.len)
-  copyMem(addr result[0], unsafeAddr chars[0], chars.len * sizeof(char))
-
 template getImpl(T: type) {.dirty.} =
   if key.len <= 0:
     return err("rocksdb: key cannot be empty on get")
@@ -114,17 +103,52 @@ template getImpl(T: type) {.dirty.} =
   else:
     result = err("")
 
-proc get*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[string] =
+proc get*(db: RocksDBInstance, key: openArray[byte], onData: DataProc): RocksDBResult[bool] =
+  if key.len <= 0:
+    return err("rocksdb: key cannot be empty on get")
+
+  var
+    errors: cstring
+    len: csize_t
+    data = rocksdb_get(db.db, db.readOptions,
+                       cast[cstring](unsafeAddr key[0]), csize_t(key.len),
+                       addr len, addr errors)
+  bailOnErrors()
+  if not data.isNil:
+    # TODO onData may raise a Defect - in theory we could catch it and free the
+    #      memory but this has a small overhead - setjmp (C) or RTTI (C++) -
+    #      reconsider this once the exception dust settles
+    onData(toOpenArrayByte(data, 0, int(len) - 1))
+    rocksdb_free(data)
+    ok(true)
+  else:
+    ok(false)
+
+proc get*(db: RocksDBInstance, key: openArray[byte]): RocksDBResult[string] {.deprecated: "DataProc".} =
   ## Get value for `key`. If no value exists, set `result.ok` to `false`,
   ## and result.error to `""`.
-  getImpl(string)
+  var res: RocksDBResult[string]
+  proc onData(data: openArray[byte]) =
+    res.ok(string.fromBytes(data))
 
-proc getBytes*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[seq[byte]] =
+  if ? db.get(key, onData):
+    res
+  else:
+    ok("")
+
+proc getBytes*(db: RocksDBInstance, key: openArray[byte]): RocksDBResult[seq[byte]]  {.deprecated: "DataProc".} =
   ## Get value for `key`. If no value exists, set `result.ok` to `false`,
   ## and result.error to `""`.
-  getImpl(seq[byte])
+  var res: RocksDBResult[seq[byte]]
+  proc onData(data: openArray[byte]) =
+    res.ok(@data)
 
-proc put*(db: RocksDBInstance, key, val: KeyValueType): RocksDBResult[void] =
+  if ? db.get(key, onData):
+    res
+  else:
+    err("")
+
+proc put*(db: RocksDBInstance, key, val: openArray[byte]): RocksDBResult[void] =
   if key.len <= 0:
     return err("rocksdb: key cannot be empty on put")
 
@@ -140,7 +164,7 @@ proc put*(db: RocksDBInstance, key, val: KeyValueType): RocksDBResult[void] =
   bailOnErrors()
   ok()
 
-proc del*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[void] =
+proc del*(db: RocksDBInstance, key: openArray[byte]): RocksDBResult[void] =
   if key.len <= 0:
     return err("rocksdb: key cannot be empty on del")
 
@@ -151,7 +175,7 @@ proc del*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[void] =
   bailOnErrors()
   ok()
 
-proc contains*(db: RocksDBInstance, key: KeyValueType): RocksDBResult[bool] =
+proc contains*(db: RocksDBInstance, key: openArray[byte]): RocksDBResult[bool] =
   if key.len <= 0:
     return err("rocksdb: key cannot be empty on contains")
 

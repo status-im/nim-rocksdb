@@ -42,29 +42,36 @@ suite "Nim API tests":
     removeDir(dbDir)
 
   test "Basic operations":
-    let key = @[byte(1), 2, 3, 4, 5]
-    let otherKey = @[byte(1), 2, 3, 4, 5, 6]
-    let val = @[byte(1), 2, 3, 4, 5]
+    proc test() =
+      let key = @[byte(1), 2, 3, 4, 5]
+      let otherKey = @[byte(1), 2, 3, 4, 5, 6]
+      let val = @[byte(1), 2, 3, 4, 5]
 
-    var s = db.rocksdb.put(key, val)
-    check s.isok
+      var s = db.rocksdb.put(key, val)
+      check s.isok
 
-    var r1 = db.rocksdb.getBytes(key)
-    check r1.isok and r1.value == val
+      var bytes: seq[byte]
+      check db.rocksdb.get(key, proc(data: openArray[byte]) = bytes = @data)[]
+      check not db.rocksdb.get(
+        otherkey, proc(data: openArray[byte]) = bytes = @data)[]
 
-    var r2 = db.rocksdb.getBytes(otherKey)
-    # there's no error string for missing keys
-    check r2.isok == false and r2.error.len == 0
+      var r1 = db.rocksdb.getBytes(key)
+      check r1.isok and r1.value == val
 
-    var e1 = db.rocksdb.contains(key)
-    check e1.isok and e1.value == true
+      var r2 = db.rocksdb.getBytes(otherKey)
+      # there's no error string for missing keys
+      check r2.isok == false and r2.error.len == 0
 
-    var e2 = db.rocksdb.contains(otherKey)
-    check e2.isok and e2.value == false
+      var e1 = db.rocksdb.contains(key)
+      check e1.isok and e1.value == true
 
-    s = db.rocksdb.del(key)
-    check s.isok
+      var e2 = db.rocksdb.contains(otherKey)
+      check e2.isok and e2.value == false
 
-    e1 = db.rocksdb.contains(key)
-    check e1.isok and e1.value == false
+      s = db.rocksdb.del(key)
+      check s.isok
 
+      e1 = db.rocksdb.contains(key)
+      check e1.isok and e1.value == false
+
+    test()
