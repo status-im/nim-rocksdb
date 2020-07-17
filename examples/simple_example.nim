@@ -32,18 +32,18 @@ proc main() =
   var writeOptions = rocksdb_writeoptions_create()
   let key = "key"
   let put_value = "value"
-  rocksdb_put(db, writeOptions, key.cstring, key.len, put_value.cstring, put_value.len, err.addr)
+  rocksdb_put(db, writeOptions, key.cstring, cast[csize_t](key.len), put_value.cstring, cast[csize_t](put_value.len), err.addr)
   doAssert err.isNil, $err
 
   # Get value
   var readOptions = rocksdb_readoptions_create()
-  var len: csize
-  let raw_value = rocksdb_get(db, readOptions, key, key.len, addr len, err.addr) # Important: rocksdb_get is not null-terminated
+  var len: csize_t
+  let raw_value = rocksdb_get(db, readOptions, key, cast[csize_t](key.len), addr len, err.addr) # Important: rocksdb_get is not null-terminated
   doAssert err.isNil, $err
 
   # Copy it to a regular Nim string (copyMem workaround because raw value is NOT null-terminated)
-  var get_value = newString(len)
-  copyMem(addr get_value[0], unsafeAddr raw_value[0], len * sizeof(char))
+  var get_value = newString(cast[int](len))
+  copyMem(addr get_value[0], unsafeAddr raw_value[0], cast[int](len) * sizeof(char))
 
   doAssert get_value == put_value
 
