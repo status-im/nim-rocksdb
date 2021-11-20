@@ -50,7 +50,7 @@ proc shouldUseNativeLinking(): bool {.compileTime.} =
 
 template rocksType(T) =
   type T* = distinct pointer
-  proc isNil*(v: T): bool {.borrow.}
+  proc isNil*(v: T): bool {.borrow, gcsafe.}
 
 rocksType rocksdb_t
 rocksType rocksdb_backup_engine_t
