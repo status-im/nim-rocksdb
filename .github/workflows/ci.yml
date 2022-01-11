@@ -183,6 +183,7 @@ jobs:
 
       - name: Run tests
         run: |
+          export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
           if [[ "${{ matrix.target.os }}" == "windows" ]]; then
             # https://github.com/status-im/nimbus-eth2/issues/3121
             export NIMFLAGS="-d:nimRawSetjmp"
