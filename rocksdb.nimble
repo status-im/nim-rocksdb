@@ -10,17 +10,12 @@ requires "nim >= 1.2.0",
          "stew",
          "tempfile"
 
-proc test(name: string, lang: string = "c") =
+proc test(args, path: string) =
   if not dirExists "build":
     mkDir "build"
-  if not dirExists "nimcache":
-    mkDir "nimcache"
-  --run
-  --nimcache: nimcache
-  switch("out", ("./build/" & name))
-  --threads: on
-  setCommand lang, "tests/" & name & ".nim"
+  exec "nim " & getEnv("TEST_LANG", "c") & " " & getEnv("NIMFLAGS") & " " & args &
+    " --outdir:build -r --hints:off --threads:on --skipParentCfg " & path
 
 task test, "Run tests":
-  test "all"
+  test "", "tests/all.nim"
 
