@@ -1,5 +1,4 @@
-# Nim-RocksDB
-# Copyright 2018 Status Research & Development GmbH
+# Copyright 2018-2022 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -47,6 +46,8 @@ else:
 proc shouldUseNativeLinking(): bool {.compileTime.} =
   when defined(linux):
     return true
+
+const LibrocksbStaticArgs {.strdefine.}: string = ""
 
 template rocksType(T) =
   type T* = distinct pointer
@@ -100,11 +101,15 @@ rocksType rocksdb_transaction_t
 rocksType rocksdb_checkpoint_t
 
 ##  DB operations
-when shouldUseNativeLinking():
+when LibrocksbStaticArgs != "":
   {.pragma: importrocks, importc, cdecl.}
-  {.passL: "-lrocksdb".}
+  {.passL: LibrocksbStaticArgs.}
 else:
-  {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
+  when shouldUseNativeLinking():
+    {.pragma: importrocks, importc, cdecl.}
+    {.passL: "-lrocksdb".}
+  else:
+    {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
 
 proc rocksdb_open*(options: rocksdb_options_t; name: cstring; errptr: ptr cstring): rocksdb_t {.importrocks.}
 proc rocksdb_open_for_read_only*(options: rocksdb_options_t; name: cstring;
