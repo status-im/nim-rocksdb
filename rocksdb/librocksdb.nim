@@ -104,6 +104,8 @@ rocksType rocksdb_checkpoint_t
 when LibrocksbStaticArgs != "":
   {.pragma: importrocks, importc, cdecl.}
   {.passL: LibrocksbStaticArgs.}
+  when defined(windows):
+    {.passL: "-lshlwapi -lrpcrt4".}
 else:
   when shouldUseNativeLinking():
     {.pragma: importrocks, importc, cdecl.}
