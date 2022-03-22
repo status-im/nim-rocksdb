@@ -4,6 +4,7 @@ author        = "Status Research & Development GmbH"
 description   = "A wrapper for Facebook's RocksDB, an embeddable, persistent key-value store for fast storage"
 license       = "Apache License 2.0 or GPLv2"
 skipDirs      = @["examples", "tests"]
+mode          = ScriptMode.Verbose
 
 ### Dependencies
 requires "nim >= 1.2.0",
@@ -18,4 +19,7 @@ proc test(args, path: string) =
 
 task test, "Run tests":
   test "", "tests/all.nim"
+  # Too troublesome to install "librocksdb.a" in CI, but this is how we would
+  # test it (we need the C++ linker profile because it's a C++ library):
+  # test "-d:LibrocksbStaticArgs='-l:librocksdb.a' --gcc.linkerexe=g++", "tests/all.nim"
 

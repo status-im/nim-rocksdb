@@ -20,6 +20,16 @@ A RocksDB installation that provides `librocksdb.so`. This means that on Debian,
 
 See [simple_example](examples/simple_example.nim)
 
+### Static linking
+
+To statically link librocksdb, you would do something like:
+
+```nim
+nim c -d:LibrocksbStaticArgs='-l:librocksdb.a' --gcc.linkerexe=g++ --threads:on your_program.nim
+```
+
+(we need the C++ linker profile because it's a C++ library)
+
 ## Future directions
 
 In the future, Nim-RocksDB might provide a high-level API that:
