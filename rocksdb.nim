@@ -32,10 +32,10 @@ else:
 
 type
   RocksDBInstance* = object
-    db: rocksdb_t
+    db*: rocksdb_t
     backupEngine: rocksdb_backup_engine_t
-    options: rocksdb_options_t
-    readOptions: rocksdb_readoptions_t
+    options*: rocksdb_options_t
+    readOptions*: rocksdb_readoptions_t
     writeOptions: rocksdb_writeoptions_t
 
   DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [Defect].}
