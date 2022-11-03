@@ -205,7 +205,7 @@ proc close*(db: var RocksDBInstance) =
   template freeField(name) =
     if db.`name`.isNil:
       `rocksdb name destroy`(db.`name`)
-      db.`name` = nil
+      db.`name` = typeof(db.`name`)(nil)
   freeField(writeOptions)
   freeField(readOptions)
   freeField(options)
