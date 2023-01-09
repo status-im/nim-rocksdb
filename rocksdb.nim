@@ -11,6 +11,8 @@
 
 import cpuinfo, options, stew/[byteutils, results]
 
+from system/ansi_c import c_free
+
 export results
 
 const useCApi = true
@@ -37,6 +39,7 @@ type
     options*: rocksdb_options_t
     readOptions*: rocksdb_readoptions_t
     writeOptions: rocksdb_writeoptions_t
+    dbPath: string  # needed for clear()
 
   DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [Defect].}
 
@@ -57,6 +60,7 @@ proc init*(rocks: var RocksDBInstance,
   rocks.options = rocksdb_options_create()
   rocks.readOptions = rocksdb_readoptions_create()
   rocks.writeOptions = rocksdb_writeoptions_create()
+  rocks.dbPath = dbPath
 
   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
   rocksdb_options_increase_parallelism(rocks.options, cpus.int32)
@@ -164,17 +168,6 @@ proc put*(db: RocksDBInstance, key, val: openArray[byte]): RocksDBResult[void] =
   bailOnErrors()
   ok()
 
-proc del*(db: RocksDBInstance, key: openArray[byte]): RocksDBResult[void] =
-  if key.len <= 0:
-    return err("rocksdb: key cannot be empty on del")
-
-  var errors: cstring
-  rocksdb_delete(db.db, db.writeOptions,
-                  cast[cstring](unsafeAddr key[0]), csize_t(key.len),
-                  errors.addr)
-  bailOnErrors()
-  ok()
-
 proc contains*(db: RocksDBInstance, key: openArray[byte]): RocksDBResult[bool] =
   if key.len <= 0:
     return err("rocksdb: key cannot be empty on contains")
@@ -191,6 +184,43 @@ proc contains*(db: RocksDBInstance, key: openArray[byte]): RocksDBResult[bool] =
     ok(true)
   else:
     ok(false)
+
+proc del*(db: RocksDBInstance, key: openArray[byte]): RocksDBResult[bool] =
+  if key.len <= 0:
+    return err("rocksdb: key cannot be empty on del")
+
+  # This seems like a bad idea, but right now I don't want to
+  # get sidetracked by this. --Adam
+  if not db.contains(key).get:
+    return ok(false)
+
+  var errors: cstring
+  rocksdb_delete(db.db, db.writeOptions,
+                  cast[cstring](unsafeAddr key[0]), csize_t(key.len),
+                  errors.addr)
+  bailOnErrors()
+  ok(true)
+
+proc clear*(db: var RocksDBInstance): RocksDBResult[bool] =
+  # Is there a better way to do this? The best I was able to find
+  # was to do a destroy_db and then open it again.
+
+  # For determining whether anything was actually deleted, I
+  # was able to use this estimate-num-keys property. I have
+  # no idea how reliable it is; I know it's just an estimate,
+  # but maybe it's good enough for distinguishing zero from
+  # nonzero?
+  let numKeysEstimate: cstring = rocksdb_property_value(db.db, cstring("rocksdb.estimate-num-keys"))
+  let wasEmpty: bool = $(numKeysEstimate) == "0"
+  c_free(numKeysEstimate)
+  
+  var errors: cstring
+  rocksdb_close(db.db);
+  rocksdb_destroy_db(db.options, db.dbPath, errors.addr)
+  bailOnErrors()
+  db.db = rocksdb_open(db.options, db.dbPath, errors.addr)
+  bailOnErrors()
+  ok(not wasEmpty)
 
 proc backup*(db: RocksDBInstance): RocksDBResult[void] =
   var errors: cstring
