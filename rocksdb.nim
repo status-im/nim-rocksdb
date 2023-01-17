@@ -202,25 +202,7 @@ proc del*(db: RocksDBInstance, key: openArray[byte]): RocksDBResult[bool] =
   ok(true)
 
 proc clear*(db: var RocksDBInstance): RocksDBResult[bool] =
-  # Is there a better way to do this? The best I was able to find
-  # was to do a destroy_db and then open it again.
-
-  # For determining whether anything was actually deleted, I
-  # was able to use this estimate-num-keys property. I have
-  # no idea how reliable it is; I know it's just an estimate,
-  # but maybe it's good enough for distinguishing zero from
-  # nonzero?
-  let numKeysEstimate: cstring = rocksdb_property_value(db.db, cstring("rocksdb.estimate-num-keys"))
-  let wasEmpty: bool = $(numKeysEstimate) == "0"
-  c_free(numKeysEstimate)
-  
-  var errors: cstring
-  rocksdb_close(db.db);
-  rocksdb_destroy_db(db.options, db.dbPath, errors.addr)
-  bailOnErrors()
-  db.db = rocksdb_open(db.options, db.dbPath, errors.addr)
-  bailOnErrors()
-  ok(not wasEmpty)
+  raiseAssert "unimplemented"
 
 proc backup*(db: RocksDBInstance): RocksDBResult[void] =
   var errors: cstring
