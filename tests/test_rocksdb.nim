@@ -68,8 +68,8 @@ suite "Nim API tests":
       var e2 = db.rocksdb.contains(otherKey)
       check e2.isok and e2.value == false
 
-      s = db.rocksdb.del(key)
-      check s.isok
+      var d = db.rocksdb.del(key)
+      check d.isok and d.value == true
 
       e1 = db.rocksdb.contains(key)
       check e1.isok and e1.value == false
