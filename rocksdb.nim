@@ -39,7 +39,7 @@ type
     options*: rocksdb_options_t
     readOptions*: rocksdb_readoptions_t
     writeOptions: rocksdb_writeoptions_t
-    dbPath: string  # needed for clear()
+    dbPath*: string  # needed for clear()
 
   DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [Defect].}
 
@@ -48,6 +48,7 @@ type
 template bailOnErrors {.dirty.} =
   if not errors.isNil:
     result.err($errors)
+    echo "rocksdb.nim: bailOnErrors() true! Freeing DB!\n" & getStackTrace()
     rocksdb_free(errors)
     return
 
@@ -57,6 +58,7 @@ proc init*(rocks: var RocksDBInstance,
            cpus = countProcessors(),
            createIfMissing = true,
            maxOpenFiles = -1): RocksDBResult[void] =
+  echo "rocksdb.nim: Init\n" & getStackTrace()
   rocks.options = rocksdb_options_create()
   rocks.readOptions = rocksdb_readoptions_create()
   rocks.writeOptions = rocksdb_writeoptions_create()
@@ -90,22 +92,6 @@ template initRocksDB*(args: varargs[untyped]): Option[RocksDBInstance] =
   else:
     some(db)
 
-template getImpl(T: type) {.dirty.} =
-  if key.len <= 0:
-    return err("rocksdb: key cannot be empty on get")
-
-  var
-    errors: cstring
-    len: csize_t
-    data = rocksdb_get(db.db, db.readOptions,
-                       cast[cstring](unsafeAddr key[0]), csize_t(key.len),
-                       addr len, addr errors)
-  bailOnErrors()
-  if not data.isNil:
-    result = ok(toOpenArray(data, 0, int(len) - 1).to(T))
-    rocksdb_free(data)
-  else:
-    result = err("")
 
 proc get*(db: RocksDBInstance, key: openArray[byte], onData: DataProc): RocksDBResult[bool] =
   if key.len <= 0:
@@ -205,6 +191,7 @@ proc clear*(db: var RocksDBInstance): RocksDBResult[bool] =
   raiseAssert "unimplemented"
 
 proc backup*(db: RocksDBInstance): RocksDBResult[void] =
+  echo "rocksdb.nim: backup" & getStackTrace()
   var errors: cstring
   rocksdb_backup_engine_create_new_backup(db.backupEngine, db.db, errors.addr)
   bailOnErrors()
@@ -214,6 +201,7 @@ proc backup*(db: RocksDBInstance): RocksDBResult[void] =
 # https://github.com/nim-lang/Nim/issues/8112
 # proc `=destroy`*(db: var RocksDBInstance) =
 proc close*(db: var RocksDBInstance) =
+  echo "rocksdb.nim: close" & getStackTrace()
   template freeField(name) =
     if db.`name`.isNil:
       `rocksdb name destroy`(db.`name`)
