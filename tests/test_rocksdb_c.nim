@@ -10,15 +10,16 @@
 {.used.}
 
 import
-  cpuinfo, os, unittest,
+  std/[cpuinfo, os],
   tempfile,
+  unittest2,
   ../rocksdb
 
 suite "RocksDB C wrapper tests":
   setup:
     let
-      dbPath: cstring = mkdtemp()
-      dbBackupPath: cstring = mkdtemp()
+      dbPath = mkdtemp().cstring
+      dbBackupPath = mkdtemp().cstring
 
   teardown:
     removeDir($dbPath)

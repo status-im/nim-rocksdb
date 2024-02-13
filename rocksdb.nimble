@@ -9,7 +9,8 @@ mode          = ScriptMode.Verbose
 ### Dependencies
 requires "nim >= 1.2.0",
          "stew",
-         "tempfile"
+         "tempfile",
+         "unittest2"
 
 proc test(args, path: string) =
   if not dirExists "build":

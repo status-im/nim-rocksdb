@@ -1,5 +1,5 @@
 # Nim-RocksDB
-# Copyright 2018 Status Research & Development GmbH
+# Copyright 2018-2024 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -35,7 +35,7 @@ type
   RocksDBInstance* = object
     db*: rocksdb_t
     backupEngine: rocksdb_backup_engine_t
-    options*: rocksdb_options_t
+    options*: seq[rocksdb_options_t]
     readOptions*: rocksdb_readoptions_t
     writeOptions: rocksdb_writeoptions_t
     dbPath: string  # needed for clear()
@@ -57,7 +57,7 @@ template validateColumnFamily(
     columnFamily: string): rocksdb_column_family_handle_t =
 
   if not db.columnFamilies.contains(columnFamily):
-    return err("rocksdb: invalid column family")
+    return err("rocksdb: unknown column family")
 
   let columnFamilyHandle= db.columnFamilies.getOrDefault(columnFamily)
   doAssert not columnFamilyHandle.isNil
@@ -70,55 +70,58 @@ proc init*(rocks: var RocksDBInstance,
            cpus = countProcessors(),
            createIfMissing = true,
            maxOpenFiles = -1,
-           columnFamiliesNames: openArray[string] = @["default"]): RocksDBResult[void] =
-  rocks.options = rocksdb_options_create()
+           columnFamilyNames: openArray[string] = @["default"]): RocksDBResult[void] =
+
+  for i in 0..columnFamilyNames.high:
+    rocks.options.add(rocksdb_options_create())
   rocks.readOptions = rocksdb_readoptions_create()
   rocks.writeOptions = rocksdb_writeoptions_create()
   rocks.dbPath = dbPath
-  rocks.columnFamilyNames = columnFamiliesNames.allocCStringArray
+  rocks.columnFamilyNames = columnFamilyNames.allocCStringArray
   rocks.columnFamilies = newTable[cstring, rocksdb_column_family_handle_t]()
 
-  # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
-  rocksdb_options_increase_parallelism(rocks.options, cpus.int32)
-  # This requires snappy - disabled because rocksdb is not always compiled with
-  # snappy support (for example Fedora 28, certain Ubuntu versions)
-  # rocksdb_options_optimize_level_style_compaction(options, 0);
-  rocksdb_options_set_create_if_missing(rocks.options, uint8(createIfMissing))
-  # default set to keep all files open (-1), allow setting it to a specific
-  # value, e.g. in case the application limit would be reached.
-  rocksdb_options_set_max_open_files(rocks.options, maxOpenFiles.cint)
-  # Enable creating column families if they do not exist
-  rocksdb_options_set_create_missing_column_families(rocks.options, uint8(true))
+  for opts in rocks.options:
+    # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
+    rocksdb_options_increase_parallelism(opts, cpus.int32)
+    # This requires snappy - disabled because rocksdb is not always compiled with
+    # snappy support (for example Fedora 28, certain Ubuntu versions)
+    # rocksdb_options_optimize_level_style_compaction(options, 0);
+    rocksdb_options_set_create_if_missing(opts, uint8(createIfMissing))
+    # default set to keep all files open (-1), allow setting it to a specific
+    # value, e.g. in case the application limit would be reached.
+    rocksdb_options_set_max_open_files(opts, maxOpenFiles.cint)
+    # Enable creating column families if they do not exist
+    rocksdb_options_set_create_missing_column_families(opts, uint8(true))
 
   var
-    columnFamilyHandles = newSeq[rocksdb_column_family_handle_t](columnFamiliesNames.len)
+    columnFamilyHandles = newSeq[rocksdb_column_family_handle_t](columnFamilyNames.len)
     errors: cstring
   if readOnly:
     rocks.db = rocksdb_open_for_read_only_column_families(
-        rocks.options,
+        rocks.options[0],
         dbPath,
-        columnFamiliesNames.len().cint,
+        columnFamilyNames.len().cint,
         rocks.columnFamilyNames,
-        rocks.options.addr, # TODO: test this. Might need to turn this into array of options
+        rocks.options[0].addr,
         columnFamilyHandles[0].addr,
         0'u8,
         errors.addr)
   else:
     rocks.db = rocksdb_open_column_families(
-        rocks.options,
+        rocks.options[0],
         dbPath,
-        columnFamiliesNames.len().cint,
+        columnFamilyNames.len().cint,
         rocks.columnFamilyNames,
-        rocks.options.addr, # TODO: test this. Might need to turn this into array of options
+        rocks.options[0].addr,
         columnFamilyHandles[0].addr,
         errors.addr)
   bailOnErrors()
 
-  for i in 0..<columnFamiliesNames.len:
-    rocks.columnFamilies[columnFamiliesNames[i].cstring] = columnFamilyHandles[i]
+  for i in 0..<columnFamilyNames.len:
+    rocks.columnFamilies[columnFamilyNames[i].cstring] = columnFamilyHandles[i]
 
   rocks.backupEngine = rocksdb_backup_engine_open(
-      rocks.options,
+      rocks.options[0],
       dbBackupPath,
       errors.addr)
   bailOnErrors()
@@ -154,8 +157,8 @@ proc get*(
         csize_t(key.len),
         addr len,
         addr errors)
-
   bailOnErrors()
+
   if not data.isNil:
     # TODO onData may raise a Defect - in theory we could catch it and free the
     #      memory but this has a small overhead - setjmp (C) or RTTI (C++) -
@@ -211,8 +214,8 @@ proc put*(
       cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil),
       csize_t(val.len),
       errors.addr)
-
   bailOnErrors()
+
   ok()
 
 proc contains*(db: RocksDBInstance, key: openArray[byte], columnFamily = "default"): RocksDBResult[bool] =
@@ -252,7 +255,7 @@ proc del*(
 
   # This seems like a bad idea, but right now I don't want to
   # get sidetracked by this. --Adam
-  if not db.contains(key).get:
+  if not db.contains(key, columnFamily).get:
     return ok(false)
 
   var errors: cstring
@@ -264,6 +267,7 @@ proc del*(
       csize_t(key.len),
       errors.addr)
   bailOnErrors()
+
   ok(true)
 
 proc clear*(db: var RocksDBInstance): RocksDBResult[bool] =
@@ -281,7 +285,7 @@ proc backup*(db: RocksDBInstance): RocksDBResult[void] =
 proc close*(db: var RocksDBInstance) =
 
   if not db.columnFamilies.isNil:
-    for k, v in db.columnFamilies:
+    for _, v in db.columnFamilies:
       rocksdb_column_family_handle_destroy(v)
     db.columnFamilies = nil
 
@@ -289,14 +293,18 @@ proc close*(db: var RocksDBInstance) =
     db.columnFamilyNames.deallocCStringArray()
     db.columnFamilyNames = nil
 
-  template freeField(name) =
-    if db.`name`.isNil:
-      `rocksdb name destroy`(db.`name`)
-      db.`name` = nil
+  if not db.writeOptions.isNil:
+    rocksdb_writeoptions_destroy(db.writeOptions)
+    db.writeOptions = nil
 
-  freeField(writeOptions)
-  freeField(readOptions)
-  freeField(options)
+  if not db.readOptions.isNil:
+    rocksdb_readoptions_destroy(db.readOptions)
+    db.readOptions = nil
+
+  if db.options.len() > 0:
+    for o in db.options:
+      rocksdb_options_destroy(o)
+    db.options = @[]
 
   if not db.backupEngine.isNil:
     rocksdb_backup_engine_close(db.backupEngine)
