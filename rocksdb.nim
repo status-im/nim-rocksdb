@@ -214,18 +214,23 @@ proc backup*(db: RocksDBInstance): RocksDBResult[void] =
 # https://github.com/nim-lang/Nim/issues/8112
 # proc `=destroy`*(db: var RocksDBInstance) =
 proc close*(db: var RocksDBInstance) =
-  template freeField(name) =
+  template freeField(name) =  
+    type FieldType = typeof db.`name`
     if db.`name`.isNil:
       `rocksdb name destroy`(db.`name`)
-      db.`name` = nil
+      db.`name` = FieldType(nil)
+  template setFieldToNil(name) =
+    type FieldType = typeof db.`name`
+    db.`name` = FieldType(nil)
+  
   freeField(writeOptions)
   freeField(readOptions)
   freeField(options)
 
   if not db.backupEngine.isNil:
     rocksdb_backup_engine_close(db.backupEngine)
-    db.backupEngine = nil
+    setFieldToNil(backupEngine)
 
   if not db.db.isNil:
     rocksdb_close(db.db)
-    db.db = nil
+    setFieldToNil(db)
