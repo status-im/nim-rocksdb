@@ -143,7 +143,6 @@ suite "Nim API tests":
       check r.isOk() and r.value == false
 
       var r2 = readOnlyDb.put(key, @[123.byte], CF_DEFAULT)
-      echo r2
       check r2.isErr()
 
       close(readOnlyDb)

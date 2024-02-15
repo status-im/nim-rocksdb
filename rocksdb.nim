@@ -33,14 +33,14 @@ else:
 
 type
   RocksDBInstance* = object
-    db*: rocksdb_t
-    backupEngine: rocksdb_backup_engine_t
-    options*: seq[rocksdb_options_t]
-    readOptions*: rocksdb_readoptions_t
-    writeOptions: rocksdb_writeoptions_t
+    db*: ptr rocksdb_t
+    backupEngine: ptr rocksdb_backup_engine_t
+    options*: seq[ptr rocksdb_options_t]
+    readOptions*: ptr rocksdb_readoptions_t
+    writeOptions: ptr rocksdb_writeoptions_t
     dbPath: string  # needed for clear()
     columnFamilyNames: cstringArray
-    columnFamilies: TableRef[cstring, rocksdb_column_family_handle_t]
+    columnFamilies: TableRef[cstring, ptr rocksdb_column_family_handle_t]
 
   DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [Defect].}
 
@@ -48,13 +48,13 @@ type
 
 template bailOnErrors {.dirty.} =
   if not errors.isNil:
-    result.err($errors)
+    result.err($(errors))
     rocksdb_free(errors)
     return result
 
 template validateColumnFamily(
     db: RocksDBInstance,
-    columnFamily: string): rocksdb_column_family_handle_t =
+    columnFamily: string): ptr rocksdb_column_family_handle_t =
 
   if not db.columnFamilies.contains(columnFamily):
     return err("rocksdb: unknown column family")
@@ -78,7 +78,7 @@ proc init*(rocks: var RocksDBInstance,
   rocks.writeOptions = rocksdb_writeoptions_create()
   rocks.dbPath = dbPath
   rocks.columnFamilyNames = columnFamilyNames.allocCStringArray
-  rocks.columnFamilies = newTable[cstring, rocksdb_column_family_handle_t]()
+  rocks.columnFamilies = newTable[cstring, ptr rocksdb_column_family_handle_t]()
 
   for opts in rocks.options:
     # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
@@ -94,7 +94,7 @@ proc init*(rocks: var RocksDBInstance,
     rocksdb_options_set_create_missing_column_families(opts, uint8(true))
 
   var
-    columnFamilyHandles = newSeq[rocksdb_column_family_handle_t](columnFamilyNames.len)
+    columnFamilyHandles = newSeq[ptr rocksdb_column_family_handle_t](columnFamilyNames.len)
     errors: cstring
   if readOnly:
     rocks.db = rocksdb_open_for_read_only_column_families(
@@ -105,7 +105,7 @@ proc init*(rocks: var RocksDBInstance,
         rocks.options[0].addr,
         columnFamilyHandles[0].addr,
         0'u8,
-        errors.addr)
+        cast[cstringArray](errors.addr))
   else:
     rocks.db = rocksdb_open_column_families(
         rocks.options[0],
@@ -114,7 +114,7 @@ proc init*(rocks: var RocksDBInstance,
         rocks.columnFamilyNames,
         rocks.options[0].addr,
         columnFamilyHandles[0].addr,
-        errors.addr)
+        cast[cstringArray](errors.addr))
   bailOnErrors()
 
   for i in 0..<columnFamilyNames.len:
@@ -123,7 +123,7 @@ proc init*(rocks: var RocksDBInstance,
   rocks.backupEngine = rocksdb_backup_engine_open(
       rocks.options[0],
       dbBackupPath,
-      errors.addr)
+      cast[cstringArray](errors.addr))
   bailOnErrors()
 
   ok()
@@ -156,7 +156,7 @@ proc get*(
         cast[cstring](unsafeAddr key[0]),
         csize_t(key.len),
         addr len,
-        addr errors)
+        cast[cstringArray](errors.addr))
   bailOnErrors()
 
   if not data.isNil:
@@ -205,15 +205,15 @@ proc put*(
 
   var
     errors: cstring
-
   rocksdb_put_cf(
       db.db,
       db.writeOptions,
       columnFamilyHandle,
-      cast[cstring](unsafeAddr key[0]), csize_t(key.len),
+      cast[cstring](unsafeAddr key[0]),
+      csize_t(key.len),
       cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil),
       csize_t(val.len),
-      errors.addr)
+      cast[cstringArray](errors.addr))
   bailOnErrors()
 
   ok()
@@ -234,7 +234,7 @@ proc contains*(db: RocksDBInstance, key: openArray[byte], columnFamily = "defaul
         cast[cstring](unsafeAddr key[0]),
         csize_t(key.len),
         addr len,
-        errors.addr)
+        cast[cstringArray](errors.addr))
   bailOnErrors()
 
   if not data.isNil:
@@ -265,7 +265,7 @@ proc del*(
       columnFamilyHandle,
       cast[cstring](unsafeAddr key[0]),
       csize_t(key.len),
-      errors.addr)
+      cast[cstringArray](errors.addr))
   bailOnErrors()
 
   ok(true)
@@ -275,7 +275,7 @@ proc clear*(db: var RocksDBInstance): RocksDBResult[bool] =
 
 proc backup*(db: RocksDBInstance): RocksDBResult[void] =
   var errors: cstring
-  rocksdb_backup_engine_create_new_backup(db.backupEngine, db.db, errors.addr)
+  rocksdb_backup_engine_create_new_backup(db.backupEngine, db.db, cast[cstringArray](errors.addr))
   bailOnErrors()
   ok()
 
