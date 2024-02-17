@@ -202,12 +202,8 @@ proc backup*(db: RocksDBInstance): RocksDBResult[void] =
 # proc `=destroy`*(db: var RocksDBInstance) =
 proc close*(db: var RocksDBInstance) =
   echo "rocksdb.nim: close" & getStackTrace()
-<<<<<<< Updated upstream
-  template freeField(name) =
-=======
   template freeField(name) =  
     type FieldType = typeof db.`name`
->>>>>>> Stashed changes
     if db.`name`.isNil:
       `rocksdb name destroy`(db.`name`)
       db.`name` = nil
