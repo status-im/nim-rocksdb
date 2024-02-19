@@ -10,7 +10,8 @@
 {.push raises: [].}
 
 import
-  ../lib/librocksdb
+  ../lib/librocksdb,
+  ../internal/utils
 
 const DEFAULT_COLUMN_FAMILY_NAME* = "default"
 
@@ -22,9 +23,6 @@ type
 
 proc newColFamilyHandle*(cPtr: ColFamilyHandlePtr): ColFamilyHandleRef =
   ColFamilyHandleRef(cPtr: cPtr)
-
-template isClosed(handle: ColFamilyHandleRef): bool =
-  handle.cPtr.isNil()
 
 proc cPtr*(handle: ColFamilyHandleRef): ColFamilyHandlePtr =
   doAssert not handle.isClosed()

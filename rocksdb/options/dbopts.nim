@@ -11,7 +11,8 @@
 
 import
   std/cpuinfo,
-  ../lib/librocksdb
+  ../lib/librocksdb,
+  ../internal/utils
 
 type
   DbOptionsPtr* = ptr rocksdb_options_t
@@ -21,9 +22,6 @@ type
 
 proc newDbOptions*(): DbOptionsRef =
   DbOptionsRef(cPtr: rocksdb_options_create())
-
-template isClosed(dbOpts: DbOptionsRef): bool =
-  dbOpts.cPtr.isNil()
 
 proc cPtr*(dbOpts: DbOptionsRef): DbOptionsPtr =
   doAssert not dbOpts.isClosed()

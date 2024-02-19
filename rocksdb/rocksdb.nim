@@ -10,12 +10,12 @@
 {.push raises: [].}
 
 import
-  std/[tables, sequtils],
+  std/sequtils,
   results,
   ./lib/librocksdb,
   ./options/[dbopts, readopts, writeopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
-  ./internal/cftable
+  ./internal/[cftable, utils]
 
 export
   results,
@@ -43,81 +43,13 @@ type
 
   DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [].}
 
-template bailOnErrors(errors: cstring): auto =
-  if not errors.isNil:
-    let res = err($(errors))
-    rocksdb_free(errors)
-    return res
-
-# proc openDb[T](
-#     readOnly: bool,
-#     path: string,
-#     dbOpts: DbOptionsRef,
-#     readOpts: ReadOptionsRef,
-#     writeOpts: WriteOptionsRef,
-#     columnFamilies: openArray[ColFamilyDescriptor],
-#     errorIfWalFileExists: bool): RocksDBResult[T] =
-
-#   if columnFamilies.len == 0:
-#     return err("rocksdb: no column families")
-
-#   var
-#     cfNames = columnFamilies.mapIt(it.name().cstring)
-#     cfOpts = columnFamilies.mapIt(it.options.cPtr)
-#     columnFamilyHandles = newSeq[ColFamilyHandlePtr](columnFamilies.len)
-#     errors: cstring
-
-#   let rocksDbPtr = if readOnly:
-#     rocksdb_open_for_read_only_column_families(
-#         dbOpts.cPtr,
-#         path,
-#         cfNames.len().cint,
-#         cast[cstringArray](cfNames[0].addr),
-#         cfOpts[0].addr,
-#         columnFamilyHandles[0].addr,
-#         errorIfWalFileExists.uint8,
-#         cast[cstringArray](errors.addr))
-#   else:
-#     rocksdb_open_column_families(
-#         dbOpts.cPtr,
-#         path,
-#         cfNames.len().cint,
-#         cast[cstringArray](cfNames[0].addr),
-#         cfOpts[0].addr,
-#         columnFamilyHandles[0].addr,
-#         cast[cstringArray](errors.addr))
-#   bailOnErrors(errors)
-
-#   var cfTable = newColFamilyTableRef()
-#   for i, cf in columnFamilies:
-#     cfTable.put(cf.name(), columnFamilyHandles[i])
-
-#   let db = if readOnly:
-#     RocksDbReadOnlyRef(
-#       cPtr: rocksDbPtr,
-#       path: path,
-#       dbOpts: dbOpts,
-#       readOpts: readOpts,
-#       writeOpts: writeOpts,
-#       cfTable: cfTable)
-#   else:
-#     RocksDbReadWriteRef(
-#       cPtr: rocksDbPtr,
-#       path: path,
-#       dbOpts: dbOpts,
-#       readOpts: readOpts,
-#       writeOpts: writeOpts,
-#       cfTable: cfTable)
-#   ok(db)
-
 proc openRocksDb*(
     path: string,
     dbOpts = defaultDbOptions(),
     readOpts = defaultReadOptions(),
     writeOpts = defaultWriteOptions(),
     columnFamilies = @[defaultColFamilyDescriptor()]): RocksDBResult[RocksDbReadWriteRef] =
-  # openDb[RocksDbReadWriteRef](
-  #   false, path, dbOpts, readOpts, writeOpts, columnFamilies, false)
+
   if columnFamilies.len == 0:
     return err("rocksdb: no column families")
 
@@ -156,8 +88,7 @@ proc openRocksDbReadOnly*(
     readOpts = defaultReadOptions(),
     columnFamilies = @[defaultColFamilyDescriptor()],
     errorIfWalFileExists = false): RocksDBResult[RocksDbReadOnlyRef] =
-  # openDb[RocksDbReadOnlyRef](
-  #   true, path, dbOpts, readOpts, nil, columnFamilies, errorIfWalFileExists)
+
   if columnFamilies.len == 0:
     return err("rocksdb: no column families")
 
@@ -192,6 +123,10 @@ proc openRocksDbReadOnly*(
 
 template isClosed*(db: RocksDbRef): bool =
   db.cPtr.isNil()
+
+proc cPtr*(db: RocksDbRef): RocksDbPtr =
+  doAssert not db.isClosed()
+  db.cPtr
 
 proc get*(
     db: RocksDbRef,
@@ -279,7 +214,6 @@ proc keyExists*(
 
   db.get(key, proc(data: openArray[byte]) = discard, columnFamily)
 
-
 proc delete*(
     db: RocksDbReadWriteRef,
     key: openArray[byte],
@@ -303,10 +237,6 @@ proc delete*(
   bailOnErrors(errors)
 
   ok()
-
-proc backup*(
-    db: RocksDbRef): RocksDBResult[void] =
-  discard
 
 proc close*(db: RocksDbRef) =
   if not db.isClosed():

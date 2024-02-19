@@ -1,5 +1,5 @@
 # Nim-RocksDB
-# Copyright 2018-2024 Status Research & Development GmbH
+# Copyright 2024 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -7,6 +7,16 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-import ./rocksdb/[backup, rocksdb]
+{.push raises: [].}
 
-export backup, rocksdb
+import
+  ../lib/librocksdb
+
+template bailOnErrors*(errors: cstring): auto =
+  if not errors.isNil:
+    let res = err($(errors))
+    rocksdb_free(errors)
+    return res
+
+template isClosed*(refObj: untyped): bool =
+  refObj.cPtr.isNil()

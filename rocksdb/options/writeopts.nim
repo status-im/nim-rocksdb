@@ -10,7 +10,8 @@
 {.push raises: [].}
 
 import
-  ../lib/librocksdb
+  ../lib/librocksdb,
+  ../internal/utils
 
 type
   WriteOptionsPtr* = ptr rocksdb_writeoptions_t
@@ -20,9 +21,6 @@ type
 
 proc newWriteOptions*(): WriteOptionsRef =
   WriteOptionsRef(cPtr: rocksdb_writeoptions_create())
-
-template isClosed(writeOpts: WriteOptionsRef): bool =
-  writeOpts.cPtr.isNil()
 
 proc cPtr*(writeOpts: WriteOptionsRef): WriteOptionsPtr =
   doAssert not writeOpts.isClosed()

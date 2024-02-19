@@ -10,7 +10,8 @@
 {.push raises: [].}
 
 import
-  ../lib/librocksdb
+  ../lib/librocksdb,
+  ../internal/utils
 
 type
   ReadOptionsPtr* = ptr rocksdb_readoptions_t
@@ -20,9 +21,6 @@ type
 
 proc newReadOptions*(): ReadOptionsRef =
   ReadOptionsRef(cPtr: rocksdb_readoptions_create())
-
-template isClosed(readOpts: ReadOptionsRef): bool =
-  readOpts.cPtr.isNil()
 
 proc cPtr*(readOpts: ReadOptionsRef): ReadOptionsPtr =
   doAssert not readOpts.isClosed()
