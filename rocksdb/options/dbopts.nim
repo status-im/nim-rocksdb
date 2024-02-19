@@ -14,34 +14,38 @@ import
   ../lib/librocksdb
 
 type
-  OptionsPtr = ptr rocksdb_options_t
+  DbOptionsPtr* = ptr rocksdb_options_t
 
   DbOptionsRef* = ref object
-    optionsPtr: OptionsPtr
+    cPtr: DbOptionsPtr
 
 proc newDbOptions*(): DbOptionsRef =
-  DbOptionsRef(optionsPtr: rocksdb_options_create())
+  DbOptionsRef(cPtr: rocksdb_options_create())
 
 template isClosed(dbOpts: DbOptionsRef): bool =
-  dbOpts.optionsPtr.isNil()
+  dbOpts.cPtr.isNil()
+
+proc cPtr*(dbOpts: DbOptionsRef): DbOptionsPtr =
+  doAssert not dbOpts.isClosed()
+  dbOpts.cPtr
 
 proc setIncreaseParallelism*(dbOpts: var DbOptionsRef, totalThreads: int) =
   doAssert totalThreads > 0
   doAssert not dbOpts.isClosed()
-  rocksdb_options_increase_parallelism(dbOpts.optionsPtr, totalThreads.cint)
+  rocksdb_options_increase_parallelism(dbOpts.cPtr, totalThreads.cint)
 
 proc setCreateIfMissing*(dbOpts: var DbOptionsRef, flag: bool) =
   doAssert not dbOpts.isClosed()
-  rocksdb_options_set_create_if_missing(dbOpts.optionsPtr, flag.uint8)
+  rocksdb_options_set_create_if_missing(dbOpts.cPtr, flag.uint8)
 
 proc setMaxOpenFiles*(dbOpts: var DbOptionsRef, maxOpenFiles: int) =
   doAssert maxOpenFiles > -1
   doAssert not dbOpts.isClosed()
-  rocksdb_options_set_max_open_files(dbOpts.optionsPtr, maxOpenFiles.cint)
+  rocksdb_options_set_max_open_files(dbOpts.cPtr, maxOpenFiles.cint)
 
 proc setCreateMissingColumnFamilies*(dbOpts: var DbOptionsRef, flag: bool) =
   doAssert not dbOpts.isClosed()
-  rocksdb_options_set_create_missing_column_families(dbOpts.optionsPtr, flag.uint8)
+  rocksdb_options_set_create_missing_column_families(dbOpts.cPtr, flag.uint8)
 
 proc defaultDbOptions*(): DbOptionsRef =
   var opts = newDbOptions()
@@ -60,18 +64,18 @@ proc defaultDbOptions*(): DbOptionsRef =
 
 proc getCreateIfMissing*(dbOpts: DbOptionsRef): bool =
   doAssert not dbOpts.isClosed()
-  rocksdb_options_get_create_if_missing(dbOpts.optionsPtr).bool
+  rocksdb_options_get_create_if_missing(dbOpts.cPtr).bool
 
 proc getMaxOpenFiles*(dbOpts: DbOptionsRef): int =
   doAssert not dbOpts.isClosed()
-  rocksdb_options_get_max_open_files(dbOpts.optionsPtr).int
+  rocksdb_options_get_max_open_files(dbOpts.cPtr).int
 
 proc getCreateMissingColumnFamilies*(dbOpts: DbOptionsRef): bool =
   doAssert not dbOpts.isClosed()
-  rocksdb_options_get_create_missing_column_families(dbOpts.optionsPtr).bool
+  rocksdb_options_get_create_missing_column_families(dbOpts.cPtr).bool
 
 proc close*(dbOpts: var DbOptionsRef) =
   if not dbOpts.isClosed():
-    rocksdb_options_destroy(dbOpts.optionsPtr)
-    dbOpts.optionsPtr = nil
+    rocksdb_options_destroy(dbOpts.cPtr)
+    dbOpts.cPtr = nil
 

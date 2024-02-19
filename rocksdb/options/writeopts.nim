@@ -13,25 +13,29 @@ import
   ../lib/librocksdb
 
 type
-  WriteOptionsPtr = ptr rocksdb_writeoptions_t
+  WriteOptionsPtr* = ptr rocksdb_writeoptions_t
 
   WriteOptionsRef* = ref object
-    writeOptsPtr: WriteOptionsPtr
+    cPtr: WriteOptionsPtr
 
 proc newWriteOptions*(): WriteOptionsRef =
-  WriteOptionsRef(writeOptsPtr: rocksdb_writeoptions_create())
+  WriteOptionsRef(cPtr: rocksdb_writeoptions_create())
+
+template isClosed(writeOpts: WriteOptionsRef): bool =
+  writeOpts.cPtr.isNil()
+
+proc cPtr*(writeOpts: WriteOptionsRef): WriteOptionsPtr =
+  doAssert not writeOpts.isClosed()
+  writeOpts.cPtr
+
+# TODO: Add setters and getters for write options properties.
 
 template defaultWriteOptions*(): WriteOptionsRef =
   newWriteOptions()
-
-template isClosed(writeOpts: WriteOptionsRef): bool =
-  writeOpts.writeOptsPtr.isNil()
-
-# TODO: Add setters and getters for write options properties.
-# Currently we are using the default settings.
+  # TODO: set prefered defaults
 
 proc close*(writeOpts: var WriteOptionsRef) =
   if not writeOpts.isClosed():
-    rocksdb_writeoptions_destroy(writeOpts.writeOptsPtr)
-    writeOpts.writeOptsPtr = nil
+    rocksdb_writeoptions_destroy(writeOpts.cPtr)
+    writeOpts.cPtr = nil
 

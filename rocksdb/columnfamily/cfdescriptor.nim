@@ -12,7 +12,7 @@
 import
   ./cfopts
 
-const DEFAULT_COLUMN_FAMILY* = "default"
+const DEFAULT_COLUMN_FAMILY_NAME* = "default"
 
 type
   ColFamilyDescriptor* = object
@@ -24,14 +24,17 @@ proc initColFamilyDescriptor*(
     options = defaultColFamilyOptions()): ColFamilyDescriptor =
   ColFamilyDescriptor(name: name, options: options)
 
-proc name*(descriptor: ColFamilyDescriptor): string =
+template name*(descriptor: ColFamilyDescriptor): string =
   descriptor.name
 
-proc options*(descriptor: ColFamilyDescriptor): ColFamilyOptionsRef =
+template options*(descriptor: ColFamilyDescriptor): ColFamilyOptionsRef =
   descriptor.options
 
-proc defaultColFamilyDescriptor*(): ColFamilyDescriptor =
-  initColFamilyDescriptor(DEFAULT_COLUMN_FAMILY)
+template isDefault*(descriptor: ColFamilyDescriptor): bool =
+  descriptor.name() == DEFAULT_COLUMN_FAMILY_NAME
+
+template defaultColFamilyDescriptor*(): ColFamilyDescriptor =
+  initColFamilyDescriptor(DEFAULT_COLUMN_FAMILY_NAME)
 
 template close*(descriptor: var ColFamilyDescriptor) =
   descriptor.options.close()

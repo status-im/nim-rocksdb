@@ -11,36 +11,40 @@
 
 import
   ../lib/librocksdb,
-  ./descriptor
+  ./cfdescriptor
 
 type
   ColFamilyHandlePtr* = ptr rocksdb_column_family_handle_t
 
   ColFamilyHandleRef* = ref object
-    handlePtr: ColFamilyHandlePtr
+    cPtr: ColFamilyHandlePtr
 
-proc newColFamilyHandle*(handlePtr: ColFamilyHandlePtr): ColFamilyHandleRef =
-  ColFamilyHandleRef(handlePtr: handlePtr)
+proc newColFamilyHandle*(cPtr: ColFamilyHandlePtr): ColFamilyHandleRef =
+  ColFamilyHandleRef(cPtr: cPtr)
 
 template isClosed(handle: ColFamilyHandleRef): bool =
-  handle.handlePtr.isNil()
+  handle.cPtr.isNil()
+
+proc cPtr*(handle: ColFamilyHandleRef): ColFamilyHandlePtr =
+  doAssert not handle.isClosed()
+  handle.cPtr
 
 proc getId*(handle: ColFamilyHandleRef): int =
   doAssert not handle.isClosed()
-  rocksdb_column_family_handle_get_id(handle.handlePtr).int
+  rocksdb_column_family_handle_get_id(handle.cPtr).int
 
 proc getName*(handle: ColFamilyHandleRef): string =
   doAssert not handle.isClosed()
   var nameLen: csize_t # do we need to use this?
-  $rocksdb_column_family_handle_get_name(handle.handlePtr, nameLen.addr)
+  $rocksdb_column_family_handle_get_name(handle.cPtr, nameLen.addr)
 
-proc isDefault*(handle: ColFamilyHandleRef): bool =
-  handle.getName() == DEFAULT_COLUMN_FAMILY
+template isDefault*(handle: ColFamilyHandleRef): bool =
+  handle.getName() == DEFAULT_COLUMN_FAMILY_NAME
 
 # proc getDescriptor*(handle: ColFamilyHandleRef): ColumnFamilyDescriptor =
 #   doAssert not handle.isClosed()
 
 proc close*(handle: var ColFamilyHandleRef) =
   if not handle.isClosed():
-    rocksdb_column_family_handle_destroy(handle.handlePtr)
-    handle.handlePtr = nil
+    rocksdb_column_family_handle_destroy(handle.cPtr)
+    handle.cPtr = nil

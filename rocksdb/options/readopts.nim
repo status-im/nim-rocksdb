@@ -13,25 +13,29 @@ import
   ../lib/librocksdb
 
 type
-  ReadOptionsPtr = ptr rocksdb_readoptions_t
+  ReadOptionsPtr* = ptr rocksdb_readoptions_t
 
   ReadOptionsRef* = ref object
-    readOptsPtr: ReadOptionsPtr
+    cPtr: ReadOptionsPtr
 
 proc newReadOptions*(): ReadOptionsRef =
-  ReadOptionsRef(readOptsPtr: rocksdb_readoptions_create())
+  ReadOptionsRef(cPtr: rocksdb_readoptions_create())
+
+template isClosed(readOpts: ReadOptionsRef): bool =
+  readOpts.cPtr.isNil()
+
+proc cPtr*(readOpts: ReadOptionsRef): ReadOptionsPtr =
+  doAssert not readOpts.isClosed()
+  readOpts.cPtr
+
+# TODO: Add setters and getters for read options properties.
 
 template defaultReadOptions*(): ReadOptionsRef =
   newReadOptions()
-
-template isClosed(readOpts: ReadOptionsRef): bool =
-  readOpts.readOptsPtr.isNil()
-
-# TODO: Add setters and getters for read options properties.
-# Currently we are using the default settings.
+  # TODO: set prefered defaults
 
 proc close*(readOpts: var ReadOptionsRef) =
   if not readOpts.isClosed():
-    rocksdb_readoptions_destroy(readOpts.readOptsPtr)
-    readOpts.readOptsPtr = nil
+    rocksdb_readoptions_destroy(readOpts.cPtr)
+    readOpts.cPtr = nil
 

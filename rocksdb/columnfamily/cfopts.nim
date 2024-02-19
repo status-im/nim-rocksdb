@@ -13,20 +13,24 @@ import
   ../lib/librocksdb
 
 type
-  OptionsPtr = ptr rocksdb_options_t
+  ColFamilyOptionsPtr* = ptr rocksdb_options_t
 
   ColFamilyOptionsRef* = ref object
-    optionsPtr: OptionsPtr
+    cPtr: ColFamilyOptionsPtr
 
 proc newColFamilyOptions*(): ColFamilyOptionsRef =
-  ColFamilyOptionsRef(optionsPtr: rocksdb_options_create())
+  ColFamilyOptionsRef(cPtr: rocksdb_options_create())
 
-template isClosed(dbOpts: ColFamilyOptionsRef): bool =
-  dbOpts.optionsPtr.isNil()
+template isClosed(cfOpts: ColFamilyOptionsRef): bool =
+  cfOpts.cPtr.isNil()
+
+proc cPtr*(cfOpts: ColFamilyOptionsRef): ColFamilyOptionsPtr =
+  doAssert not cfOpts.isClosed()
+  cfOpts.cPtr
 
 proc setCreateMissingColumnFamilies*(cfOpts: var ColFamilyOptionsRef, flag: bool) =
   doAssert not cfOpts.isClosed()
-  rocksdb_options_set_create_missing_column_families(cfOpts.optionsPtr, flag.uint8)
+  rocksdb_options_set_create_missing_column_families(cfOpts.cPtr, flag.uint8)
 
 proc defaultColFamilyOptions*(): ColFamilyOptionsRef =
   var opts = newColFamilyOptions()
@@ -36,10 +40,10 @@ proc defaultColFamilyOptions*(): ColFamilyOptionsRef =
 
 proc getCreateMissingColumnFamilies*(cfOpts: ColFamilyOptionsRef): bool =
   doAssert not cfOpts.isClosed()
-  rocksdb_options_get_create_missing_column_families(cfOpts.optionsPtr).bool
+  rocksdb_options_get_create_missing_column_families(cfOpts.cPtr).bool
 
 proc close*(cfOpts: var ColFamilyOptionsRef) =
   if not cfOpts.isClosed():
-    rocksdb_options_destroy(cfOpts.optionsPtr)
-    cfOpts.optionsPtr = nil
+    rocksdb_options_destroy(cfOpts.cPtr)
+    cfOpts.cPtr = nil
 

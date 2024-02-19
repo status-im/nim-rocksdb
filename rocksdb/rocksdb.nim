@@ -10,11 +10,12 @@
 {.push raises: [].}
 
 import
-  std/[cpuinfo, tables],
+  std/[tables, sequtils],
   results,
   ./lib/librocksdb,
   ./options/[dbopts, readopts, writeopts],
-  ./columnfamily/[cfopts, descriptor, handle]
+  ./columnfamily/[cfopts, cfdescriptor, cfhandle],
+  ./internal/cftable
 
 export results
 
@@ -22,73 +23,136 @@ type
   RocksDBResult*[T] = Result[T, string]
 
   RocksDbPtr = ptr rocksdb_t
-
-  RocksDbRef* = ref object
+  RocksDbRef = ref object
     rocksDbPtr: RocksDbPtr
+    path: string
     dbOpts: DbOptionsRef
     readOpts: ReadOptionsRef
     writeOpts: WriteOptionsRef
-    # dbPath: string
-    # columnFamilyNames: cstringArray
-    # columnFamilies: TableRef[cstring, ptr rocksdb_column_family_handle_t]
+    cfTable: ColFamilyTableRef
 
-  #DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [].}
+  RocksDbReadWriteRef* = distinct RocksDbRef
+  RocksDbReadOnlyRef* = distinct RocksDbRef
+
+  DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [].}
+
+template bailOnErrors(errors: cstring): auto =
+  if not errors.isNil:
+    let r = err($(errors))
+    rocksdb_free(errors)
+    return r
+
+proc openDb[T](
+    readOnly: bool,
+    path: string,
+    dbOpts: DbOptionsRef,
+    readOpts: ReadOptionsRef,
+    writeOpts: WriteOptionsRef,
+    columnFamilies: openArray[ColFamilyDescriptor],
+    errorIfWalFileExists: bool): RocksDBResult[T] =
+
+  if columnFamilies.len == 0:
+    return err("rocksdb: no column families")
+
+  var
+    cfNames = columnFamilies.mapIt(it.name().cstring)
+    cfOpts = columnFamilies.mapIt(it.options.cPtr)
+    columnFamilyHandles = newSeq[ColFamilyHandlePtr](columnFamilies.len)
+    errors: cstring
+
+  let rocksDbPtr = if readOnly:
+    rocksdb_open_for_read_only_column_families(
+        dbOpts.cPtr,
+        path,
+        cfNames.len().cint,
+        cast[cstringArray](cfNames[0].addr),
+        cfOpts[0].addr,
+        columnFamilyHandles[0].addr,
+        errorIfWalFileExists.uint8,
+        cast[cstringArray](errors.addr))
+  else:
+    rocksdb_open_column_families(
+        dbOpts.cPtr,
+        path,
+        cfNames.len().cint,
+        cast[cstringArray](cfNames[0].addr),
+        cfOpts[0].addr,
+        columnFamilyHandles[0].addr,
+        cast[cstringArray](errors.addr))
+  bailOnErrors(errors)
+
+  var cfTable = newColFamilyTableRef()
+  for i, cf in columnFamilies:
+    cfTable.put(cf.name(), columnFamilyHandles[i])
+
+  let db = RocksDbRef(
+    rocksDbPtr: rocksDbPtr,
+    path: path,
+    dbOpts: dbOpts,
+    readOpts: readOpts,
+    writeOpts: writeOpts,
+    cfTable: cfTable)
+  ok(db.T)
 
 proc openRocksDb*(
     path: string,
     dbOpts = defaultDbOptions(),
     readOpts = defaultReadOptions(),
     writeOpts = defaultWriteOptions(),
-    columnFamilies = @[defaultColFamilyDescriptor()]): RocksDBResult[RocksDbRef] =
+    columnFamilies = @[defaultColFamilyDescriptor()]): RocksDBResult[RocksDbReadWriteRef] =
+  openDb[RocksDbReadWriteRef](
+    false, path, dbOpts, readOpts, writeOpts, columnFamilies, false)
 
+proc openRocksDbReadOnly*(
+    path: string,
+    dbOpts = defaultDbOptions(),
+    readOpts = defaultReadOptions(),
+    columnFamilies = @[defaultColFamilyDescriptor()],
+    errorIfWalFileExists = false): RocksDBResult[RocksDbReadOnlyRef] =
+  openDb[RocksDbReadOnlyRef](
+    true, path, dbOpts, readOpts, nil, columnFamilies, errorIfWalFileExists)
+
+proc get*(
+    db: RocksDbReadWriteRef | RocksDbReadOnlyRef,
+    key: openArray[byte],
+    columnFamily = "default"): RocksDBResult[seq[byte]] =
   discard
 
-  # for i in 0..columnFamilyNames.high:
-  #   rocks.options.add(rocksdb_options_create())
-  # rocks.readOptions = rocksdb_readoptions_create()
-  # rocks.writeOptions = rocksdb_writeoptions_create()
-  # rocks.dbPath = dbPath
-  # rocks.columnFamilyNames = columnFamilyNames.allocCStringArray
-  # rocks.columnFamilies = newTable[cstring, ptr rocksdb_column_family_handle_t]()
+proc get*(
+    db: RocksDbReadWriteRef | RocksDbReadOnlyRef,
+    key: openArray[byte],
+    value: var openArray[byte],
+    columnFamily = "default"): RocksDBResult[bool] =
+  discard
 
-  # for opts in rocks.options:
-  #   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
-  #   rocksdb_options_increase_parallelism(opts, cpus.int32)
-  #   # This requires snappy - disabled because rocksdb is not always compiled with
-  #   # snappy support (for example Fedora 28, certain Ubuntu versions)
-  #   # rocksdb_options_optimize_level_style_compaction(options, 0);
-  #   rocksdb_options_set_create_if_missing(opts, uint8(createIfMissing))
-  #   # default set to keep all files open (-1), allow setting it to a specific
-  #   # value, e.g. in case the application limit would be reached.
-  #   rocksdb_options_set_max_open_files(opts, maxOpenFiles.cint)
-  #   # Enable creating column families if they do not exist
-  #   rocksdb_options_set_create_missing_column_families(opts, uint8(true))
+proc get*(
+    db: RocksDbReadWriteRef | RocksDbReadOnlyRef,
+    key: openArray[byte],
+    onData: DataProc,
+    columnFamily = "default"): RocksDBResult[bool] =
+  discard
 
-  # var
-  #   columnFamilyHandles = newSeq[ptr rocksdb_column_family_handle_t](columnFamilyNames.len)
-  #   errors: cstring
-  #   rocks.db = rocksdb_open_column_families(
-  #       rocks.options[0],
-  #       dbPath,
-  #       columnFamilyNames.len().cint,
-  #       rocks.columnFamilyNames,
-  #       rocks.options[0].addr,
-  #       columnFamilyHandles[0].addr,
-  #       cast[cstringArray](errors.addr))
-  # bailOnErrors()
+proc put*(
+    db: RocksDbReadWriteRef,
+    key, val: openArray[byte],
+    columnFamily = "default"): RocksDBResult[void] =
+  discard
 
-  # for i in 0..<columnFamilyNames.len:
-  #   rocks.columnFamilies[columnFamilyNames[i].cstring] = columnFamilyHandles[i]
+proc keyExists*(
+    db: RocksDbReadWriteRef | RocksDbReadOnlyRef,
+    key: openArray[byte],
+    columnFamily = "default"): RocksDBResult[bool] =
+  discard
 
-  # ok()
+proc delete*(
+    db: RocksDbReadWriteRef,
+    key: openArray[byte],
+    columnFamily = "default"): RocksDBResult[void] =
+  discard
 
+proc backup*(
+    db: RocksDbReadWriteRef | RocksDbReadOnlyRef): RocksDBResult[void] =
+  discard
 
-# openReadOnly
-# get (two methods)
-# put
-# keyExists
-# delete
-# close
-
-# backup
-# iterator
+proc close*(db: RocksDbReadWriteRef | RocksDbReadOnlyRef) =
+  discard
