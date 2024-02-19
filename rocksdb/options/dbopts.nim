@@ -39,7 +39,7 @@ proc setCreateIfMissing*(dbOpts: var DbOptionsRef, flag: bool) =
   rocksdb_options_set_create_if_missing(dbOpts.cPtr, flag.uint8)
 
 proc setMaxOpenFiles*(dbOpts: var DbOptionsRef, maxOpenFiles: int) =
-  doAssert maxOpenFiles > -1
+  doAssert maxOpenFiles >= -1
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_max_open_files(dbOpts.cPtr, maxOpenFiles.cint)
 

@@ -12,7 +12,7 @@
 import
   ./cfopts
 
-const DEFAULT_COLUMN_FAMILY_NAME* = "default"
+export cfopts
 
 type
   ColFamilyDescriptor* = object

@@ -13,7 +13,7 @@ import
   std/[cpuinfo, os],
   tempfile,
   unittest2,
-  ../rocksdb
+  ../rocksdb/lib/librocksdb
 
 suite "RocksDB C wrapper tests":
   setup:
@@ -61,7 +61,7 @@ suite "RocksDB C wrapper tests":
     var readOptions = rocksdb_readoptions_create()
     var len: csize_t
     let raw_value = rocksdb_get(
-      db, readOptions, key, csize_t(key.len), addr len, err) # Important: rocksdb_get is not null-terminated
+      db, readOptions, key.cstring, csize_t(key.len), addr len, err) # Important: rocksdb_get is not null-terminated
     check: err.isNil
 
     # Copy it to a regular Nim string (copyMem workaround because non-null terminated)

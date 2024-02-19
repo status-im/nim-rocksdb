@@ -10,8 +10,9 @@
 {.push raises: [].}
 
 import
-  ../lib/librocksdb,
-  ./cfdescriptor
+  ../lib/librocksdb
+
+const DEFAULT_COLUMN_FAMILY_NAME* = "default"
 
 type
   ColFamilyHandlePtr* = ptr rocksdb_column_family_handle_t
@@ -40,9 +41,6 @@ proc getName*(handle: ColFamilyHandleRef): string =
 
 template isDefault*(handle: ColFamilyHandleRef): bool =
   handle.getName() == DEFAULT_COLUMN_FAMILY_NAME
-
-# proc getDescriptor*(handle: ColFamilyHandleRef): ColumnFamilyDescriptor =
-#   doAssert not handle.isClosed()
 
 proc close*(handle: var ColFamilyHandleRef) =
   if not handle.isClosed():
