@@ -17,7 +17,7 @@ type
   ColFamilyTableRef* = ref object
     columnFamilies: TableRef[string, ColFamilyHandleRef]
 
-proc newColFamilyTableRef*(): ColFamilyTableRef =
+proc newColFamilyTable*(): ColFamilyTableRef =
   ColFamilyTableRef(columnFamilies: newTable[string, ColFamilyHandleRef]())
 
 template isClosed*(table: ColFamilyTableRef): bool =
@@ -28,6 +28,7 @@ proc put*(
     name: string,
     handle: ColFamilyHandlePtr) =
   doAssert not table.isClosed()
+  doAssert not handle.isNil()
   table.columnFamilies[name] = newColFamilyHandle(handle)
 
 proc get*(table: ColFamilyTableRef, name: string): ColFamilyHandleRef =

@@ -69,7 +69,7 @@ proc openRocksDb*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  var cfTable = newColFamilyTableRef()
+  var cfTable = newColFamilyTable()
   for i, cf in columnFamilies:
     cfTable.put(cf.name(), columnFamilyHandles[i])
 
@@ -109,7 +109,7 @@ proc openRocksDbReadOnly*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  var cfTable = newColFamilyTableRef()
+  var cfTable = newColFamilyTable()
   for i, cf in columnFamilies:
     cfTable.put(cf.name(), columnFamilyHandles[i])
 

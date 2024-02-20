@@ -15,7 +15,7 @@ import
   unittest2,
   ../../rocksdb/lib/librocksdb
 
-suite "RocksDB C wrapper tests":
+suite "librocksdb C wrapper Tests":
   setup:
     let
       dbPath = mkdtemp().cstring

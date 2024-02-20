@@ -15,6 +15,11 @@ import
   ./options/backupopts,
   ./rocksdb
 
+export
+  results,
+  backupopts,
+  rocksdb
+
 type
   BackupEnginePtr* = ptr rocksdb_backup_engine_t
 
@@ -43,15 +48,42 @@ proc openBackupEngine*(
 template isClosed*(backupEngine: BackupEngineRef): bool =
   backupEngine.cPtr.isNil()
 
-proc backup*(backupEngine: BackupEngineRef, db: RocksDbRef): RocksDBResult[void] =
+proc createNewBackup*(
+    backupEngine: BackupEngineRef,
+    db: RocksDbRef,
+    flushBeforeBackup = false): RocksDBResult[void] =
   doAssert not backupEngine.isClosed()
 
   var errors: cstring
-  rocksdb_backup_engine_create_new_backup(
+  rocksdb_backup_engine_create_new_backup_flush(
     backupEngine.cPtr,
     db.cPtr,
+    flushBeforeBackup.uint8,
     cast[cstringArray](errors.addr))
   bailOnErrors(errors)
+
+  ok()
+
+proc restoreDbFromLatestBackup*(
+    backupEngine: BackupEngineRef,
+    dbDir: string,
+    walDir = dbDir,
+    keepLogFiles = false): RocksDBResult[void] =
+  doAssert not backupEngine.isClosed()
+
+  let restoreOptions = rocksdb_restore_options_create()
+  rocksdb_restore_options_set_keep_log_files(restoreOptions, keepLogFiles.cint)
+
+  var errors: cstring
+  rocksdb_backup_engine_restore_db_from_latest_backup(
+    backupEngine.cPtr,
+    dbDir.cstring,
+    walDir.cstring,
+    restoreOptions,
+    cast[cstringArray](errors.addr))
+  bailOnErrors(errors)
+
+  rocksdb_restore_options_destroy(restoreOptions)
 
   ok()
 

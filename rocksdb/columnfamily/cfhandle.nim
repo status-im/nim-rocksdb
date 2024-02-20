@@ -10,8 +10,7 @@
 {.push raises: [].}
 
 import
-  ../lib/librocksdb,
-  ../internal/utils
+  ../lib/librocksdb
 
 type
   ColFamilyHandlePtr* = ptr rocksdb_column_family_handle_t
@@ -42,8 +41,8 @@ proc cPtr*(handle: ColFamilyHandleRef): ColFamilyHandlePtr =
 #   var nameLen: csize_t
 #   $rocksdb_column_family_handle_get_name(handle.cPtr, nameLen.addr)
 
-template isDefault*(handle: ColFamilyHandleRef): bool =
-  handle.getName() == DEFAULT_COLUMN_FAMILY_NAME
+# template isDefault*(handle: ColFamilyHandleRef): bool =
+#   handle.getName() == DEFAULT_COLUMN_FAMILY_NAME
 
 proc close*(handle: var ColFamilyHandleRef) =
   if not handle.isClosed():

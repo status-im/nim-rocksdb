@@ -10,37 +10,13 @@
 {.used.}
 
 import
-  std/[os, sequtils],
+  std/os,
   tempfile,
   unittest2,
-  ../rocksdb
+  ../rocksdb/rocksdb,
+  ./test_helper
 
-proc initReadWriteDb(
-    path: string,
-    columnFamilyNames = @["default"]): RocksDbReadWriteRef =
-
-  let dataDir = path / "data"
-  createDir(dataDir)
-
-  var s = openRocksDb(dataDir,
-      columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)))
-  doAssert s.isOk()
-  s.value()
-
-proc initReadOnlyDb(
-    path: string,
-    columnFamilyNames = @["default"]): RocksDbReadOnlyRef =
-
-  let dataDir = path / "data"
-  createDir(dataDir)
-
-  var s = openRocksDbReadOnly(
-      dataDir,
-      columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)))
-  doAssert s.isOk()
-  s.value()
-
-suite "Nim API tests":
+suite "RocksDbRef Tests":
   const
     CF_DEFAULT = "default"
     CF_OTHER = "other"

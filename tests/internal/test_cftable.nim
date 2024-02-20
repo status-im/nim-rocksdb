@@ -9,18 +9,74 @@
 
 {.used.}
 
-# import
-#   std/[cpuinfo, os],
-#   tempfile,
-#   unittest2,
-#   ../../rocksdb/lib/librocksdb
+import
+  std/os,
+  tempfile,
+  unittest2,
+  ../../rocksdb/lib/librocksdb,
+  ../../rocksdb/columnfamily/cfhandle,
+  ../../rocksdb/internal/cftable
 
-suite "Test suite name":
-  # setup:
+suite "ColFamilyTableRef Tests":
+
+  const TEST_CF_NAME = "test"
+
+  setup:
+    let
+      dbPath = mkdtemp() / "data"
+      dbOpts = rocksdb_options_create()
+      cfOpts = rocksdb_options_create()
+
+    var
+      errors: cstring
+
+    rocksdb_options_set_create_if_missing(dbOpts, 1);
+
+    let db = rocksdb_open(dbOpts, dbPath.cstring, cast[cstringArray](errors.addr))
+    doAssert errors.isNil()
+    doAssert not db.isNil()
+
+    let cfHandlePtr = rocksdb_create_column_family(
+        db,
+        cfOpts,
+        TEST_CF_NAME.cstring,
+        cast[cstringArray](errors.addr))
+    doAssert errors.isNil()
+    doAssert not cfHandlePtr.isNil()
+
+  teardown:
+    rocksdb_close(db)
+    removeDir($dbPath)
 
 
-  # teardown:
+  test "Test newColFamilyTable":
+    var cfTable = newColFamilyTable()
 
+    cfTable.put(TEST_CF_NAME, cfHandlePtr)
+    check cfTable.get(TEST_CF_NAME).cPtr() == cfHandlePtr
+    check not cfTable.isClosed()
 
-  test "Test name":
-    discard
+    # second put, same result
+    cfTable.put(TEST_CF_NAME, cfHandlePtr)
+    check cfTable.get(TEST_CF_NAME).cPtr() == cfHandlePtr
+    check not cfTable.isClosed()
+
+    # doesn't exist
+    check cfTable.get("other").isNil()
+    check not cfTable.isClosed()
+
+    cfTable.close()
+
+  test "Test close":
+    var cfTable = newColFamilyTable()
+    cfTable.put(TEST_CF_NAME, cfHandlePtr)
+
+    let cfHandle = cfTable.get(TEST_CF_NAME)
+
+    check not cfHandle.isClosed()
+    check not cfTable.isClosed()
+    cfTable.close()
+    check cfHandle.isClosed()
+    check cfTable.isClosed()
+    cfTable.close()
+    check cfTable.isClosed()

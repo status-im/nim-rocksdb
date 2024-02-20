@@ -11,10 +11,11 @@ import
   ./columnfamily/test_cfdescriptor,
   ./columnfamily/test_cfhandle,
   ./columnfamily/test_cfopts,
-  #./internal/test_cftable,
+  ./internal/test_cftable,
+  ./lib/test_librocksdb,
   ./options/test_backupopts,
   ./options/test_dbopts,
   ./options/test_readopts,
   ./options/test_writeopts,
-  ./lib/test_librocksdb,
+  ./test_backup,
   ./test_rocksdb
