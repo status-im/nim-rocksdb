@@ -10,6 +10,7 @@
 {.push raises: [].}
 
 import
+  ../internal/utils,
   ./cfopts
 
 export cfopts
@@ -31,10 +32,13 @@ template options*(descriptor: ColFamilyDescriptor): ColFamilyOptionsRef =
   descriptor.options
 
 template isDefault*(descriptor: ColFamilyDescriptor): bool =
-  descriptor.name() == DEFAULT_COLUMN_FAMILY_NAME
+  descriptor.name == DEFAULT_COLUMN_FAMILY_NAME
 
 template defaultColFamilyDescriptor*(): ColFamilyDescriptor =
   initColFamilyDescriptor(DEFAULT_COLUMN_FAMILY_NAME)
+
+template isClosed*(descriptor: ColFamilyDescriptor): bool =
+  descriptor.options.isClosed()
 
 template close*(descriptor: var ColFamilyDescriptor) =
   descriptor.options.close()

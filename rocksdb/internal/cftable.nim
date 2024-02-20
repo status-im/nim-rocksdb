@@ -20,7 +20,7 @@ type
 proc newColFamilyTableRef*(): ColFamilyTableRef =
   ColFamilyTableRef(columnFamilies: newTable[string, ColFamilyHandleRef]())
 
-template isClosed(table: ColFamilyTableRef): bool =
+template isClosed*(table: ColFamilyTableRef): bool =
   table.columnFamilies.isNil()
 
 proc put*(

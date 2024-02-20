@@ -10,8 +10,7 @@
 {.push raises: [].}
 
 import
-  ../lib/librocksdb,
-  ../internal/utils
+  ../lib/librocksdb
 
 type
   ColFamilyOptionsPtr* = ptr rocksdb_options_t
@@ -21,6 +20,9 @@ type
 
 proc newColFamilyOptions*(): ColFamilyOptionsRef =
   ColFamilyOptionsRef(cPtr: rocksdb_options_create())
+
+template isClosed*(cfOpts: ColFamilyOptionsRef): bool =
+  cfOpts.cPtr.isNil()
 
 proc cPtr*(cfOpts: ColFamilyOptionsRef): ColFamilyOptionsPtr =
   doAssert not cfOpts.isClosed()

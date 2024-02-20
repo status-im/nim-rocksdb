@@ -61,7 +61,7 @@ proc openRocksDb*(
 
   let rocksDbPtr = rocksdb_open_column_families(
         dbOpts.cPtr,
-        path,
+        path.cstring,
         cfNames.len().cint,
         cast[cstringArray](cfNames[0].addr),
         cfOpts[0].addr,
@@ -100,7 +100,7 @@ proc openRocksDbReadOnly*(
 
   let rocksDbPtr = rocksdb_open_for_read_only_column_families(
         dbOpts.cPtr,
-        path,
+        path.cstring,
         cfNames.len().cint,
         cast[cstringArray](cfNames[0].addr),
         cfOpts[0].addr,

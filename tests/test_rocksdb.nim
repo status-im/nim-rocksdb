@@ -19,16 +19,10 @@ proc initReadWriteDb(
     path: string,
     columnFamilyNames = @["default"]): RocksDbReadWriteRef =
 
-  let
-    dataDir = path / "data"
-  #  backupsDir = path / "backups"
-
+  let dataDir = path / "data"
   createDir(dataDir)
-  #createDir(backupsDir)
 
-  var s = openRocksDb(
-      dataDir,
-      #backupsDir,
+  var s = openRocksDb(dataDir,
       columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)))
   doAssert s.isOk()
   s.value()
@@ -37,16 +31,11 @@ proc initReadOnlyDb(
     path: string,
     columnFamilyNames = @["default"]): RocksDbReadOnlyRef =
 
-  let
-    dataDir = path / "data"
-  #  backupsDir = path / "backups"
-
+  let dataDir = path / "data"
   createDir(dataDir)
-  #createDir(backupsDir)
 
   var s = openRocksDbReadOnly(
       dataDir,
-      #backupsDir,
       columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)))
   doAssert s.isOk()
   s.value()
@@ -71,8 +60,7 @@ suite "Nim API tests":
 
     var bytes: seq[byte]
     check db.get(key, proc(data: openArray[byte]) = bytes = @data)[]
-    check not db.get(
-      otherkey, proc(data: openArray[byte]) = bytes = @data)[]
+    check not db.get(otherkey, proc(data: openArray[byte]) = bytes = @data)[]
 
     var r1 = db.get(key)
     check r1.isOk() and r1.value == val
@@ -126,8 +114,7 @@ suite "Nim API tests":
 
     var bytes: seq[byte]
     check db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
-    check not db.get(
-      otherkey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
+    check not db.get(otherkey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
 
     var r1 = db.get(key)
     check r1.isOk() and r1.value == val
@@ -156,7 +143,6 @@ suite "Nim API tests":
 
     # Open database in read only mode
     block:
-
       var
         readOnlyDb = initReadOnlyDb(dbDir, columnFamilyNames = @[CF_DEFAULT])
         r = readOnlyDb.keyExists(key, CF_DEFAULT)
@@ -184,13 +170,11 @@ suite "Nim API tests":
 
     var bytes: seq[byte]
     check db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
-    check not db.get(
-      otherkey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
+    check not db.get(otherkey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
 
     var bytes2: seq[byte]
     check db.get(otherKey, proc(data: openArray[byte]) = bytes2 = @data, CF_OTHER)[]
-    check not db.get(
-      key, proc(data: openArray[byte]) = bytes2 = @data, CF_OTHER)[]
+    check not db.get(key, proc(data: openArray[byte]) = bytes2 = @data, CF_OTHER)[]
 
     var e1 = db.keyExists(key, CF_DEFAULT)
     check e1.isOk() and e1.value == true

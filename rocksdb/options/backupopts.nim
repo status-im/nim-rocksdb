@@ -10,8 +10,7 @@
 {.push raises: [].}
 
 import
-  ../lib/librocksdb,
-  ../internal/utils
+  ../lib/librocksdb
 
 type
   BackupEngineOptionsPtr* = ptr rocksdb_options_t
@@ -21,6 +20,9 @@ type
 
 proc newBackupEngineOptions*(): BackupEngineOptionsRef =
   BackupEngineOptionsRef(cPtr: rocksdb_options_create())
+
+template isClosed*(engineOpts: BackupEngineOptionsRef): bool =
+  engineOpts.cPtr.isNil()
 
 proc cPtr*(engineOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
   doAssert not engineOpts.isClosed()

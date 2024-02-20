@@ -30,7 +30,7 @@ proc openBackupEngine*(
   var errors: cstring
   let backupEnginePtr = rocksdb_backup_engine_open(
     backupOpts.cPtr,
-    path,
+    path.cstring,
     cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
@@ -39,6 +39,9 @@ proc openBackupEngine*(
     path: path,
     backupOpts: backupOpts)
   ok(engine)
+
+template isClosed*(backupEngine: BackupEngineRef): bool =
+  backupEngine.cPtr.isNil()
 
 proc backup*(backupEngine: BackupEngineRef, db: RocksDbRef): RocksDBResult[void] =
   doAssert not backupEngine.isClosed()

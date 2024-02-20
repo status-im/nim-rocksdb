@@ -13,7 +13,7 @@ import
   std/[cpuinfo, os],
   tempfile,
   unittest2,
-  ../rocksdb/lib/librocksdb
+  ../../rocksdb/lib/librocksdb
 
 suite "RocksDB C wrapper tests":
   setup:

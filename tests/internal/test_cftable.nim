@@ -7,15 +7,20 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-{.push raises: [].}
+{.used.}
 
-import
-  ../lib/librocksdb
+# import
+#   std/[cpuinfo, os],
+#   tempfile,
+#   unittest2,
+#   ../../rocksdb/lib/librocksdb
 
-const DEFAULT_COLUMN_FAMILY_NAME* = "default"
+suite "Test suite name":
+  # setup:
 
-template bailOnErrors*(errors: cstring): auto =
-  if not errors.isNil:
-    let res = err($(errors))
-    rocksdb_free(errors)
-    return res
+
+  # teardown:
+
+
+  test "Test name":
+    discard

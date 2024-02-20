@@ -13,8 +13,6 @@ import
   ../lib/librocksdb,
   ../internal/utils
 
-const DEFAULT_COLUMN_FAMILY_NAME* = "default"
-
 type
   ColFamilyHandlePtr* = ptr rocksdb_column_family_handle_t
 
@@ -24,18 +22,25 @@ type
 proc newColFamilyHandle*(cPtr: ColFamilyHandlePtr): ColFamilyHandleRef =
   ColFamilyHandleRef(cPtr: cPtr)
 
+template isClosed*(handle: ColFamilyHandleRef): bool =
+  handle.cPtr.isNil()
+
 proc cPtr*(handle: ColFamilyHandleRef): ColFamilyHandlePtr =
   doAssert not handle.isClosed()
   handle.cPtr
 
-proc getId*(handle: ColFamilyHandleRef): int =
-  doAssert not handle.isClosed()
-  rocksdb_column_family_handle_get_id(handle.cPtr).int
+# TODO: These procs below will not work unless using the latest version of rocksdb
+# Currently, when installing librocksdb-dev on linux the RocksDb version used is 6.11.4
+# Need to complete this task: https://github.com/status-im/nim-rocksdb/issues/10
 
-proc getName*(handle: ColFamilyHandleRef): string =
-  doAssert not handle.isClosed()
-  var nameLen: csize_t # do we need to use this?
-  $rocksdb_column_family_handle_get_name(handle.cPtr, nameLen.addr)
+# proc getId*(handle: ColFamilyHandleRef): int =
+#   doAssert not handle.isClosed()
+#   rocksdb_column_family_handle_get_id(handle.cPtr).int
+
+# proc getName*(handle: ColFamilyHandleRef): string =
+#   doAssert not handle.isClosed()
+#   var nameLen: csize_t
+#   $rocksdb_column_family_handle_get_name(handle.cPtr, nameLen.addr)
 
 template isDefault*(handle: ColFamilyHandleRef): bool =
   handle.getName() == DEFAULT_COLUMN_FAMILY_NAME

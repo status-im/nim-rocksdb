@@ -8,5 +8,13 @@
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
 import
-  ./test_rocksdb_c,
+  ./columnfamily/test_cfdescriptor,
+  ./columnfamily/test_cfhandle,
+  ./columnfamily/test_cfopts,
+  #./internal/test_cftable,
+  ./options/test_backupopts,
+  ./options/test_dbopts,
+  ./options/test_readopts,
+  ./options/test_writeopts,
+  ./lib/test_librocksdb,
   ./test_rocksdb
