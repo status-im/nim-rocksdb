@@ -50,15 +50,13 @@ template isClosed*(backupEngine: BackupEngineRef): bool =
 
 proc createNewBackup*(
     backupEngine: BackupEngineRef,
-    db: RocksDbRef,
-    flushBeforeBackup = false): RocksDBResult[void] =
+    db: RocksDbRef): RocksDBResult[void] =
   doAssert not backupEngine.isClosed()
 
   var errors: cstring
-  rocksdb_backup_engine_create_new_backup_flush(
+  rocksdb_backup_engine_create_new_backup(
     backupEngine.cPtr,
     db.cPtr,
-    flushBeforeBackup.uint8,
     cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 

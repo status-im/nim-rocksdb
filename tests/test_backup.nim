@@ -45,7 +45,7 @@ suite "BackupEngineRef Tests":
       db.put(key, val).isOk()
       db.keyExists(key).value()
 
-    check engine.createNewBackup(db, true).isOk()
+    check engine.createNewBackup(db).isOk()
 
     check:
       db.delete(key).isOk()
