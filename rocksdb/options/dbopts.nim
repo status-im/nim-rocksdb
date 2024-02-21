@@ -62,17 +62,21 @@ proc defaultDbOptions*(): DbOptionsRef =
   opts.setCreateMissingColumnFamilies(true)
   return opts
 
-proc getCreateIfMissing*(dbOpts: DbOptionsRef): bool =
-  doAssert not dbOpts.isClosed()
-  rocksdb_options_get_create_if_missing(dbOpts.cPtr).bool
+# TODO: These procs below will not work unless using the latest version of rocksdb
+# Currently, when installing librocksdb-dev on linux the RocksDb version used is 6.11.4
+# Need to complete this task: https://github.com/status-im/nim-rocksdb/issues/10
 
-proc getMaxOpenFiles*(dbOpts: DbOptionsRef): int =
-  doAssert not dbOpts.isClosed()
-  rocksdb_options_get_max_open_files(dbOpts.cPtr).int
+# proc getCreateIfMissing*(dbOpts: DbOptionsRef): bool =
+#   doAssert not dbOpts.isClosed()
+#   rocksdb_options_get_create_if_missing(dbOpts.cPtr).bool
 
-proc getCreateMissingColumnFamilies*(dbOpts: DbOptionsRef): bool =
-  doAssert not dbOpts.isClosed()
-  rocksdb_options_get_create_missing_column_families(dbOpts.cPtr).bool
+# proc getMaxOpenFiles*(dbOpts: DbOptionsRef): int =
+#   doAssert not dbOpts.isClosed()
+#   rocksdb_options_get_max_open_files(dbOpts.cPtr).int
+
+# proc getCreateMissingColumnFamilies*(dbOpts: DbOptionsRef): bool =
+#   doAssert not dbOpts.isClosed()
+#   rocksdb_options_get_create_missing_column_families(dbOpts.cPtr).bool
 
 proc close*(dbOpts: var DbOptionsRef) =
   if not dbOpts.isClosed():

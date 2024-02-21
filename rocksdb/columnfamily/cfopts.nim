@@ -38,9 +38,13 @@ proc defaultColFamilyOptions*(): ColFamilyOptionsRef =
   opts.setCreateMissingColumnFamilies(true)
   return opts
 
-proc getCreateMissingColumnFamilies*(cfOpts: ColFamilyOptionsRef): bool =
-  doAssert not cfOpts.isClosed()
-  rocksdb_options_get_create_missing_column_families(cfOpts.cPtr).bool
+# TODO: These procs below will not work unless using the latest version of rocksdb
+# Currently, when installing librocksdb-dev on linux the RocksDb version used is 6.11.4
+# Need to complete this task: https://github.com/status-im/nim-rocksdb/issues/10
+
+# proc getCreateMissingColumnFamilies*(cfOpts: ColFamilyOptionsRef): bool =
+#   doAssert not cfOpts.isClosed()
+#   rocksdb_options_get_create_missing_column_families(cfOpts.cPtr).bool
 
 proc close*(cfOpts: var ColFamilyOptionsRef) =
   if not cfOpts.isClosed():
