@@ -11,22 +11,22 @@
 
 import
   std/sequtils,
-  results,
+  ./rocksresult,
   ./lib/librocksdb,
   ./options/[dbopts, readopts, writeopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
-  ./internal/[cftable, utils]
+  ./internal/[cftable, utils],
+  ./rocksiterator
 
 export
-  results,
+  rocksresult,
   dbopts,
   readopts,
   writeopts,
-  cfdescriptor
+  cfdescriptor,
+  rocksiterator
 
 type
-  RocksDBResult*[T] = Result[T, string]
-
   RocksDbPtr = ptr rocksdb_t
 
   RocksDbRef* = ref object of RootObj
@@ -40,8 +40,6 @@ type
 
   RocksDbReadWriteRef* = ref object of RocksDbRef
     writeOpts: WriteOptionsRef
-
-  DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [].}
 
 proc openRocksDb*(
     path: string,
@@ -237,6 +235,23 @@ proc delete*(
   bailOnErrors(errors)
 
   ok()
+
+proc openIterator*(
+    db: RocksDbRef,
+    columnFamily = "default"): RocksDBResult[RocksIteratorRef] =
+  doAssert not db.isClosed()
+
+  let cfHandle  = db.cfTable.get(columnFamily)
+  if cfHandle.isNil():
+    return err("rocksdb: unknown column family")
+
+  let rocksIterPtr = rocksdb_create_iterator_cf(
+        db.cPtr,
+        db.readOpts.cPtr,
+        cfHandle.cPtr)
+
+  ok(newRocksIterator(rocksIterPtr))
+
 
 proc close*(db: RocksDbRef) =
   if not db.isClosed():
