@@ -24,26 +24,27 @@ type
     cPtr: RocksIteratorPtr
 
 proc newRocksIterator*(cPtr: RocksIteratorPtr): RocksIteratorRef =
+  doAssert not cPtr.isNil()
   RocksIteratorRef(cPtr: cPtr)
 
 template isClosed*(iter: RocksIteratorRef): bool =
   iter.cPtr.isNil()
 
-proc seekToFirst*(iter: RocksIteratorRef) =
+proc seekToFirst*(iter: var RocksIteratorRef) =
   doAssert not iter.isClosed()
   rocksdb_iter_seek_to_first(iter.cPtr)
 
-proc seekToLast*(iter: RocksIteratorRef) =
+proc seekToLast*(iter: var RocksIteratorRef) =
   doAssert not iter.isClosed()
   rocksdb_iter_seek_to_last(iter.cPtr)
 
 proc isValid*(iter: RocksIteratorRef): bool =
   rocksdb_iter_valid(iter.cPtr).bool
 
-proc next*(iter: RocksIteratorRef) =
+proc next*(iter: var RocksIteratorRef) =
   rocksdb_iter_next(iter.cPtr)
 
-proc prev*(iter: RocksIteratorRef) =
+proc prev*(iter: var RocksIteratorRef) =
   rocksdb_iter_prev(iter.cPtr)
 
 proc key*(iter: RocksIteratorRef, onData: DataProc) =
@@ -94,3 +95,17 @@ proc close*(iter: var RocksIteratorRef) =
     rocksdb_iter_destroy(iter.cPtr)
     iter.cPtr = nil
 
+iterator pairs*(iter: var RocksIteratorRef): tuple[key: seq[byte], value: seq[byte]] =
+  doAssert not iter.isClosed()
+  defer: iter.close()
+
+  iter.seekToFirst()
+  while iter.isValid():
+    var
+      key: seq[byte]
+      value: seq[byte]
+    iter.key(proc(data: openArray[byte]) = key = @data)
+    iter.value(proc(data: openArray[byte]) = value = @data)
+
+    iter.next()
+    yield (key, value)

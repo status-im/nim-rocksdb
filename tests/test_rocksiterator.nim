@@ -54,6 +54,8 @@ suite "RocksIteratorRef Tests":
     check res.isOk()
 
     var iter = res.get()
+    defer: iter.close()
+
     iter.seekToFirst()
     check iter.isValid()
 
@@ -71,13 +73,14 @@ suite "RocksIteratorRef Tests":
       iter.next()
 
     check expected == byte(4)
-    iter.close()
 
   test "Iterate backwards using other column family":
     let res = db.openIterator(CF_OTHER)
     check res.isOk()
 
     var iter = res.get()
+    defer: iter.close()
+
     iter.seekToLast()
     check iter.isValid()
 
@@ -103,9 +106,11 @@ suite "RocksIteratorRef Tests":
     let res1 = db.openIterator(CF_DEFAULT)
     check res1.isOk()
     var iter1 = res1.get()
+    defer: iter1.close()
     let res2 = db.openIterator(CF_DEFAULT)
     check res2.isOk()
     var iter2 = res2.get()
+    defer: iter2.close()
 
     iter1.seekToFirst()
     check iter1.isValid()
@@ -117,17 +122,16 @@ suite "RocksIteratorRef Tests":
       iter1.value() == @[byte(1)]
       iter2.key() == @[byte(3)]
       iter2.value() == @[byte(3)]
-
-    iter1.close()
-    iter2.close()
 
   test "Open two iterators on different column families":
     let res1 = db.openIterator(CF_DEFAULT)
     check res1.isOk()
     var iter1 = res1.get()
+    defer: iter1.close()
     let res2 = db.openIterator(CF_OTHER)
     check res2.isOk()
     var iter2 = res2.get()
+    defer: iter2.close()
 
     iter1.seekToFirst()
     check iter1.isValid()
@@ -139,9 +143,6 @@ suite "RocksIteratorRef Tests":
       iter1.value() == @[byte(1)]
       iter2.key() == @[byte(3)]
       iter2.value() == @[byte(3)]
-
-    iter1.close()
-    iter2.close()
 
   test "Invalid column family":
     let res = db.openIterator("unknown")
@@ -153,6 +154,7 @@ suite "RocksIteratorRef Tests":
     let res = db.openIterator(CF_EMPTY)
     check res.isOk()
     var iter = res.get()
+    defer: iter.close()
 
     iter.seekToFirst()
     check not iter.isValid()
@@ -160,21 +162,34 @@ suite "RocksIteratorRef Tests":
     iter.seekToLast()
     check not iter.isValid()
 
-    iter.close()
-
   test "Test status":
     let res = db.openIterator(CF_EMPTY)
     check res.isOk()
     var iter = res.get()
+    defer: iter.close()
 
     check iter.status().isOk()
     iter.seekToLast()
     check iter.status().isOk()
 
+  test "Test pairs iterator":
+    let res = db.openIterator(CF_DEFAULT)
+    check res.isOk()
+    var iter = res.get()
+
+    var expected = byte(1)
+    for k, v in iter:
+      check:
+        k == @[expected]
+        v == @[expected]
+      inc expected
+    check iter.isClosed()
+
   test "Test close":
     let res = db.openIterator()
     check res.isOk()
     var iter = res.get()
+    defer: iter.close()
 
     check not iter.isClosed()
     iter.close()
