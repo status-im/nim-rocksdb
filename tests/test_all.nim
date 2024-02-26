@@ -19,4 +19,5 @@ import
   ./options/test_writeopts,
   ./test_backup,
   ./test_rocksdb,
-  ./test_rocksiterator
+  ./test_rocksiterator,
+  ./test_writebatch

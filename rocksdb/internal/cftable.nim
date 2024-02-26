@@ -13,6 +13,9 @@ import
   std/tables,
   ../columnfamily/cfhandle
 
+export
+  cfhandle
+
 type
   ColFamilyTableRef* = ref object
     columnFamilies: TableRef[string, ColFamilyHandleRef]

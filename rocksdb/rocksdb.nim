@@ -16,7 +16,8 @@ import
   ./options/[dbopts, readopts, writeopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
   ./internal/[cftable, utils],
-  ./rocksiterator
+  ./rocksiterator,
+  ./writebatch
 
 export
   rocksresult,
@@ -130,7 +131,7 @@ proc get*(
     db: RocksDbRef,
     key: openArray[byte],
     onData: DataProc,
-    columnFamily = "default"): RocksDBResult[bool] =
+    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[bool] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -163,7 +164,7 @@ proc get*(
 proc get*(
     db: RocksDbRef,
     key: openArray[byte],
-    columnFamily = "default"): RocksDBResult[seq[byte]] =
+    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[seq[byte]] =
 
   var dataRes: RocksDBResult[seq[byte]]
   proc onData(data: openArray[byte]) =
@@ -176,9 +177,9 @@ proc get*(
   dataRes.err(res.error())
 
 proc put*(
-    db: RocksDbReadWriteRef,
+    db: var RocksDbReadWriteRef,
     key, val: openArray[byte],
-    columnFamily = "default"): RocksDBResult[void] =
+    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -205,7 +206,7 @@ proc put*(
 proc keyExists*(
     db: RocksDbRef,
     key: openArray[byte],
-    columnFamily = "default"): RocksDBResult[bool] =
+    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[bool] =
 
   # TODO: Call rocksdb_key_may_exist_cf to improve performance for the case
   # when the key does not exist
@@ -213,9 +214,9 @@ proc keyExists*(
   db.get(key, proc(data: openArray[byte]) = discard, columnFamily)
 
 proc delete*(
-    db: RocksDbReadWriteRef,
+    db: var RocksDbReadWriteRef,
     key: openArray[byte],
-    columnFamily = "default"): RocksDBResult[void] =
+    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -238,7 +239,7 @@ proc delete*(
 
 proc openIterator*(
     db: RocksDbRef,
-    columnFamily = "default"): RocksDBResult[RocksIteratorRef] =
+    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[RocksIteratorRef] =
   doAssert not db.isClosed()
 
   let cfHandle  = db.cfTable.get(columnFamily)
@@ -252,6 +253,22 @@ proc openIterator*(
 
   ok(newRocksIterator(rocksIterPtr))
 
+proc openWriteBatch*(db: RocksDbReadWriteRef): WriteBatchRef =
+  doAssert not db.isClosed()
+  newWriteBatch(db.cfTable)
+
+proc write*(db: var RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
+  doAssert not db.isClosed()
+
+  var errors: cstring
+  rocksdb_write(
+      db.cPtr,
+      db.writeOpts.cPtr,
+      updates.cPtr,
+      cast[cstringArray](errors.addr))
+  bailOnErrors(errors)
+
+  ok()
 
 proc close*(db: RocksDbRef) =
   if not db.isClosed():

@@ -189,7 +189,6 @@ suite "RocksIteratorRef Tests":
     let res = db.openIterator()
     check res.isOk()
     var iter = res.get()
-    defer: iter.close()
 
     check not iter.isClosed()
     iter.close()
