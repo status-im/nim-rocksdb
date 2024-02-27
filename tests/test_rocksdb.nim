@@ -235,3 +235,14 @@ suite "RocksDbRef Tests":
     db.close()
     check db.isClosed()
     removeDir(dbDir)
+
+  test "Test withDefaultColFamily":
+    var
+      dbDir = mkdtemp()
+      db = initReadWriteDb(dbDir,
+          columnFamilyNames = @[CF_DEFAULT, CF_OTHER]).withDefaultColFamily(CF_OTHER)
+
+    check:
+      db.put(key, val).isOk()
+      not db.keyExists(key, CF_DEFAULT).get()
+      db.keyExists(key, CF_OTHER).get()

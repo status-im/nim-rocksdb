@@ -28,6 +28,7 @@ type
     readOpts: ReadOptionsRef
     writeOpts: WriteOptionsRef
     txOpts: TransactionOptionsRef
+    defaultCfName: string
     cfTable: ColFamilyTableRef
 
 proc newTransaction*(
@@ -35,6 +36,7 @@ proc newTransaction*(
     readOpts: ReadOptionsRef,
     writeOpts: WriteOptionsRef,
     txOpts: TransactionOptionsRef,
+    defaultCfName: string,
     cfTable: ColFamilyTableRef): TransactionRef =
 
   TransactionRef(
@@ -42,16 +44,24 @@ proc newTransaction*(
       readOpts: readOpts,
       writeOpts: writeOpts,
       txOpts: txOpts,
+      defaultCfName: defaultCfName,
       cfTable: cfTable)
 
 template isClosed*(tx: TransactionRef): bool =
   tx.cPtr.isNil()
 
+proc withDefaultColFamily*(tx: var TransactionRef, name: string): TransactionRef =
+  tx.defaultCfName = name
+  tx
+
+proc defaultColFamily*(tx: TransactionRef): string =
+  tx.defaultCfName
+
 proc get*(
     tx: TransactionRef,
     key: openArray[byte],
     onData: DataProc,
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[bool] =
+    columnFamily = tx.defaultCfName): RocksDBResult[bool] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -84,7 +94,7 @@ proc get*(
 proc get*(
     tx: TransactionRef,
     key: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[seq[byte]] =
+    columnFamily = tx.defaultCfName): RocksDBResult[seq[byte]] =
 
   var dataRes: RocksDBResult[seq[byte]]
   proc onData(data: openArray[byte]) =
@@ -99,7 +109,7 @@ proc get*(
 proc put*(
     tx: var TransactionRef,
     key, val: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
+    columnFamily = tx.defaultCfName): RocksDBResult[void] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -124,7 +134,7 @@ proc put*(
 proc delete*(
     tx: var TransactionRef,
     key: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
+    columnFamily = tx.defaultCfName): RocksDBResult[void] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")

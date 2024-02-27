@@ -79,7 +79,8 @@ proc beginTransaction*(
     db: TransactionDbRef,
     readOpts = defaultReadOptions(),
     writeOpts = defaultWriteOptions(),
-    txOpts = defaultTransactionOptions()): TransactionRef =
+    txOpts = defaultTransactionOptions(),
+    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): TransactionRef =
   doAssert not db.isClosed()
 
   let txPtr = rocksdb_transaction_begin(
@@ -88,7 +89,7 @@ proc beginTransaction*(
         txOpts.cPtr,
         nil)
 
-  newTransaction(txPtr, readOpts, writeOpts, txOpts, db.cfTable)
+  newTransaction(txPtr, readOpts, writeOpts, txOpts, columnFamily, db.cfTable)
 
 proc close*(db: var TransactionDbRef) =
   if not db.isClosed():

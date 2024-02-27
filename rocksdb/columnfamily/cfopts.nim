@@ -50,4 +50,3 @@ proc close*(cfOpts: var ColFamilyOptionsRef) =
   if not cfOpts.isClosed():
     rocksdb_options_destroy(cfOpts.cPtr)
     cfOpts.cPtr = nil
-

@@ -38,4 +38,3 @@ proc close*(writeOpts: var WriteOptionsRef) =
   if not writeOpts.isClosed():
     rocksdb_writeoptions_destroy(writeOpts.cPtr)
     writeOpts.cPtr = nil
-

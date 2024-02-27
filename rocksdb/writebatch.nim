@@ -22,11 +22,13 @@ type
 
   WriteBatchRef* = ref object
     cPtr: WriteBatchPtr
+    defaultCfName: string
     cfTable: ColFamilyTableRef
 
-proc newWriteBatch*(cfTable: ColFamilyTableRef): WriteBatchRef =
+proc newWriteBatch*(cfTable: ColFamilyTableRef, defaultCfName: string): WriteBatchRef =
   WriteBatchRef(
     cPtr: rocksdb_writebatch_create(),
+    defaultCfName: defaultCfName,
     cfTable: cfTable)
 
 template isClosed*(batch: WriteBatchRef): bool =

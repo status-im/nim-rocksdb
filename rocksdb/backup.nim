@@ -90,5 +90,3 @@ proc close*(backupEngine: var BackupEngineRef) =
   if not backupEngine.isClosed():
     rocksdb_backup_engine_close(backupEngine.cPtr)
     backupEngine.cPtr = nil
-
-

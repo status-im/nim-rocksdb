@@ -38,4 +38,3 @@ proc close*(readOpts: var ReadOptionsRef) =
   if not readOpts.isClosed():
     rocksdb_readoptions_destroy(readOpts.cPtr)
     readOpts.cPtr = nil
-

@@ -35,6 +35,7 @@ type
     path: string
     dbOpts: DbOptionsRef
     readOpts: ReadOptionsRef
+    defaultCfName: string
     cfTable: ColFamilyTableRef
 
   RocksDbReadOnlyRef* = ref object of RocksDbRef
@@ -57,7 +58,6 @@ proc openRocksDb*(
     cfOpts = columnFamilies.mapIt(it.options.cPtr)
     columnFamilyHandles = newSeq[ColFamilyHandlePtr](columnFamilies.len)
     errors: cstring
-
   let rocksDbPtr = rocksdb_open_column_families(
         dbOpts.cPtr,
         path.cstring,
@@ -74,6 +74,7 @@ proc openRocksDb*(
       dbOpts: dbOpts,
       readOpts: readOpts,
       writeOpts: writeOpts,
+      defaultCfName: DEFAULT_COLUMN_FAMILY_NAME,
       cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
 
@@ -92,7 +93,6 @@ proc openRocksDbReadOnly*(
     cfOpts = columnFamilies.mapIt(it.options.cPtr)
     columnFamilyHandles = newSeq[ColFamilyHandlePtr](columnFamilies.len)
     errors: cstring
-
   let rocksDbPtr = rocksdb_open_for_read_only_column_families(
         dbOpts.cPtr,
         path.cstring,
@@ -109,6 +109,7 @@ proc openRocksDbReadOnly*(
       path: path,
       dbOpts: dbOpts,
       readOpts: readOpts,
+      defaultCfName: DEFAULT_COLUMN_FAMILY_NAME,
       cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
 
@@ -119,11 +120,18 @@ proc cPtr*(db: RocksDbRef): RocksDbPtr =
   doAssert not db.isClosed()
   db.cPtr
 
+proc withDefaultColFamily*(db: RocksDbRef | RocksDbReadWriteRef, name: string): auto =
+  db.defaultCfName = name
+  db
+
+proc defaultColFamily*(db: RocksDbRef): string =
+  db.defaultCfName
+
 proc get*(
     db: RocksDbRef,
     key: openArray[byte],
     onData: DataProc,
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[bool] =
+    columnFamily = db.defaultCfName): RocksDBResult[bool] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -156,7 +164,7 @@ proc get*(
 proc get*(
     db: RocksDbRef,
     key: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[seq[byte]] =
+    columnFamily = db.defaultCfName): RocksDBResult[seq[byte]] =
 
   var dataRes: RocksDBResult[seq[byte]]
   proc onData(data: openArray[byte]) =
@@ -169,9 +177,9 @@ proc get*(
   dataRes.err(res.error())
 
 proc put*(
-    db: var RocksDbReadWriteRef,
+    db: RocksDbReadWriteRef,
     key, val: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
+    columnFamily = db.defaultCfName): RocksDBResult[void] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -197,7 +205,7 @@ proc put*(
 proc keyExists*(
     db: RocksDbRef,
     key: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[bool] =
+    columnFamily = db.defaultCfName): RocksDBResult[bool] =
 
   # TODO: Call rocksdb_key_may_exist_cf to improve performance for the case
   # when the key does not exist
@@ -205,9 +213,9 @@ proc keyExists*(
   db.get(key, proc(data: openArray[byte]) = discard, columnFamily)
 
 proc delete*(
-    db: var RocksDbReadWriteRef,
+    db: RocksDbReadWriteRef,
     key: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
+    columnFamily = db.defaultCfName): RocksDBResult[void] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -230,7 +238,7 @@ proc delete*(
 
 proc openIterator*(
     db: RocksDbRef,
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[RocksIteratorRef] =
+    columnFamily = db.defaultCfName): RocksDBResult[RocksIteratorRef] =
   doAssert not db.isClosed()
 
   let cfHandle  = db.cfTable.get(columnFamily)
@@ -244,9 +252,12 @@ proc openIterator*(
 
   ok(newRocksIterator(rocksIterPtr))
 
-proc openWriteBatch*(db: RocksDbReadWriteRef): WriteBatchRef =
+proc openWriteBatch*(
+    db: RocksDbReadWriteRef,
+    columnFamily = db.defaultCfName): WriteBatchRef =
   doAssert not db.isClosed()
-  newWriteBatch(db.cfTable)
+
+  newWriteBatch(db.cfTable, columnFamily)
 
 proc write*(db: var RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
   doAssert not db.isClosed()

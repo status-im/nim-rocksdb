@@ -12,7 +12,8 @@
 import
     std/sequtils,
   ../rocksdb/backup,
-  ../rocksdb/rocksdb
+  ../rocksdb/rocksdb,
+  ../rocksdb/transactiondb
 
 
 proc initReadWriteDb*(
@@ -42,5 +43,17 @@ proc initReadOnlyDb*(
 proc initBackupEngine*(path: string): BackupEngineRef =
 
   let res = openBackupEngine(path)
+  doAssert res.isOk()
+  res.value()
+
+proc initTransactionDb*(
+    path: string,
+    columnFamilyNames = @["default"]): TransactionDbRef =
+
+  let res = openTransactionDb(
+      path,
+      columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)))
+  if res.isErr():
+    echo res.error()
   doAssert res.isOk()
   res.value()

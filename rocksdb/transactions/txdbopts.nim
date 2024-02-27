@@ -38,4 +38,3 @@ proc close*(txDbOpts: var TransactionDbOptionsRef) =
   if not txDbOpts.isClosed():
     rocksdb_transactiondb_options_destroy(txDbOpts.cPtr)
     txDbOpts.cPtr = nil
-

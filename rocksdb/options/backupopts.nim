@@ -38,4 +38,3 @@ proc close*(engineOpts: var BackupEngineOptionsRef) =
   if not engineOpts.isClosed():
     rocksdb_options_destroy(engineOpts.cPtr)
     engineOpts.cPtr = nil
-

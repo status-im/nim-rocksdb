@@ -82,4 +82,3 @@ proc close*(dbOpts: var DbOptionsRef) =
   if not dbOpts.isClosed():
     rocksdb_options_destroy(dbOpts.cPtr)
     dbOpts.cPtr = nil
-
