@@ -11,12 +11,12 @@
 
 import
   std/sequtils,
-  ./rocksresult,
   ./lib/librocksdb,
   ./options/[dbopts, readopts, writeopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
   ./internal/[cftable, utils],
   ./rocksiterator,
+  ./rocksresult,
   ./writebatch
 
 export
@@ -28,7 +28,7 @@ export
   rocksiterator
 
 type
-  RocksDbPtr = ptr rocksdb_t
+  RocksDbPtr* = ptr rocksdb_t
 
   RocksDbRef* = ref object of RootObj
     cPtr: RocksDbPtr
@@ -68,17 +68,13 @@ proc openRocksDb*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  var cfTable = newColFamilyTable()
-  for i, cf in columnFamilies:
-    cfTable.put(cf.name(), columnFamilyHandles[i])
-
   let db = RocksDbReadWriteRef(
       cPtr: rocksDbPtr,
       path: path,
       dbOpts: dbOpts,
       readOpts: readOpts,
       writeOpts: writeOpts,
-      cfTable: cfTable)
+      cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
 
 proc openRocksDbReadOnly*(
@@ -108,16 +104,12 @@ proc openRocksDbReadOnly*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  var cfTable = newColFamilyTable()
-  for i, cf in columnFamilies:
-    cfTable.put(cf.name(), columnFamilyHandles[i])
-
   let db = RocksDbReadOnlyRef(
       cPtr: rocksDbPtr,
       path: path,
       dbOpts: dbOpts,
       readOpts: readOpts,
-      cfTable: cfTable)
+      cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
 
 template isClosed*(db: RocksDbRef): bool =
@@ -137,7 +129,7 @@ proc get*(
     return err("rocksdb: key is empty")
 
   let cfHandle = db.cfTable.get(columnFamily)
-  if cfHandle.isNil:
+  if cfHandle.isNil():
     return err("rocksdb: unknown column family")
 
   var
@@ -153,7 +145,7 @@ proc get*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  if data.isNil:
+  if data.isNil():
     doAssert len == 0
     ok(false)
   else:
@@ -188,8 +180,7 @@ proc put*(
   if cfHandle.isNil():
     return err("rocksdb: unknown column family")
 
-  var
-    errors: cstring
+  var errors: cstring
   rocksdb_put_cf(
       db.cPtr,
       db.writeOpts.cPtr,

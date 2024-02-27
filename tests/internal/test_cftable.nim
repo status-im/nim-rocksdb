@@ -50,14 +50,10 @@ suite "ColFamilyTableRef Tests":
 
 
   test "Test newColFamilyTable":
-    var cfTable = newColFamilyTable()
+    var cfTable = newColFamilyTable(
+          @[TEST_CF_NAME, TEST_CF_NAME],
+          @[cfHandlePtr, cfHandlePtr])
 
-    cfTable.put(TEST_CF_NAME, cfHandlePtr)
-    check cfTable.get(TEST_CF_NAME).cPtr() == cfHandlePtr
-    check not cfTable.isClosed()
-
-    # second put, same result
-    cfTable.put(TEST_CF_NAME, cfHandlePtr)
     check cfTable.get(TEST_CF_NAME).cPtr() == cfHandlePtr
     check not cfTable.isClosed()
 
@@ -68,8 +64,7 @@ suite "ColFamilyTableRef Tests":
     cfTable.close()
 
   test "Test close":
-    var cfTable = newColFamilyTable()
-    cfTable.put(TEST_CF_NAME, cfHandlePtr)
+    var cfTable = newColFamilyTable(@[TEST_CF_NAME], @[cfHandlePtr])
 
     let cfHandle = cfTable.get(TEST_CF_NAME)
 
