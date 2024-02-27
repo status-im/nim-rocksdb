@@ -7,7 +7,7 @@ skipDirs      = @["examples", "tests"]
 mode          = ScriptMode.Verbose
 
 ### Dependencies
-requires "nim >= 1.6.0",
+requires "nim >= 1.6",
          "stew",
          "tempfile",
          "unittest2"
@@ -22,5 +22,5 @@ task test, "Run tests":
   test "", "tests/test_all.nim"
   # Too troublesome to install "librocksdb.a" in CI, but this is how we would
   # test it (we need the C++ linker profile because it's a C++ library):
-  # test "-d:LibrocksbStaticArgs='-l:librocksdb.a' --gcc.linkerexe=g++", "tests/all.nim"
+  # test "-d:LibrocksbStaticArgs='-l:librocksdb.a' --gcc.linkerexe=g++", "tests/test_all.nim"
 

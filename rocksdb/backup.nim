@@ -13,12 +13,13 @@ import
   ./lib/librocksdb,
   ./internal/utils,
   ./options/backupopts,
-  ./rocksdb
+  ./rocksdb,
+  ./rocksresult
 
 export
-  results,
   backupopts,
-  rocksdb
+  rocksdb,
+  rocksresult
 
 type
   BackupEnginePtr* = ptr rocksdb_backup_engine_t
