@@ -259,7 +259,7 @@ proc openWriteBatch*(
 
   newWriteBatch(db.cfTable, columnFamily)
 
-proc write*(db: var RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
+proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
   doAssert not db.isClosed()
 
   var errors: cstring

@@ -30,21 +30,21 @@ proc newRocksIterator*(cPtr: RocksIteratorPtr): RocksIteratorRef =
 template isClosed*(iter: RocksIteratorRef): bool =
   iter.cPtr.isNil()
 
-proc seekToFirst*(iter: var RocksIteratorRef) =
+proc seekToFirst*(iter: RocksIteratorRef) =
   doAssert not iter.isClosed()
   rocksdb_iter_seek_to_first(iter.cPtr)
 
-proc seekToLast*(iter: var RocksIteratorRef) =
+proc seekToLast*(iter: RocksIteratorRef) =
   doAssert not iter.isClosed()
   rocksdb_iter_seek_to_last(iter.cPtr)
 
 proc isValid*(iter: RocksIteratorRef): bool =
   rocksdb_iter_valid(iter.cPtr).bool
 
-proc next*(iter: var RocksIteratorRef) =
+proc next*(iter: RocksIteratorRef) =
   rocksdb_iter_next(iter.cPtr)
 
-proc prev*(iter: var RocksIteratorRef) =
+proc prev*(iter: RocksIteratorRef) =
   rocksdb_iter_prev(iter.cPtr)
 
 proc key*(iter: RocksIteratorRef, onData: DataProc) =
@@ -90,12 +90,12 @@ proc status*(iter: RocksIteratorRef): RocksDBResult[void] =
 
   ok()
 
-proc close*(iter: var RocksIteratorRef) =
+proc close*(iter: RocksIteratorRef) =
   if not iter.isClosed():
     rocksdb_iter_destroy(iter.cPtr)
     iter.cPtr = nil
 
-iterator pairs*(iter: var RocksIteratorRef): tuple[key: seq[byte], value: seq[byte]] =
+iterator pairs*(iter: RocksIteratorRef): tuple[key: seq[byte], value: seq[byte]] =
   doAssert not iter.isClosed()
   defer: iter.close()
 

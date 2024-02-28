@@ -91,7 +91,7 @@ proc beginTransaction*(
 
   newTransaction(txPtr, readOpts, writeOpts, txOpts, columnFamily, db.cfTable)
 
-proc close*(db: var TransactionDbRef) =
+proc close*(db: TransactionDbRef) =
   if not db.isClosed():
     db.dbOpts.close()
     db.txDbOpts.close()

@@ -38,7 +38,7 @@ proc cPtr*(batch: WriteBatchRef): WriteBatchPtr =
   doAssert not batch.isClosed()
   batch.cPtr
 
-proc clear*(batch: var WriteBatchRef) =
+proc clear*(batch: WriteBatchRef) =
   doAssert not batch.isClosed()
   rocksdb_writebatch_clear(batch.cPtr)
 
@@ -47,7 +47,7 @@ proc count*(batch: WriteBatchRef): int =
   rocksdb_writebatch_count(batch.cPtr).int
 
 proc put*(
-    batch: var WriteBatchRef,
+    batch: WriteBatchRef,
     key, val: openArray[byte],
     columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
 
@@ -69,7 +69,7 @@ proc put*(
   ok()
 
 proc delete*(
-    batch: var WriteBatchRef,
+    batch: WriteBatchRef,
     key: openArray[byte],
     columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
 
@@ -88,7 +88,7 @@ proc delete*(
 
   ok()
 
-proc close*(batch: var WriteBatchRef) =
+proc close*(batch: WriteBatchRef) =
   if not batch.isClosed():
     rocksdb_writebatch_destroy(batch.cPtr)
     batch.cPtr = nil

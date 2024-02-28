@@ -34,7 +34,7 @@ template defaultBackupEngineOptions*(): BackupEngineOptionsRef =
   newBackupEngineOptions()
   # TODO: set prefered defaults
 
-proc close*(engineOpts: var BackupEngineOptionsRef) =
+proc close*(engineOpts: BackupEngineOptionsRef) =
   if not engineOpts.isClosed():
     rocksdb_options_destroy(engineOpts.cPtr)
     engineOpts.cPtr = nil

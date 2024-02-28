@@ -34,7 +34,7 @@ template defaultTransactionOptions*(): TransactionOptionsRef =
   newTransactionOptions()
   # TODO: set prefered defaults
 
-proc close*(txOpts: var TransactionOptionsRef) =
+proc close*(txOpts: TransactionOptionsRef) =
   if not txOpts.isClosed():
     rocksdb_transaction_options_destroy(txOpts.cPtr)
     txOpts.cPtr = nil

@@ -86,7 +86,7 @@ proc restoreDbFromLatestBackup*(
 
   ok()
 
-proc close*(backupEngine: var BackupEngineRef) =
+proc close*(backupEngine: BackupEngineRef) =
   if not backupEngine.isClosed():
     rocksdb_backup_engine_close(backupEngine.cPtr)
     backupEngine.cPtr = nil

@@ -25,7 +25,7 @@ proc newColFamilyTable*(
     handles: openArray[ColFamilyHandlePtr]): ColFamilyTableRef =
   doAssert names.len() == handles.len()
 
-  var cfTable =  newTable[string, ColFamilyHandleRef]()
+  let cfTable =  newTable[string, ColFamilyHandleRef]()
   for i, name in names:
     cfTable[name] = newColFamilyHandle(handles[i])
 
@@ -37,7 +37,7 @@ template isClosed*(table: ColFamilyTableRef): bool =
 proc get*(table: ColFamilyTableRef, name: string): ColFamilyHandleRef =
   table.columnFamilies.getOrDefault(name)
 
-proc close*(table: var ColFamilyTableRef) =
+proc close*(table: ColFamilyTableRef) =
   if not table.isClosed():
     for _, v in table.columnFamilies.mpairs():
       v.close()

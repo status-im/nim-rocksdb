@@ -44,7 +44,7 @@ proc cPtr*(handle: ColFamilyHandleRef): ColFamilyHandlePtr =
 # template isDefault*(handle: ColFamilyHandleRef): bool =
 #   handle.getName() == DEFAULT_COLUMN_FAMILY_NAME
 
-proc close*(handle: var ColFamilyHandleRef) =
+proc close*(handle: ColFamilyHandleRef) =
   if not handle.isClosed():
     rocksdb_column_family_handle_destroy(handle.cPtr)
     handle.cPtr = nil

@@ -50,7 +50,7 @@ proc newTransaction*(
 template isClosed*(tx: TransactionRef): bool =
   tx.cPtr.isNil()
 
-proc withDefaultColFamily*(tx: var TransactionRef, name: string): TransactionRef =
+proc withDefaultColFamily*(tx: TransactionRef, name: string): TransactionRef =
   tx.defaultCfName = name
   tx
 
@@ -107,7 +107,7 @@ proc get*(
   dataRes.err(res.error())
 
 proc put*(
-    tx: var TransactionRef,
+    tx: TransactionRef,
     key, val: openArray[byte],
     columnFamily = tx.defaultCfName): RocksDBResult[void] =
 
@@ -132,7 +132,7 @@ proc put*(
   ok()
 
 proc delete*(
-    tx: var TransactionRef,
+    tx: TransactionRef,
     key: openArray[byte],
     columnFamily = tx.defaultCfName): RocksDBResult[void] =
 
@@ -154,7 +154,7 @@ proc delete*(
 
   ok()
 
-proc commit*(tx: var TransactionRef): RocksDBResult[void] =
+proc commit*(tx: TransactionRef): RocksDBResult[void] =
   doAssert not tx.isClosed()
 
   var errors: cstring
@@ -163,7 +163,7 @@ proc commit*(tx: var TransactionRef): RocksDBResult[void] =
 
   ok()
 
-proc rollback*(tx: var TransactionRef): RocksDBResult[void] =
+proc rollback*(tx: TransactionRef): RocksDBResult[void] =
   doAssert not tx.isClosed()
 
   var errors: cstring
@@ -172,7 +172,7 @@ proc rollback*(tx: var TransactionRef): RocksDBResult[void] =
 
   ok()
 
-proc close*(tx: var TransactionRef) =
+proc close*(tx: TransactionRef) =
   if not tx.isClosed():
     tx.readOpts.close()
     tx.writeOpts.close()
