@@ -26,10 +26,16 @@ suite "RocksDbRef Tests":
     otherKey = @[byte(1), 2, 3, 4, 5, 6]
     val = @[byte(1), 2, 3, 4, 5]
 
+  setup:
+    let
+      dbPath = mkdtemp() / "data"
+      db = initReadWriteDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+
+  teardown:
+    db.close()
+    removeDir($dbPath)
+
   test "Basic operations":
-    var
-      dbDir = mkdtemp()
-      db = initReadWriteDb(dbDir)
 
     var s = db.put(key, val)
     check s.isOk()
@@ -65,9 +71,8 @@ suite "RocksDbRef Tests":
 
     # Open database in read only mode
     block:
-
       var
-        readOnlyDb = initReadOnlyDb(dbDir)
+        readOnlyDb = initReadOnlyDb(dbPath)
         r = readOnlyDb.keyExists(key)
       check r.isOk() and r.value == false
 
@@ -78,12 +83,7 @@ suite "RocksDbRef Tests":
       readOnlyDb.close()
       check readOnlyDb.isClosed()
 
-    removeDir(dbDir)
-
   test "Basic operations - default column family":
-    var
-      dbDir = mkdtemp()
-      db = initReadWriteDb(dbDir, columnFamilyNames = @[CF_DEFAULT])
 
     var s = db.put(key, val, CF_DEFAULT)
     check s.isOk()
@@ -120,7 +120,7 @@ suite "RocksDbRef Tests":
     # Open database in read only mode
     block:
       var
-        readOnlyDb = initReadOnlyDb(dbDir, columnFamilyNames = @[CF_DEFAULT])
+        readOnlyDb = initReadOnlyDb(dbPath, columnFamilyNames = @[CF_DEFAULT])
         r = readOnlyDb.keyExists(key, CF_DEFAULT)
       check r.isOk() and r.value == false
 
@@ -131,12 +131,7 @@ suite "RocksDbRef Tests":
       readOnlyDb.close()
       check readOnlyDb.isClosed()
 
-    removeDir(dbDir)
-
   test "Basic operations - multiple column families":
-    var
-      dbDir = mkdtemp()
-      db = initReadWriteDb(dbDir, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
 
     var s = db.put(key, val, CF_DEFAULT)
     check s.isOk()
@@ -184,7 +179,7 @@ suite "RocksDbRef Tests":
     # Open database in read only mode
     block:
       var
-        readOnlyDb = initReadOnlyDb(dbDir, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+        readOnlyDb = initReadOnlyDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
 
       var r = readOnlyDb.keyExists(key, CF_OTHER)
       check r.isOk() and r.value == false
@@ -196,28 +191,16 @@ suite "RocksDbRef Tests":
       readOnlyDb.close()
       check readOnlyDb.isClosed()
 
-    removeDir(dbDir)
-
   test "Close multiple times":
-    var
-      dbDir = mkdtemp()
-      db = initReadWriteDb(dbDir)
+
     check not db.isClosed()
-
     db.close()
     check db.isClosed()
-
     db.close()
     check db.isClosed()
-
-    removeDir(dbDir)
 
   test "Unknown column family":
     const CF_UNKNOWN = "unknown"
-
-    var
-      dbDir = mkdtemp()
-      db = initReadWriteDb(dbDir, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
 
     let r = db.put(key, val, CF_UNKNOWN)
     check r.isErr() and r.error() == "rocksdb: unknown column family"
@@ -232,17 +215,78 @@ suite "RocksDbRef Tests":
     let r4 = db.delete(key, CF_UNKNOWN)
     check r4.isErr() and r4.error() == "rocksdb: unknown column family"
 
-    db.close()
-    check db.isClosed()
-    removeDir(dbDir)
-
   test "Test withDefaultColFamily":
-    var
-      dbDir = mkdtemp()
-      db = initReadWriteDb(dbDir,
-          columnFamilyNames = @[CF_DEFAULT, CF_OTHER]).withDefaultColFamily(CF_OTHER)
+    discard db.withDefaultColFamily(CF_OTHER)
 
     check:
       db.put(key, val).isOk()
       not db.keyExists(key, CF_DEFAULT).get()
       db.keyExists(key, CF_OTHER).get()
+
+  test "Test missing key and values":
+    let
+      key1 = @[byte(1)] # exists with non empty value
+      val1 = @[byte(1)]
+      key2 = @[byte(2)] # exists with empty seq value
+      val2: seq[byte] = @[]
+      key3 = @[byte(3)] # exists with empty array value
+      val3: array[0, byte] = []
+      key4 = @[byte(4)] # deleted key
+      key5 = @[byte(5)] # key not created
+
+    check:
+      db.put(key1, val1).isOk()
+      db.put(key2, val2).isOk()
+      db.put(key3, val3).isOk()
+      db.delete(key4).isOk()
+
+      db.keyExists(key1).get() == true
+      db.keyExists(key2).get() == true
+      db.keyExists(key3).get() == true
+      db.keyExists(key4).get() == false
+      db.keyExists(key5).get() == false
+
+    block:
+      var v: seq[byte]
+      let r = db.get(key1, proc(data: openArray[byte]) = v = @data)
+      check:
+        r.isOk()
+        r.value() == true
+        v == val1
+        db.get(key1).isOk()
+
+    block:
+      var v: seq[byte]
+      let r = db.get(key2, proc(data: openArray[byte]) = v = @data)
+      check:
+        r.isOk()
+        r.value() == true
+        v.len() == 0
+        db.get(key2).isOk()
+
+    block:
+      var v: seq[byte]
+      let r = db.get(key3, proc(data: openArray[byte]) = v = @data)
+      check:
+        r.isOk()
+        r.value() == true
+        v.len() == 0
+        db.get(key3).isOk()
+
+    block:
+      var v: seq[byte]
+      let r = db.get(key4, proc(data: openArray[byte]) = v = @data)
+      check:
+        r.isOk()
+        r.value() == false
+        v.len() == 0
+        db.get(key4).isErr()
+
+    block:
+      var v: seq[byte]
+      let r = db.get(key5, proc(data: openArray[byte]) = v = @data)
+      check:
+        r.isOk()
+        r.value() == false
+        v.len() == 0
+        db.get(key5).isErr()

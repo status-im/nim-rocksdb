@@ -34,8 +34,8 @@ suite "RocksIteratorRef Tests":
   setup:
     let
       dbPath = mkdtemp() / "data"
-
-    var db = initReadWriteDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER, CF_EMPTY])
+      db = initReadWriteDb(dbPath,
+        columnFamilyNames = @[CF_DEFAULT, CF_OTHER, CF_EMPTY])
 
     doAssert db.put(key1, val1).isOk()
     doAssert db.put(key2, val2).isOk()
@@ -45,7 +45,6 @@ suite "RocksIteratorRef Tests":
     doAssert db.put(key3, val3, CF_OTHER).isOk()
 
   teardown:
-
     db.close()
     removeDir($dbPath)
 
