@@ -13,29 +13,31 @@ import
   std/tables,
   ../columnfamily/cfhandle
 
+export
+  cfhandle
+
 type
   ColFamilyTableRef* = ref object
     columnFamilies: TableRef[string, ColFamilyHandleRef]
 
-proc newColFamilyTable*(): ColFamilyTableRef =
-  ColFamilyTableRef(columnFamilies: newTable[string, ColFamilyHandleRef]())
+proc newColFamilyTable*(
+    names: openArray[string],
+    handles: openArray[ColFamilyHandlePtr]): ColFamilyTableRef =
+  doAssert names.len() == handles.len()
+
+  let cfTable =  newTable[string, ColFamilyHandleRef]()
+  for i, name in names:
+    cfTable[name] = newColFamilyHandle(handles[i])
+
+  ColFamilyTableRef(columnFamilies: cfTable)
 
 template isClosed*(table: ColFamilyTableRef): bool =
   table.columnFamilies.isNil()
 
-proc put*(
-    table: var ColFamilyTableRef,
-    name: string,
-    handle: ColFamilyHandlePtr) =
-  doAssert not table.isClosed()
-  doAssert not handle.isNil()
-  table.columnFamilies[name] = newColFamilyHandle(handle)
-
 proc get*(table: ColFamilyTableRef, name: string): ColFamilyHandleRef =
-  doAssert not table.isClosed()
   table.columnFamilies.getOrDefault(name)
 
-proc close*(table: var ColFamilyTableRef) =
+proc close*(table: ColFamilyTableRef) =
   if not table.isClosed():
     for _, v in table.columnFamilies.mpairs():
       v.close()

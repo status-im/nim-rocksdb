@@ -10,12 +10,12 @@
 {.push raises: [].}
 
 import
-  ../lib/librocksdb
+  results
 
-const DEFAULT_COLUMN_FAMILY_NAME* = "default"
+export
+  results
 
-template bailOnErrors*(errors: cstring): auto =
-  if not errors.isNil:
-    let res = err($(errors))
-    rocksdb_free(errors)
-    return res
+type
+  RocksDBResult*[T] = Result[T, string]
+
+  DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [].}

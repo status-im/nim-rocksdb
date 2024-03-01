@@ -7,6 +7,6 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-import ./rocksdb/[backup, rocksdb]
+import ./rocksdb/[backup, rocksdb, rocksiterator, transactiondb, writebatch]
 
-export backup, rocksdb
+export backup, rocksdb, rocksiterator, transactiondb, writebatch

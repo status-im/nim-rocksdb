@@ -1,4 +1,4 @@
-import ../rocksdb, cpuinfo
+import ../rocksdb/lib/librocksdb, cpuinfo
 
 const
   dbPath: cstring = "/tmp/rocksdb_simple_example"
@@ -6,8 +6,8 @@ const
 
 proc main() =
   var
-    db: rocksdb_t
-    be: rocksdb_backup_engine_t
+    db: ptr rocksdb_t
+    be: ptr rocksdb_backup_engine_t
     options = rocksdb_options_create()
   # Optimize RocksDB. This is the easiest way to
   # get RocksDB to perform well
@@ -21,24 +21,26 @@ proc main() =
 
   # open DB
   var err: cstring  # memory leak: example code does not free error string!
-  db = rocksdb_open(options, dbPath, err.addr)
+  db = rocksdb_open(options, dbPath, cast[cstringArray](err.addr))
   doAssert err.isNil, $err
 
   # open Backup Engine that we will use for backing up our database
-  be = rocksdb_backup_engine_open(options, dbBackupPath, err.addr)
+  be = rocksdb_backup_engine_open(options, dbBackupPath, cast[cstringArray](err.addr))
   doAssert err.isNil, $err
 
   # Put key-value
   var writeOptions = rocksdb_writeoptions_create()
   let key = "key"
   let put_value = "value"
-  rocksdb_put(db, writeOptions, key.cstring, key.len.csize_t, put_value.cstring, put_value.len.csize_t, err.addr)
+  rocksdb_put(db, writeOptions, key.cstring, key.len.csize_t, put_value.cstring,
+      put_value.len.csize_t, cast[cstringArray](err.addr))
   doAssert err.isNil, $err
 
   # Get value
   var readOptions = rocksdb_readoptions_create()
   var len: csize_t
-  let raw_value = rocksdb_get(db, readOptions, key, key.len.csize_t, addr len, err.addr) # Important: rocksdb_get is not null-terminated
+  let raw_value = rocksdb_get(db, readOptions, key.cstring, key.len.csize_t, addr len,
+      cast[cstringArray](err.addr)) # Important: rocksdb_get is not null-terminated
   doAssert err.isNil, $err
 
   # Copy it to a regular Nim string (copyMem workaround because raw value is NOT null-terminated)
@@ -48,7 +50,7 @@ proc main() =
   doAssert get_value == put_value
 
   # create new backup in a directory specified by DBBackupPath
-  rocksdb_backup_engine_create_new_backup(be, db, err.addr)
+  rocksdb_backup_engine_create_new_backup(be, db, cast[cstringArray](err.addr))
   doAssert err.isNil, $err
 
   rocksdb_close(db)
@@ -56,11 +58,11 @@ proc main() =
   # If something is wrong, you might want to restore data from last backup
   var restoreOptions = rocksdb_restore_options_create()
   rocksdb_backup_engine_restore_db_from_latest_backup(be, dbPath, dbPath,
-                                                      restoreOptions, err.addr)
+      restoreOptions, cast[cstringArray](err.addr))
   doAssert err.isNil, $err
   rocksdb_restore_options_destroy(restore_options)
 
-  db = rocksdb_open(options, dbPath, err.addr)
+  db = rocksdb_open(options, dbPath, cast[cstringArray](err.addr))
   doAssert err.isNil, $err
 
   # cleanup

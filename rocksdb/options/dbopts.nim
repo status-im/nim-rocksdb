@@ -29,26 +29,26 @@ proc cPtr*(dbOpts: DbOptionsRef): DbOptionsPtr =
   doAssert not dbOpts.isClosed()
   dbOpts.cPtr
 
-proc setIncreaseParallelism*(dbOpts: var DbOptionsRef, totalThreads: int) =
+proc setIncreaseParallelism*(dbOpts: DbOptionsRef, totalThreads: int) =
   doAssert totalThreads > 0
   doAssert not dbOpts.isClosed()
   rocksdb_options_increase_parallelism(dbOpts.cPtr, totalThreads.cint)
 
-proc setCreateIfMissing*(dbOpts: var DbOptionsRef, flag: bool) =
+proc setCreateIfMissing*(dbOpts: DbOptionsRef, flag: bool) =
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_create_if_missing(dbOpts.cPtr, flag.uint8)
 
-proc setMaxOpenFiles*(dbOpts: var DbOptionsRef, maxOpenFiles: int) =
+proc setMaxOpenFiles*(dbOpts: DbOptionsRef, maxOpenFiles: int) =
   doAssert maxOpenFiles >= -1
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_max_open_files(dbOpts.cPtr, maxOpenFiles.cint)
 
-proc setCreateMissingColumnFamilies*(dbOpts: var DbOptionsRef, flag: bool) =
+proc setCreateMissingColumnFamilies*(dbOpts: DbOptionsRef, flag: bool) =
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_create_missing_column_families(dbOpts.cPtr, flag.uint8)
 
 proc defaultDbOptions*(): DbOptionsRef =
-  var opts = newDbOptions()
+  let opts = newDbOptions()
   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
   opts.setIncreaseParallelism(countProcessors())
   # This requires snappy - disabled because rocksdb is not always compiled with
@@ -78,8 +78,7 @@ proc defaultDbOptions*(): DbOptionsRef =
 #   doAssert not dbOpts.isClosed()
 #   rocksdb_options_get_create_missing_column_families(dbOpts.cPtr).bool
 
-proc close*(dbOpts: var DbOptionsRef) =
+proc close*(dbOpts: DbOptionsRef) =
   if not dbOpts.isClosed():
     rocksdb_options_destroy(dbOpts.cPtr)
     dbOpts.cPtr = nil
-

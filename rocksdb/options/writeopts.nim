@@ -34,8 +34,7 @@ template defaultWriteOptions*(): WriteOptionsRef =
   newWriteOptions()
   # TODO: set prefered defaults
 
-proc close*(writeOpts: var WriteOptionsRef) =
+proc close*(writeOpts: WriteOptionsRef) =
   if not writeOpts.isClosed():
     rocksdb_writeoptions_destroy(writeOpts.cPtr)
     writeOpts.cPtr = nil
-

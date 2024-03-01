@@ -11,37 +11,37 @@
 
 import
   std/sequtils,
-  results,
   ./lib/librocksdb,
   ./options/[dbopts, readopts, writeopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
-  ./internal/[cftable, utils]
+  ./internal/[cftable, utils],
+  ./rocksiterator,
+  ./rocksresult,
+  ./writebatch
 
 export
-  results,
+  rocksresult,
   dbopts,
   readopts,
   writeopts,
-  cfdescriptor
+  cfdescriptor,
+  rocksiterator
 
 type
-  RocksDBResult*[T] = Result[T, string]
-
-  RocksDbPtr = ptr rocksdb_t
+  RocksDbPtr* = ptr rocksdb_t
 
   RocksDbRef* = ref object of RootObj
     cPtr: RocksDbPtr
     path: string
     dbOpts: DbOptionsRef
     readOpts: ReadOptionsRef
+    defaultCfName: string
     cfTable: ColFamilyTableRef
 
   RocksDbReadOnlyRef* = ref object of RocksDbRef
 
   RocksDbReadWriteRef* = ref object of RocksDbRef
     writeOpts: WriteOptionsRef
-
-  DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [].}
 
 proc openRocksDb*(
     path: string,
@@ -58,7 +58,6 @@ proc openRocksDb*(
     cfOpts = columnFamilies.mapIt(it.options.cPtr)
     columnFamilyHandles = newSeq[ColFamilyHandlePtr](columnFamilies.len)
     errors: cstring
-
   let rocksDbPtr = rocksdb_open_column_families(
         dbOpts.cPtr,
         path.cstring,
@@ -69,17 +68,14 @@ proc openRocksDb*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  var cfTable = newColFamilyTable()
-  for i, cf in columnFamilies:
-    cfTable.put(cf.name(), columnFamilyHandles[i])
-
   let db = RocksDbReadWriteRef(
       cPtr: rocksDbPtr,
       path: path,
       dbOpts: dbOpts,
       readOpts: readOpts,
       writeOpts: writeOpts,
-      cfTable: cfTable)
+      defaultCfName: DEFAULT_COLUMN_FAMILY_NAME,
+      cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
 
 proc openRocksDbReadOnly*(
@@ -97,7 +93,6 @@ proc openRocksDbReadOnly*(
     cfOpts = columnFamilies.mapIt(it.options.cPtr)
     columnFamilyHandles = newSeq[ColFamilyHandlePtr](columnFamilies.len)
     errors: cstring
-
   let rocksDbPtr = rocksdb_open_for_read_only_column_families(
         dbOpts.cPtr,
         path.cstring,
@@ -109,16 +104,13 @@ proc openRocksDbReadOnly*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  var cfTable = newColFamilyTable()
-  for i, cf in columnFamilies:
-    cfTable.put(cf.name(), columnFamilyHandles[i])
-
   let db = RocksDbReadOnlyRef(
       cPtr: rocksDbPtr,
       path: path,
       dbOpts: dbOpts,
       readOpts: readOpts,
-      cfTable: cfTable)
+      defaultCfName: DEFAULT_COLUMN_FAMILY_NAME,
+      cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
 
 template isClosed*(db: RocksDbRef): bool =
@@ -128,17 +120,24 @@ proc cPtr*(db: RocksDbRef): RocksDbPtr =
   doAssert not db.isClosed()
   db.cPtr
 
+proc withDefaultColFamily*(db: RocksDbRef | RocksDbReadWriteRef, name: string): auto =
+  db.defaultCfName = name
+  db
+
+proc defaultColFamily*(db: RocksDbRef): string =
+  db.defaultCfName
+
 proc get*(
     db: RocksDbRef,
     key: openArray[byte],
     onData: DataProc,
-    columnFamily = "default"): RocksDBResult[bool] =
+    columnFamily = db.defaultCfName): RocksDBResult[bool] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
 
   let cfHandle = db.cfTable.get(columnFamily)
-  if cfHandle.isNil:
+  if cfHandle.isNil():
     return err("rocksdb: unknown column family")
 
   var
@@ -154,7 +153,7 @@ proc get*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  if data.isNil:
+  if data.isNil():
     doAssert len == 0
     ok(false)
   else:
@@ -165,7 +164,7 @@ proc get*(
 proc get*(
     db: RocksDbRef,
     key: openArray[byte],
-    columnFamily = "default"): RocksDBResult[seq[byte]] =
+    columnFamily = db.defaultCfName): RocksDBResult[seq[byte]] =
 
   var dataRes: RocksDBResult[seq[byte]]
   proc onData(data: openArray[byte]) =
@@ -180,7 +179,7 @@ proc get*(
 proc put*(
     db: RocksDbReadWriteRef,
     key, val: openArray[byte],
-    columnFamily = "default"): RocksDBResult[void] =
+    columnFamily = db.defaultCfName): RocksDBResult[void] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -189,8 +188,7 @@ proc put*(
   if cfHandle.isNil():
     return err("rocksdb: unknown column family")
 
-  var
-    errors: cstring
+  var errors: cstring
   rocksdb_put_cf(
       db.cPtr,
       db.writeOpts.cPtr,
@@ -207,7 +205,7 @@ proc put*(
 proc keyExists*(
     db: RocksDbRef,
     key: openArray[byte],
-    columnFamily = "default"): RocksDBResult[bool] =
+    columnFamily = db.defaultCfName): RocksDBResult[bool] =
 
   # TODO: Call rocksdb_key_may_exist_cf to improve performance for the case
   # when the key does not exist
@@ -217,7 +215,7 @@ proc keyExists*(
 proc delete*(
     db: RocksDbReadWriteRef,
     key: openArray[byte],
-    columnFamily = "default"): RocksDBResult[void] =
+    columnFamily = db.defaultCfName): RocksDBResult[void] =
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -233,6 +231,42 @@ proc delete*(
       cfHandle.cPtr,
       cast[cstring](unsafeAddr key[0]),
       csize_t(key.len),
+      cast[cstringArray](errors.addr))
+  bailOnErrors(errors)
+
+  ok()
+
+proc openIterator*(
+    db: RocksDbRef,
+    columnFamily = db.defaultCfName): RocksDBResult[RocksIteratorRef] =
+  doAssert not db.isClosed()
+
+  let cfHandle  = db.cfTable.get(columnFamily)
+  if cfHandle.isNil():
+    return err("rocksdb: unknown column family")
+
+  let rocksIterPtr = rocksdb_create_iterator_cf(
+        db.cPtr,
+        db.readOpts.cPtr,
+        cfHandle.cPtr)
+
+  ok(newRocksIterator(rocksIterPtr))
+
+proc openWriteBatch*(
+    db: RocksDbReadWriteRef,
+    columnFamily = db.defaultCfName): WriteBatchRef =
+  doAssert not db.isClosed()
+
+  newWriteBatch(db.cfTable, columnFamily)
+
+proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
+  doAssert not db.isClosed()
+
+  var errors: cstring
+  rocksdb_write(
+      db.cPtr,
+      db.writeOpts.cPtr,
+      updates.cPtr,
       cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 

@@ -13,12 +13,13 @@ import
   ./lib/librocksdb,
   ./internal/utils,
   ./options/backupopts,
-  ./rocksdb
+  ./rocksdb,
+  ./rocksresult
 
 export
-  results,
   backupopts,
-  rocksdb
+  rocksdb,
+  rocksresult
 
 type
   BackupEnginePtr* = ptr rocksdb_backup_engine_t
@@ -85,9 +86,7 @@ proc restoreDbFromLatestBackup*(
 
   ok()
 
-proc close*(backupEngine: var BackupEngineRef) =
+proc close*(backupEngine: BackupEngineRef) =
   if not backupEngine.isClosed():
     rocksdb_backup_engine_close(backupEngine.cPtr)
     backupEngine.cPtr = nil
-
-

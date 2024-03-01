@@ -40,5 +40,5 @@ template defaultColFamilyDescriptor*(): ColFamilyDescriptor =
 template isClosed*(descriptor: ColFamilyDescriptor): bool =
   descriptor.options.isClosed()
 
-template close*(descriptor: var ColFamilyDescriptor) =
+template close*(descriptor: ColFamilyDescriptor) =
   descriptor.options.close()

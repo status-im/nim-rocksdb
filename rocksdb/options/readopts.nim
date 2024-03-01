@@ -34,8 +34,7 @@ template defaultReadOptions*(): ReadOptionsRef =
   newReadOptions()
   # TODO: set prefered defaults
 
-proc close*(readOpts: var ReadOptionsRef) =
+proc close*(readOpts: ReadOptionsRef) =
   if not readOpts.isClosed():
     rocksdb_readoptions_destroy(readOpts.cPtr)
     readOpts.cPtr = nil
-

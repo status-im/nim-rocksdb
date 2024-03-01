@@ -28,12 +28,12 @@ proc cPtr*(cfOpts: ColFamilyOptionsRef): ColFamilyOptionsPtr =
   doAssert not cfOpts.isClosed()
   cfOpts.cPtr
 
-proc setCreateMissingColumnFamilies*(cfOpts: var ColFamilyOptionsRef, flag: bool) =
+proc setCreateMissingColumnFamilies*(cfOpts: ColFamilyOptionsRef, flag: bool) =
   doAssert not cfOpts.isClosed()
   rocksdb_options_set_create_missing_column_families(cfOpts.cPtr, flag.uint8)
 
 proc defaultColFamilyOptions*(): ColFamilyOptionsRef =
-  var opts = newColFamilyOptions()
+  let opts = newColFamilyOptions()
   # Enable creating column families if they do not exist
   opts.setCreateMissingColumnFamilies(true)
   return opts
@@ -46,8 +46,7 @@ proc defaultColFamilyOptions*(): ColFamilyOptionsRef =
 #   doAssert not cfOpts.isClosed()
 #   rocksdb_options_get_create_missing_column_families(cfOpts.cPtr).bool
 
-proc close*(cfOpts: var ColFamilyOptionsRef) =
+proc close*(cfOpts: ColFamilyOptionsRef) =
   if not cfOpts.isClosed():
     rocksdb_options_destroy(cfOpts.cPtr)
     cfOpts.cPtr = nil
-
