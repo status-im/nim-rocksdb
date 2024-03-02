@@ -25,7 +25,8 @@ export
   readopts,
   writeopts,
   cfdescriptor,
-  rocksiterator
+  rocksiterator,
+  writebatch
 
 type
   RocksDbPtr* = ptr rocksdb_t
@@ -119,13 +120,6 @@ template isClosed*(db: RocksDbRef): bool =
 proc cPtr*(db: RocksDbRef): RocksDbPtr =
   doAssert not db.isClosed()
   db.cPtr
-
-proc withDefaultColFamily*(db: RocksDbRef | RocksDbReadWriteRef, name: string): auto =
-  db.defaultCfName = name
-  db
-
-proc defaultColFamily*(db: RocksDbRef): string =
-  db.defaultCfName
 
 proc get*(
     db: RocksDbRef,

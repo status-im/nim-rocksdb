@@ -50,13 +50,6 @@ proc newTransaction*(
 template isClosed*(tx: TransactionRef): bool =
   tx.cPtr.isNil()
 
-proc withDefaultColFamily*(tx: TransactionRef, name: string): TransactionRef =
-  tx.defaultCfName = name
-  tx
-
-proc defaultColFamily*(tx: TransactionRef): string =
-  tx.defaultCfName
-
 proc get*(
     tx: TransactionRef,
     key: openArray[byte],
