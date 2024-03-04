@@ -7,6 +7,9 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
+## A `RocksIteratorRef` is a reference to a RocksDB iterator which supports
+## iterating over the key value pairs in a column family.
+
 {.push raises: [].}
 
 import
@@ -28,26 +31,34 @@ proc newRocksIterator*(cPtr: RocksIteratorPtr): RocksIteratorRef =
   RocksIteratorRef(cPtr: cPtr)
 
 proc isClosed*(iter: RocksIteratorRef): bool {.inline.} =
+  ## Returns `true` if the iterator is closed.
   iter.cPtr.isNil()
 
 proc seekToFirst*(iter: RocksIteratorRef) =
+  ## Seeks to the first entry in the column family.
   doAssert not iter.isClosed()
   rocksdb_iter_seek_to_first(iter.cPtr)
 
 proc seekToLast*(iter: RocksIteratorRef) =
+  ## Seeks to the last entry in the column family.
   doAssert not iter.isClosed()
   rocksdb_iter_seek_to_last(iter.cPtr)
 
 proc isValid*(iter: RocksIteratorRef): bool =
+  ## Returns `true` if the iterator is valid.
   rocksdb_iter_valid(iter.cPtr).bool
 
 proc next*(iter: RocksIteratorRef) =
+  ## Seeks to the next entry in the column family.
   rocksdb_iter_next(iter.cPtr)
 
 proc prev*(iter: RocksIteratorRef) =
+  ## Seeks to the previous entry in the column family.
   rocksdb_iter_prev(iter.cPtr)
 
 proc key*(iter: RocksIteratorRef, onData: DataProc) =
+  ## Returns the current key using the provided `onData` callback.
+
   var kLen: csize_t
   let kData = rocksdb_iter_key(iter.cPtr, kLen.addr)
 
@@ -57,6 +68,8 @@ proc key*(iter: RocksIteratorRef, onData: DataProc) =
     onData(kData.toOpenArrayByte(0, kLen.int - 1))
 
 proc key*(iter: RocksIteratorRef): seq[byte] =
+  ## Returns the current key.
+
   var res: seq[byte]
   proc onData(data: openArray[byte]) =
     res = @data
@@ -65,6 +78,8 @@ proc key*(iter: RocksIteratorRef): seq[byte] =
   res
 
 proc value*(iter: RocksIteratorRef, onData: DataProc) =
+  ## Returns the current value using the provided `onData` callback.
+
   var vLen: csize_t
   let vData = rocksdb_iter_value(iter.cPtr, vLen.addr)
 
@@ -74,6 +89,8 @@ proc value*(iter: RocksIteratorRef, onData: DataProc) =
     onData(vData.toOpenArrayByte(0, vLen.int - 1))
 
 proc value*(iter: RocksIteratorRef): seq[byte] =
+  ## Returns the current value.
+
   var res: seq[byte]
   proc onData(data: openArray[byte]) =
     res = @data
@@ -82,6 +99,7 @@ proc value*(iter: RocksIteratorRef): seq[byte] =
   res
 
 proc status*(iter: RocksIteratorRef): RocksDBResult[void] =
+  ## Returns the status of the iterator.
   doAssert not iter.isClosed()
 
   var errors: cstring
@@ -91,11 +109,15 @@ proc status*(iter: RocksIteratorRef): RocksDBResult[void] =
   ok()
 
 proc close*(iter: RocksIteratorRef) =
+  ## Closes the `RocksIteratorRef`.
   if not iter.isClosed():
     rocksdb_iter_destroy(iter.cPtr)
     iter.cPtr = nil
 
 iterator pairs*(iter: RocksIteratorRef): tuple[key: seq[byte], value: seq[byte]] =
+  ## Iterates over the key value pairs in the column family yielding them in
+  ## the form of a tuple. The iterator is automatically closed after the
+  ## iteration.
   doAssert not iter.isClosed()
   defer: iter.close()
 

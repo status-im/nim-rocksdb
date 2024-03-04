@@ -7,6 +7,8 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
+## A BackupEngineRef is used to create and manage backups against a RocksDB database.
+
 {.push raises: [].}
 
 import
@@ -32,6 +34,8 @@ type
 proc openBackupEngine*(
     path: string,
     backupOpts = defaultBackupEngineOptions()): RocksDBResult[BackupEngineRef] =
+  ## Create a new backup engine. The path parameter is the path of the backup
+  ## directory which should be different to the path of the database.
 
   var errors: cstring
   let backupEnginePtr = rocksdb_backup_engine_open(
@@ -47,11 +51,13 @@ proc openBackupEngine*(
   ok(engine)
 
 proc isClosed*(backupEngine: BackupEngineRef): bool {.inline.} =
+  ## Returns true if the BackupEngineRef has been closed.
   backupEngine.cPtr.isNil()
 
 proc createNewBackup*(
     backupEngine: BackupEngineRef,
     db: RocksDbRef): RocksDBResult[void] =
+  ## Create a new backup of the database.
   doAssert not backupEngine.isClosed()
   doAssert not db.isClosed()
 
@@ -69,6 +75,7 @@ proc restoreDbFromLatestBackup*(
     dbDir: string,
     walDir = dbDir,
     keepLogFiles = false): RocksDBResult[void] =
+  ## Restore the database from the latest backup.
   doAssert not backupEngine.isClosed()
 
   let restoreOptions = rocksdb_restore_options_create()
@@ -88,6 +95,7 @@ proc restoreDbFromLatestBackup*(
   ok()
 
 proc close*(backupEngine: BackupEngineRef) =
+  ## Close the BackupEngineRef.
   if not backupEngine.isClosed():
     rocksdb_backup_engine_close(backupEngine.cPtr)
     backupEngine.cPtr = nil
