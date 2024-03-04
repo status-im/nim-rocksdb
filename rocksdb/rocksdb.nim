@@ -45,6 +45,7 @@ export
 
 type
   RocksDbPtr* = ptr rocksdb_t
+  IngestExternalFilesOptionsPtr* = ptr rocksdb_ingestexternalfileoptions_t
 
   RocksDbRef* = ref object of RootObj
     lock: Lock
@@ -59,6 +60,7 @@ type
 
   RocksDbReadWriteRef* = ref object of RocksDbRef
     writeOpts: WriteOptionsRef
+    ingestOptsPtr: IngestExternalFilesOptionsPtr
 
 proc openRocksDb*(
     path: string,
@@ -99,6 +101,7 @@ proc openRocksDb*(
       dbOpts: dbOpts,
       readOpts: readOpts,
       writeOpts: writeOpts,
+      ingestOptsPtr: rocksdb_ingestexternalfileoptions_create(),
       defaultCfName: DEFAULT_COLUMN_FAMILY_NAME,
       cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
@@ -320,6 +323,32 @@ proc write*(
 
   ok()
 
+proc ingestExternalFile*(
+    db: RocksDbReadWriteRef,
+    filePath: string,
+    columnFamily = db.defaultCfName): RocksDbResult[void] =
+  ## Ingest an external sst file into the database. The file will be ingested
+  ## into the specified column family or the default column family if none is
+  ## specified.
+  doAssert not db.isClosed()
+
+  let cfHandle  = db.cfTable.get(columnFamily)
+  if cfHandle.isNil():
+    return err("rocksdb: unknown column family")
+
+  var
+    sstPath = filePath.cstring
+    errors: cstring
+  rocksdb_ingest_external_file_cf(
+    db.cPtr,
+    cfHandle.cPtr,
+    cast[cstringArray](sstPath.addr), csize_t(1),
+    db.ingestOptsPtr,
+    cast[cstringArray](errors.addr))
+  bailOnErrors(errors)
+
+  ok()
+
 proc close*(db: RocksDbRef) =
   ## Close the `RocksDbRef` which will release the connection to the database
   ## and free the memory associated with it. Close is idempotent and can safely
@@ -332,7 +361,10 @@ proc close*(db: RocksDbRef) =
       db.cfTable.close()
 
       if db of RocksDbReadWriteRef:
-        db.RocksDbReadWriteRef.writeOpts.close()
+        let db = RocksDbReadWriteRef(db)
+        db.writeOpts.close()
+        rocksdb_ingestexternalfileoptions_destroy(db.ingestOptsPtr)
+        db.ingestOptsPtr = nil
 
       rocksdb_close(db.cPtr)
       db.cPtr = nil
