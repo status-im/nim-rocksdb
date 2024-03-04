@@ -30,7 +30,9 @@ type
     envOptsPtr: EnvOptionsPtr
     dbOpts: DbOptionsRef
 
-proc openSstFileWriter*(filePath: string, dbOpts = defaultDbOptions()): RocksDBResult[SstFileWriterRef] =
+proc openSstFileWriter*(
+    filePath: string,
+    dbOpts = defaultDbOptions()): RocksDBResult[SstFileWriterRef] =
   ## Creates a new `SstFileWriterRef` and opens the file at the given `filePath`.
   doAssert not dbOpts.isClosed()
 

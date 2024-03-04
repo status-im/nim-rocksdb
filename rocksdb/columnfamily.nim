@@ -12,7 +12,7 @@
 ## types which enable writing to a specific column family without having to specify the
 ## column family in each call.
 ##
-## These column family types do not `own` the underlying `RocksDbRef` and therefore
+## These column family types do not own the underlying `RocksDbRef` and therefore
 ## to close the database, simply call `columnFamily.db.close()` which will close
 ## the underlying `RocksDbRef`. Note that doing so will effect any other column
 ## families that hold a reference to the same `RocksDbRef`.

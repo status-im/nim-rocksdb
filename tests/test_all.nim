@@ -23,4 +23,5 @@ import
   ./test_columnfamily,
   ./test_rocksdb,
   ./test_rocksiterator,
+  ./test_sstfilewriter,
   ./test_writebatch
