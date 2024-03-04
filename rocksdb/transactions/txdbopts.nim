@@ -21,7 +21,7 @@ type
 proc newTransactionDbOptions*(): TransactionDbOptionsRef =
   TransactionDbOptionsRef(cPtr: rocksdb_transactiondb_options_create())
 
-template isClosed*(txDbOpts: TransactionDbOptionsRef): bool =
+proc isClosed*(txDbOpts: TransactionDbOptionsRef): bool {.inline.} =
   txDbOpts.cPtr.isNil()
 
 proc cPtr*(txDbOpts: TransactionDbOptionsRef): TransactionDbOptionsPtr =
@@ -30,7 +30,7 @@ proc cPtr*(txDbOpts: TransactionDbOptionsRef): TransactionDbOptionsPtr =
 
 # TODO: Add setters and getters for backup options properties.
 
-template defaultTransactionDbOptions*(): TransactionDbOptionsRef =
+proc defaultTransactionDbOptions*(): TransactionDbOptionsRef {.inline.} =
   newTransactionDbOptions()
   # TODO: set prefered defaults
 

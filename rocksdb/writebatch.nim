@@ -31,7 +31,7 @@ proc newWriteBatch*(cfTable: ColFamilyTableRef, defaultCfName: string): WriteBat
     defaultCfName: defaultCfName,
     cfTable: cfTable)
 
-template isClosed*(batch: WriteBatchRef): bool =
+proc isClosed*(batch: WriteBatchRef): bool {.inline.} =
   batch.cPtr.isNil()
 
 proc cPtr*(batch: WriteBatchRef): WriteBatchPtr =

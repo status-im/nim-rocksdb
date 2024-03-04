@@ -21,7 +21,7 @@ type
 proc newReadOptions*(): ReadOptionsRef =
   ReadOptionsRef(cPtr: rocksdb_readoptions_create())
 
-template isClosed*(readOpts: ReadOptionsRef): bool =
+proc isClosed*(readOpts: ReadOptionsRef): bool {.inline.} =
   readOpts.cPtr.isNil()
 
 proc cPtr*(readOpts: ReadOptionsRef): ReadOptionsPtr =
@@ -30,7 +30,7 @@ proc cPtr*(readOpts: ReadOptionsRef): ReadOptionsPtr =
 
 # TODO: Add setters and getters for read options properties.
 
-template defaultReadOptions*(): ReadOptionsRef =
+proc defaultReadOptions*(): ReadOptionsRef {.inline.} =
   newReadOptions()
   # TODO: set prefered defaults
 

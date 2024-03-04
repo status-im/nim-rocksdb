@@ -27,7 +27,7 @@ proc newRocksIterator*(cPtr: RocksIteratorPtr): RocksIteratorRef =
   doAssert not cPtr.isNil()
   RocksIteratorRef(cPtr: cPtr)
 
-template isClosed*(iter: RocksIteratorRef): bool =
+proc isClosed*(iter: RocksIteratorRef): bool {.inline.} =
   iter.cPtr.isNil()
 
 proc seekToFirst*(iter: RocksIteratorRef) =

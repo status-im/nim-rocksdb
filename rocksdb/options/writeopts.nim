@@ -21,7 +21,7 @@ type
 proc newWriteOptions*(): WriteOptionsRef =
   WriteOptionsRef(cPtr: rocksdb_writeoptions_create())
 
-template isClosed*(writeOpts: WriteOptionsRef): bool =
+proc isClosed*(writeOpts: WriteOptionsRef): bool {.inline.} =
   writeOpts.cPtr.isNil()
 
 proc cPtr*(writeOpts: WriteOptionsRef): WriteOptionsPtr =
@@ -30,7 +30,7 @@ proc cPtr*(writeOpts: WriteOptionsRef): WriteOptionsPtr =
 
 # TODO: Add setters and getters for write options properties.
 
-template defaultWriteOptions*(): WriteOptionsRef =
+proc defaultWriteOptions*(): WriteOptionsRef {.inline.} =
   newWriteOptions()
   # TODO: set prefered defaults
 

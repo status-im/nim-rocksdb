@@ -47,7 +47,7 @@ proc newTransaction*(
       defaultCfName: defaultCfName,
       cfTable: cfTable)
 
-template isClosed*(tx: TransactionRef): bool =
+proc isClosed*(tx: TransactionRef): bool {.inline.} =
   tx.cPtr.isNil()
 
 proc get*(

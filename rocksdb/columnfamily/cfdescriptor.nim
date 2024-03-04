@@ -25,20 +25,20 @@ proc initColFamilyDescriptor*(
     options = defaultColFamilyOptions()): ColFamilyDescriptor =
   ColFamilyDescriptor(name: name, options: options)
 
-template name*(descriptor: ColFamilyDescriptor): string =
+proc name*(descriptor: ColFamilyDescriptor): string {.inline.} =
   descriptor.name
 
-template options*(descriptor: ColFamilyDescriptor): ColFamilyOptionsRef =
+proc options*(descriptor: ColFamilyDescriptor): ColFamilyOptionsRef {.inline.} =
   descriptor.options
 
-template isDefault*(descriptor: ColFamilyDescriptor): bool =
+proc isDefault*(descriptor: ColFamilyDescriptor): bool {.inline.} =
   descriptor.name == DEFAULT_COLUMN_FAMILY_NAME
 
-template defaultColFamilyDescriptor*(): ColFamilyDescriptor =
+proc defaultColFamilyDescriptor*(): ColFamilyDescriptor {.inline.} =
   initColFamilyDescriptor(DEFAULT_COLUMN_FAMILY_NAME)
 
-template isClosed*(descriptor: ColFamilyDescriptor): bool =
+proc isClosed*(descriptor: ColFamilyDescriptor): bool {.inline.} =
   descriptor.options.isClosed()
 
-template close*(descriptor: ColFamilyDescriptor) =
+proc close*(descriptor: ColFamilyDescriptor) {.inline.} =
   descriptor.options.close()

@@ -10,7 +10,7 @@
 {.push raises: [].}
 
 import
-  std/sequtils,
+  std/[sequtils, locks],
   ./lib/librocksdb,
   ./options/[dbopts, readopts, writeopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
@@ -32,6 +32,7 @@ type
   RocksDbPtr* = ptr rocksdb_t
 
   RocksDbRef* = ref object of RootObj
+    lock: Lock
     cPtr: RocksDbPtr
     path: string
     dbOpts: DbOptionsRef
@@ -70,6 +71,7 @@ proc openRocksDb*(
   bailOnErrors(errors)
 
   let db = RocksDbReadWriteRef(
+      lock: createLock(),
       cPtr: rocksDbPtr,
       path: path,
       dbOpts: dbOpts,
@@ -106,6 +108,7 @@ proc openRocksDbReadOnly*(
   bailOnErrors(errors)
 
   let db = RocksDbReadOnlyRef(
+      lock: createLock(),
       cPtr: rocksDbPtr,
       path: path,
       dbOpts: dbOpts,
@@ -114,10 +117,10 @@ proc openRocksDbReadOnly*(
       cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
 
-template isClosed*(db: RocksDbRef): bool =
+proc isClosed*(db: RocksDbRef): bool {.inline.} =
   db.cPtr.isNil()
 
-proc cPtr*(db: RocksDbRef): RocksDbPtr =
+proc cPtr*(db: RocksDbRef): RocksDbPtr {.inline.} =
   doAssert not db.isClosed()
   db.cPtr
 
@@ -253,7 +256,9 @@ proc openWriteBatch*(
 
   newWriteBatch(db.cfTable, columnFamily)
 
-proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
+proc write*(
+    db: RocksDbReadWriteRef,
+    updates: WriteBatchRef): RocksDBResult[void] =
   doAssert not db.isClosed()
 
   var errors: cstring
@@ -267,13 +272,14 @@ proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void
   ok()
 
 proc close*(db: RocksDbRef) =
-  if not db.isClosed():
-    db.dbOpts.close()
-    db.readOpts.close()
-    db.cfTable.close()
+  withLock(db.lock):
+    if not db.isClosed():
+      db.dbOpts.close()
+      db.readOpts.close()
+      db.cfTable.close()
 
-    if db of RocksDbReadWriteRef:
-      db.RocksDbReadWriteRef.writeOpts.close()
+      if db of RocksDbReadWriteRef:
+        db.RocksDbReadWriteRef.writeOpts.close()
 
-    rocksdb_close(db.cPtr)
-    db.cPtr = nil
+      rocksdb_close(db.cPtr)
+      db.cPtr = nil

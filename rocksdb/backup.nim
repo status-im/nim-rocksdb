@@ -46,13 +46,14 @@ proc openBackupEngine*(
     backupOpts: backupOpts)
   ok(engine)
 
-template isClosed*(backupEngine: BackupEngineRef): bool =
+proc isClosed*(backupEngine: BackupEngineRef): bool {.inline.} =
   backupEngine.cPtr.isNil()
 
 proc createNewBackup*(
     backupEngine: BackupEngineRef,
     db: RocksDbRef): RocksDBResult[void] =
   doAssert not backupEngine.isClosed()
+  doAssert not db.isClosed()
 
   var errors: cstring
   rocksdb_backup_engine_create_new_backup(

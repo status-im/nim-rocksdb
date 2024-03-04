@@ -10,7 +10,7 @@
 {.push raises: [].}
 
 import
-  std/sequtils,
+  std/[sequtils, locks],
   ./lib/librocksdb,
   ./options/[dbopts, readopts, writeopts],
   ./transactions/[transaction, txdbopts, txopts],
@@ -32,6 +32,7 @@ type
   TransactionDbPtr* = ptr rocksdb_transactiondb_t
 
   TransactionDbRef* = ref object
+    lock: Lock
     cPtr: TransactionDbPtr
     path: string
     dbOpts: DbOptionsRef
@@ -65,6 +66,7 @@ proc openTransactionDb*(
   bailOnErrors(errors)
 
   let db = TransactionDbRef(
+      lock: createLock(),
       cPtr: txDbPtr,
       path: path,
       dbOpts: dbOpts,
@@ -72,7 +74,7 @@ proc openTransactionDb*(
       cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
 
-template isClosed*(db: TransactionDbRef): bool =
+proc isClosed*(db: TransactionDbRef): bool {.inline.} =
   db.cPtr.isNil()
 
 proc beginTransaction*(
@@ -92,10 +94,11 @@ proc beginTransaction*(
   newTransaction(txPtr, readOpts, writeOpts, txOpts, columnFamily, db.cfTable)
 
 proc close*(db: TransactionDbRef) =
-  if not db.isClosed():
-    db.dbOpts.close()
-    db.txDbOpts.close()
-    db.cfTable.close()
+  withLock(db.lock):
+    if not db.isClosed():
+      db.dbOpts.close()
+      db.txDbOpts.close()
+      db.cfTable.close()
 
-    rocksdb_transactiondb_close(db.cPtr)
-    db.cPtr = nil
+      rocksdb_transactiondb_close(db.cPtr)
+      db.cPtr = nil

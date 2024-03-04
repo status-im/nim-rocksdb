@@ -10,9 +10,15 @@
 {.push raises: [].}
 
 import
+  std/locks,
   ../lib/librocksdb
 
 const DEFAULT_COLUMN_FAMILY_NAME* = "default"
+
+proc createLock*(): Lock =
+  var lock = Lock()
+  initLock(lock)
+  lock
 
 template bailOnErrors*(errors: cstring): auto =
   if not errors.isNil:
