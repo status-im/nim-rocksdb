@@ -14,7 +14,7 @@
 ##
 ## These column family types do not own the underlying `RocksDbRef` and therefore
 ## to close the database, simply call `columnFamily.db.close()` which will close
-## the underlying `RocksDbRef`. Note that doing so will effect any other column
+## the underlying `RocksDbRef`. Note that doing so will also impact any other column
 ## families that hold a reference to the same `RocksDbRef`.
 
 {.push raises: [].}
@@ -69,7 +69,7 @@ proc get*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite,
     key: openArray[byte],
     onData: DataProc): RocksDBResult[bool] {.inline.} =
-  ## Gets the value of the given key from the column family using the `DataProc`
+  ## Gets the value of the given key from the column family using the `onData`
   ## callback.
   cf.db.get(key, onData, cf.name)
 
@@ -82,7 +82,7 @@ proc get*(
 proc put*(
     cf: ColFamilyReadWrite,
     key, val: openArray[byte]): RocksDBResult[void] {.inline.} =
-  ## Puts the value of the given key into the column family.
+  ## Puts a value for the given key into the column family.
   cf.db.put(key, val, cf.name)
 
 proc keyExists*(
@@ -99,7 +99,7 @@ proc delete*(
 
 proc openIterator*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite): RocksDBResult[RocksIteratorRef] {.inline.} =
-  ## Opens an iterator for the given column family.
+  ## Opens an `RocksIteratorRef` for the given column family.
   cf.db.openIterator(cf.name)
 
 proc openWriteBatch*(cf: ColFamilyReadWrite): WriteBatchRef {.inline.} =

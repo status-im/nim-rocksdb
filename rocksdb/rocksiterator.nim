@@ -31,7 +31,7 @@ proc newRocksIterator*(cPtr: RocksIteratorPtr): RocksIteratorRef =
   RocksIteratorRef(cPtr: cPtr)
 
 proc isClosed*(iter: RocksIteratorRef): bool {.inline.} =
-  ## Returns `true` if the iterator is closed.
+  ## Returns `true` if the iterator is closed and `false` otherwise.
   iter.cPtr.isNil()
 
 proc seekToFirst*(iter: RocksIteratorRef) =
@@ -45,7 +45,7 @@ proc seekToLast*(iter: RocksIteratorRef) =
   rocksdb_iter_seek_to_last(iter.cPtr)
 
 proc isValid*(iter: RocksIteratorRef): bool =
-  ## Returns `true` if the iterator is valid.
+  ## Returns `true` if the iterator is valid and `false` otherwise.
   rocksdb_iter_valid(iter.cPtr).bool
 
 proc next*(iter: RocksIteratorRef) =

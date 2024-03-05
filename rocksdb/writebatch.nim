@@ -7,7 +7,7 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-## A `WriteBatchRef` holds a collection of updates to apply atomically to a `RocksDbRef`.
+## A `WriteBatchRef` holds a collection of updates to apply atomically to the database.
 
 {.push raises: [].}
 
@@ -34,7 +34,7 @@ proc newWriteBatch*(cfTable: ColFamilyTableRef, defaultCfName: string): WriteBat
     cfTable: cfTable)
 
 proc isClosed*(batch: WriteBatchRef): bool {.inline.} =
-  ## Returns `true` if the `WriteBatchRef` has been closed.
+  ## Returns `true` if the `WriteBatchRef` has been closed and `false` otherwise.
   batch.cPtr.isNil()
 
 proc cPtr*(batch: WriteBatchRef): WriteBatchPtr =

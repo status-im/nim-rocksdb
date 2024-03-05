@@ -9,18 +9,19 @@
 
 ## A `RocksDBRef` represents a reference to a RocksDB instance. It can be opened
 ## in read-only or read-write mode in which case a `RocksDbReadOnlyRef` or
-## `RocksDbReadWriteRef` will be returned respectively. The `RocksDbReadOnlyRef` type
-## doesn't support any of the write operations such as `put`, `delete` or `write`.
+## `RocksDbReadWriteRef` will be returned respectively. The `RocksDbReadOnlyRef`
+## type doesn't support any of the write operations such as `put`, `delete` or
+## `write`.
 ##
-## Many of the methods of this class could potentially fail for various reasons,
+## Many of the operations on these types can potentially fail for various reasons,
 ## in which case a `RocksDbResult` containing an error will be returned.
 ##
-## The type wraps and holds a handle to a c pointer which needs to be freed
-## after use so `close` should be called on it to prevent a memory leak.
+## The types wrap and hold a handle to a c pointer which needs to be freed
+## so `close` should be called to prevent a memory leak after use.
 ##
 ## Most of the procs below support passing in the name of the column family
 ## which should be used for the operation. The default column family will be
-## used if no name is provided.
+## used if none is provided.
 
 {.push raises: [].}
 
@@ -45,7 +46,7 @@ export
 
 type
   RocksDbPtr* = ptr rocksdb_t
-  IngestExternalFilesOptionsPtr* = ptr rocksdb_ingestexternalfileoptions_t
+  IngestExternalFilesOptionsPtr = ptr rocksdb_ingestexternalfileoptions_t
 
   RocksDbRef* = ref object of RootObj
     lock: Lock
@@ -72,9 +73,9 @@ proc openRocksDb*(
   ## then it will open the default column family. If `dbOpts`, `readOpts`, or
   ## `writeOpts` are not supplied then the default options will be used.
   ## By default, column families will be created if they don't yet exist.
-  ## All existing column families must be specified if the database already
-  ## has previously created any. This means that the list of column families
-  ## must always at least contain the default column family.
+  ## All existing column families must be specified if the database has
+  ## previously created any column families. This means that the list of column
+  ## families must always at least contain the default column family.
 
   if columnFamilies.len == 0:
     return err("rocksdb: no column families")
@@ -114,10 +115,10 @@ proc openRocksDbReadOnly*(
     errorIfWalFileExists = false): RocksDBResult[RocksDbReadOnlyRef] =
   ## Open a RocksDB instance in read-only mode. If `columnFamilies` is empty
   ## then it will open the default column family. If `dbOpts` or `readOpts` are
-  ## not supplied then the default options will be used.
-  ## By default, column families will be created if they don't yet exist.
-  ## If the database already contains any column families, then a all or
-  ## subset of the existing column families can be opened for reading.
+  ## not supplied then the default options will be used. By default, column
+  ## families will be created if they don't yet exist. If the database already
+  ## contains any column families, then all or a subset of the existing column
+  ## families can be opened for reading.
 
   if columnFamilies.len == 0:
     return err("rocksdb: no column families")
@@ -149,7 +150,7 @@ proc openRocksDbReadOnly*(
   ok(db)
 
 proc isClosed*(db: RocksDbRef): bool {.inline.} =
-  ## Returns `true` if the database has been closed and false otherwise.
+  ## Returns `true` if the database has been closed and `false` otherwise.
   db.cPtr.isNil()
 
 proc cPtr*(db: RocksDbRef): RocksDbPtr {.inline.} =
@@ -201,13 +202,12 @@ proc get*(
     db: RocksDbRef,
     key: openArray[byte],
     columnFamily = db.defaultCfName): RocksDBResult[seq[byte]] =
-  ## Get the value for the given `key` from the specified column family.
+  ## Get the value for the given key from the specified column family.
   ## If the value does not exist, an empty error will be returned in the result.
   ## If the value does exist, the value will be returned in the result.
 
   var dataRes: RocksDBResult[seq[byte]]
-  proc onData(data: openArray[byte]) =
-    dataRes.ok(@data)
+  proc onData(data: openArray[byte]) = dataRes.ok(@data)
 
   let res = db.get(key, onData, columnFamily)
   if res.isOk():
@@ -247,7 +247,7 @@ proc keyExists*(
     key: openArray[byte],
     columnFamily = db.defaultCfName): RocksDBResult[bool] =
   ## Check if the key exists in the specified column family.
-  ## Returns a result containing `true` if the key exists and a result
+  ## Returns a result containing `true` if the key exists or a result
   ## containing `false` otherwise.
 
   # TODO: Call rocksdb_key_may_exist_cf to improve performance for the case
@@ -259,7 +259,7 @@ proc delete*(
     db: RocksDbReadWriteRef,
     key: openArray[byte],
     columnFamily = db.defaultCfName): RocksDBResult[void] =
-  ## Delete the value for the given `key` from the specified column family.
+  ## Delete the value for the given key from the specified column family.
   ## If the value does not exist, the delete will be a no-op.
   ## To check if the value exists before or after a delete, use `keyExists`.
 
@@ -285,7 +285,7 @@ proc delete*(
 proc openIterator*(
     db: RocksDbRef,
     columnFamily = db.defaultCfName): RocksDBResult[RocksIteratorRef] =
-  ## Open an iterator for the specified column family.
+  ## Opens an `RocksIteratorRef` for the specified column family.
   doAssert not db.isClosed()
 
   let cfHandle  = db.cfTable.get(columnFamily)
@@ -302,7 +302,7 @@ proc openIterator*(
 proc openWriteBatch*(
     db: RocksDbReadWriteRef,
     columnFamily = db.defaultCfName): WriteBatchRef =
-  ## Open a `WriteBatchRef` which defaults to using the specified column family.
+  ## Opens a `WriteBatchRef` which defaults to using the specified column family.
   doAssert not db.isClosed()
 
   newWriteBatch(db.cfTable, columnFamily)
@@ -329,7 +329,7 @@ proc ingestExternalFile*(
     columnFamily = db.defaultCfName): RocksDbResult[void] =
   ## Ingest an external sst file into the database. The file will be ingested
   ## into the specified column family or the default column family if none is
-  ## specified.
+  ## provided.
   doAssert not db.isClosed()
 
   let cfHandle  = db.cfTable.get(columnFamily)
@@ -351,8 +351,9 @@ proc ingestExternalFile*(
 
 proc close*(db: RocksDbRef) =
   ## Close the `RocksDbRef` which will release the connection to the database
-  ## and free the memory associated with it. Close is idempotent and can safely
-  ## be called multple times. Close is a no-op if the RocksDbRef is already closed.
+  ## and free the memory associated with it. `close` is idempotent and can
+  ## safely be called multple times. `close` is a no-op if the `RocksDbRef`
+  ## is already closed.
 
   withLock(db.lock):
     if not db.isClosed():

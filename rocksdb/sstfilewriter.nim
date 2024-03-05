@@ -7,8 +7,7 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-## A `RocksIteratorRef` is a reference to a RocksDB iterator which supports
-## iterating over the key value pairs in a column family.
+## A `SstFileWriterRef` is used to create sst files that can be added to the database later.
 
 {.push raises: [].}
 
@@ -52,7 +51,7 @@ proc openSstFileWriter*(
   ok(writer)
 
 proc isClosed*(writer: SstFileWriterRef): bool {.inline.} =
-  ## Returns `true` if the `SstFileWriterRef` is closed.
+  ## Returns `true` if the `SstFileWriterRef` is closed and `false` otherwise.
   writer.cPtr.isNil()
 
 proc put*(
@@ -84,7 +83,7 @@ proc delete*(writer: SstFileWriterRef, key: openArray[byte]): RocksDBResult[void
   ok()
 
 proc finish*(writer: SstFileWriterRef): RocksDBResult[void] =
-  ## Finish the sst file.
+  ## Finish the process and close the sst file.
   doAssert not writer.isClosed()
 
   var errors: cstring
