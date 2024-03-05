@@ -1,5 +1,5 @@
 # Nim-RocksDB
-# Copyright 2018-2019 Status Research & Development GmbH
+# Copyright 2024 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -7,6 +7,15 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
+{.push raises: [].}
+
 import
-  ./test_rocksdb_c,
-  ./test_rocksdb
+  results
+
+export
+  results
+
+type
+  RocksDBResult*[T] = Result[T, string]
+
+  DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [].}

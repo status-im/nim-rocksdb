@@ -8,14 +8,20 @@
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
 import
-  ./rocksdb/[backup, columnfamily, rocksdb, rocksiterator],
-  ./rocksdb/[sstfilewriter, transactiondb, writebatch]
-
-export
-  backup,
-  columnfamily,
-  rocksdb,
-  rocksiterator,
-  sstfilewriter,
-  transactiondb,
-  writebatch
+  ./columnfamily/test_cfdescriptor,
+  ./columnfamily/test_cfhandle,
+  ./columnfamily/test_cfopts,
+  ./internal/test_cftable,
+  ./lib/test_librocksdb,
+  ./options/test_backupopts,
+  ./options/test_dbopts,
+  ./options/test_readopts,
+  ./options/test_writeopts,
+  ./transactions/test_txdbopts,
+  ./transactions/test_txopts,
+  ./test_backup,
+  ./test_columnfamily,
+  ./test_rocksdb,
+  ./test_rocksiterator,
+  ./test_sstfilewriter,
+  ./test_writebatch
