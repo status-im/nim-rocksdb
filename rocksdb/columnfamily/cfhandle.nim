@@ -21,7 +21,7 @@ type
 proc newColFamilyHandle*(cPtr: ColFamilyHandlePtr): ColFamilyHandleRef =
   ColFamilyHandleRef(cPtr: cPtr)
 
-template isClosed*(handle: ColFamilyHandleRef): bool =
+proc isClosed*(handle: ColFamilyHandleRef): bool {.inline.} =
   handle.cPtr.isNil()
 
 proc cPtr*(handle: ColFamilyHandleRef): ColFamilyHandlePtr =
@@ -41,7 +41,7 @@ proc cPtr*(handle: ColFamilyHandleRef): ColFamilyHandlePtr =
 #   var nameLen: csize_t
 #   $rocksdb_column_family_handle_get_name(handle.cPtr, nameLen.addr)
 
-# template isDefault*(handle: ColFamilyHandleRef): bool =
+# proc isDefault*(handle: ColFamilyHandleRef): bool {.inline.} =
 #   handle.getName() == DEFAULT_COLUMN_FAMILY_NAME
 
 proc close*(handle: ColFamilyHandleRef) =

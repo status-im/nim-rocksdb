@@ -21,7 +21,7 @@ type
 proc newBackupEngineOptions*(): BackupEngineOptionsRef =
   BackupEngineOptionsRef(cPtr: rocksdb_options_create())
 
-template isClosed*(engineOpts: BackupEngineOptionsRef): bool =
+proc isClosed*(engineOpts: BackupEngineOptionsRef): bool {.inline.} =
   engineOpts.cPtr.isNil()
 
 proc cPtr*(engineOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
@@ -30,7 +30,7 @@ proc cPtr*(engineOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
 
 # TODO: Add setters and getters for backup options properties.
 
-template defaultBackupEngineOptions*(): BackupEngineOptionsRef =
+proc defaultBackupEngineOptions*(): BackupEngineOptionsRef {.inline.} =
   newBackupEngineOptions()
   # TODO: set prefered defaults
 

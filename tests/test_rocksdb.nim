@@ -215,14 +215,6 @@ suite "RocksDbRef Tests":
     let r4 = db.delete(key, CF_UNKNOWN)
     check r4.isErr() and r4.error() == "rocksdb: unknown column family"
 
-  test "Test withDefaultColFamily":
-    discard db.withDefaultColFamily(CF_OTHER)
-
-    check:
-      db.put(key, val).isOk()
-      not db.keyExists(key, CF_DEFAULT).get()
-      db.keyExists(key, CF_OTHER).get()
-
   test "Test missing key and values":
     let
       key1 = @[byte(1)] # exists with non empty value

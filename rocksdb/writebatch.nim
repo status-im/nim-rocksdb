@@ -7,6 +7,8 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
+## A `WriteBatchRef` holds a collection of updates to apply atomically to the database.
+
 {.push raises: [].}
 
 import
@@ -31,18 +33,22 @@ proc newWriteBatch*(cfTable: ColFamilyTableRef, defaultCfName: string): WriteBat
     defaultCfName: defaultCfName,
     cfTable: cfTable)
 
-template isClosed*(batch: WriteBatchRef): bool =
+proc isClosed*(batch: WriteBatchRef): bool {.inline.} =
+  ## Returns `true` if the `WriteBatchRef` has been closed and `false` otherwise.
   batch.cPtr.isNil()
 
 proc cPtr*(batch: WriteBatchRef): WriteBatchPtr =
+  ## Get the underlying database pointer.
   doAssert not batch.isClosed()
   batch.cPtr
 
 proc clear*(batch: WriteBatchRef) =
+  ## Clears the write batch.
   doAssert not batch.isClosed()
   rocksdb_writebatch_clear(batch.cPtr)
 
 proc count*(batch: WriteBatchRef): int =
+  ## Get the number of updates in the write batch.
   doAssert not batch.isClosed()
   rocksdb_writebatch_count(batch.cPtr).int
 
@@ -50,6 +56,7 @@ proc put*(
     batch: WriteBatchRef,
     key, val: openArray[byte],
     columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
+  ## Add a put operation to the write batch.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -72,6 +79,7 @@ proc delete*(
     batch: WriteBatchRef,
     key: openArray[byte],
     columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
+  ## Add a delete operation to the write batch.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -89,6 +97,7 @@ proc delete*(
   ok()
 
 proc close*(batch: WriteBatchRef) =
+  ## Close the `WriteBatchRef`.
   if not batch.isClosed():
     rocksdb_writebatch_destroy(batch.cPtr)
     batch.cPtr = nil

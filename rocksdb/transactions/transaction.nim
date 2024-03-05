@@ -7,12 +7,21 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
+## To use transactions, you must first create a `TransactionDbRef`. Then to
+## create a transaction call `beginTransaction` on the `TransactionDbRef`.
+## `commit` and `rollback` are used to commit or rollback a transaction.
+## The `TransactionDbRef` currently supports `put`, `delete` and `get` operations.
+## Keys that have been writen to a transaction but are not yet committed can be
+## read from the transaction using `get`. Uncommitted updates will not be visible
+## to other transactions until they are committed to the database.
+## Multiple column families can be written to and read from in a single transaction
+## but a default column family will be used if none is specified in each call.
+
 {.push raises: [].}
 
 import
   ../lib/librocksdb,
-  ../options/[dbopts, readopts, writeopts],
-  ../columnfamily/[cfopts, cfdescriptor, cfhandle],
+  ../options/[readopts, writeopts],
   ../internal/[cftable, utils],
   ../rocksresult,
   ./txopts
@@ -47,21 +56,17 @@ proc newTransaction*(
       defaultCfName: defaultCfName,
       cfTable: cfTable)
 
-template isClosed*(tx: TransactionRef): bool =
+proc isClosed*(tx: TransactionRef): bool {.inline.} =
+  ## Returns `true` if the `TransactionRef` has been closed.
   tx.cPtr.isNil()
-
-proc withDefaultColFamily*(tx: TransactionRef, name: string): TransactionRef =
-  tx.defaultCfName = name
-  tx
-
-proc defaultColFamily*(tx: TransactionRef): string =
-  tx.defaultCfName
 
 proc get*(
     tx: TransactionRef,
     key: openArray[byte],
     onData: DataProc,
     columnFamily = tx.defaultCfName): RocksDBResult[bool] =
+  ## Get the value for a given key from the transaction using the provided
+  ## `onData` callback.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -95,6 +100,7 @@ proc get*(
     tx: TransactionRef,
     key: openArray[byte],
     columnFamily = tx.defaultCfName): RocksDBResult[seq[byte]] =
+  ## Get the value for a given key from the transaction.
 
   var dataRes: RocksDBResult[seq[byte]]
   proc onData(data: openArray[byte]) =
@@ -110,6 +116,7 @@ proc put*(
     tx: TransactionRef,
     key, val: openArray[byte],
     columnFamily = tx.defaultCfName): RocksDBResult[void] =
+  ## Put the value for the given key into the transaction.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -135,6 +142,7 @@ proc delete*(
     tx: TransactionRef,
     key: openArray[byte],
     columnFamily = tx.defaultCfName): RocksDBResult[void] =
+  ## Delete the value for the given key from the transaction.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
@@ -155,6 +163,7 @@ proc delete*(
   ok()
 
 proc commit*(tx: TransactionRef): RocksDBResult[void] =
+  ## Commit the transaction.
   doAssert not tx.isClosed()
 
   var errors: cstring
@@ -164,6 +173,7 @@ proc commit*(tx: TransactionRef): RocksDBResult[void] =
   ok()
 
 proc rollback*(tx: TransactionRef): RocksDBResult[void] =
+  ## Rollback the transaction.
   doAssert not tx.isClosed()
 
   var errors: cstring
@@ -173,6 +183,7 @@ proc rollback*(tx: TransactionRef): RocksDBResult[void] =
   ok()
 
 proc close*(tx: TransactionRef) =
+  ## Close the `TransactionRef`.
   if not tx.isClosed():
     tx.readOpts.close()
     tx.writeOpts.close()

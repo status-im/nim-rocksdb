@@ -7,10 +7,16 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
+## A `TransactionDbRef` can be used to open a connection to the RocksDB database
+## with support for transactional operations against multiple column families.
+## To create a new transaction call `beginTransaction` which will return a
+## `TransactionRef`. To commit or rollback the transaction call `commit` or
+## `rollback` on the `TransactionRef` type after applying changes to the transaction.
+
 {.push raises: [].}
 
 import
-  std/sequtils,
+  std/[sequtils, locks],
   ./lib/librocksdb,
   ./options/[dbopts, readopts, writeopts],
   ./transactions/[transaction, txdbopts, txopts],
@@ -32,6 +38,7 @@ type
   TransactionDbPtr* = ptr rocksdb_transactiondb_t
 
   TransactionDbRef* = ref object
+    lock: Lock
     cPtr: TransactionDbPtr
     path: string
     dbOpts: DbOptionsRef
@@ -43,6 +50,9 @@ proc openTransactionDb*(
     dbOpts = defaultDbOptions(),
     txDbOpts = defaultTransactionDbOptions(),
     columnFamilies = @[defaultColFamilyDescriptor()]): RocksDBResult[TransactionDbRef] =
+  ## Open a `TransactionDbRef` with the given options and column families.
+  ## If no column families are provided the default column family will be used.
+  ## If no options are provided the default options will be used.
 
   if columnFamilies.len == 0:
     return err("rocksdb: no column families")
@@ -65,6 +75,7 @@ proc openTransactionDb*(
   bailOnErrors(errors)
 
   let db = TransactionDbRef(
+      lock: createLock(),
       cPtr: txDbPtr,
       path: path,
       dbOpts: dbOpts,
@@ -72,7 +83,8 @@ proc openTransactionDb*(
       cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
   ok(db)
 
-template isClosed*(db: TransactionDbRef): bool =
+proc isClosed*(db: TransactionDbRef): bool {.inline.} =
+  ## Returns `true` if the `TransactionDbRef` has been closed.
   db.cPtr.isNil()
 
 proc beginTransaction*(
@@ -81,6 +93,9 @@ proc beginTransaction*(
     writeOpts = defaultWriteOptions(),
     txOpts = defaultTransactionOptions(),
     columnFamily = DEFAULT_COLUMN_FAMILY_NAME): TransactionRef =
+  ## Begin a new transaction against the database. The transaction will default
+  ## to using the specified column family. If no column family is specified
+  ## then the default column family will be used.
   doAssert not db.isClosed()
 
   let txPtr = rocksdb_transaction_begin(
@@ -92,10 +107,12 @@ proc beginTransaction*(
   newTransaction(txPtr, readOpts, writeOpts, txOpts, columnFamily, db.cfTable)
 
 proc close*(db: TransactionDbRef) =
-  if not db.isClosed():
-    db.dbOpts.close()
-    db.txDbOpts.close()
-    db.cfTable.close()
+  ## Close the `TransactionDbRef`.
+  withLock(db.lock):
+    if not db.isClosed():
+      db.dbOpts.close()
+      db.txDbOpts.close()
+      db.cfTable.close()
 
-    rocksdb_transactiondb_close(db.cPtr)
-    db.cPtr = nil
+      rocksdb_transactiondb_close(db.cPtr)
+      db.cPtr = nil

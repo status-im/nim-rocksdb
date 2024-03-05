@@ -22,7 +22,7 @@ type
 proc newDbOptions*(): DbOptionsRef =
   DbOptionsRef(cPtr: rocksdb_options_create())
 
-template isClosed*(dbOpts: DbOptionsRef): bool =
+proc isClosed*(dbOpts: DbOptionsRef): bool {.inline.} =
   dbOpts.cPtr.isNil()
 
 proc cPtr*(dbOpts: DbOptionsRef): DbOptionsPtr =

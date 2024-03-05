@@ -31,7 +31,7 @@ proc newColFamilyTable*(
 
   ColFamilyTableRef(columnFamilies: cfTable)
 
-template isClosed*(table: ColFamilyTableRef): bool =
+proc isClosed*(table: ColFamilyTableRef): bool {.inline.} =
   table.columnFamilies.isNil()
 
 proc get*(table: ColFamilyTableRef, name: string): ColFamilyHandleRef =

@@ -21,7 +21,7 @@ type
 proc newColFamilyOptions*(): ColFamilyOptionsRef =
   ColFamilyOptionsRef(cPtr: rocksdb_options_create())
 
-template isClosed*(cfOpts: ColFamilyOptionsRef): bool =
+proc isClosed*(cfOpts: ColFamilyOptionsRef): bool {.inline.} =
   cfOpts.cPtr.isNil()
 
 proc cPtr*(cfOpts: ColFamilyOptionsRef): ColFamilyOptionsPtr =
