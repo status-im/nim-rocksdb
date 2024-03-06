@@ -68,22 +68,22 @@ proc openRocksDb*(
     dbOpts = defaultDbOptions(),
     readOpts = defaultReadOptions(),
     writeOpts = defaultWriteOptions(),
-    columnFamilies = @[defaultColFamilyDescriptor()]): RocksDBResult[RocksDbReadWriteRef] =
+    columnFamilies: openArray[ColFamilyDescriptor] = []): RocksDBResult[RocksDbReadWriteRef] =
   ## Open a RocksDB instance in read-write mode. If `columnFamilies` is empty
   ## then it will open the default column family. If `dbOpts`, `readOpts`, or
   ## `writeOpts` are not supplied then the default options will be used.
   ## By default, column families will be created if they don't yet exist.
   ## All existing column families must be specified if the database has
-  ## previously created any column families. This means that the list of column
-  ## families must always at least contain the default column family.
+  ## previously created any column families.
 
-  if columnFamilies.len == 0:
-    return err("rocksdb: no column families")
+  var cfs = columnFamilies.toSeq()
+  if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
+    cfs.add(defaultColFamilyDescriptor())
 
   var
-    cfNames = columnFamilies.mapIt(it.name().cstring)
-    cfOpts = columnFamilies.mapIt(it.options.cPtr)
-    columnFamilyHandles = newSeq[ColFamilyHandlePtr](columnFamilies.len)
+    cfNames = cfs.mapIt(it.name().cstring)
+    cfOpts = cfs.mapIt(it.options.cPtr)
+    cfHandles = newSeq[ColFamilyHandlePtr](cfs.len)
     errors: cstring
   let rocksDbPtr = rocksdb_open_column_families(
         dbOpts.cPtr,
@@ -91,7 +91,7 @@ proc openRocksDb*(
         cfNames.len().cint,
         cast[cstringArray](cfNames[0].addr),
         cfOpts[0].addr,
-        columnFamilyHandles[0].addr,
+        cfHandles[0].addr,
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
@@ -104,14 +104,14 @@ proc openRocksDb*(
       writeOpts: writeOpts,
       ingestOptsPtr: rocksdb_ingestexternalfileoptions_create(),
       defaultCfName: DEFAULT_COLUMN_FAMILY_NAME,
-      cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
+      cfTable: newColFamilyTable(cfNames.mapIt($it), cfHandles))
   ok(db)
 
 proc openRocksDbReadOnly*(
     path: string,
     dbOpts = defaultDbOptions(),
     readOpts = defaultReadOptions(),
-    columnFamilies = @[defaultColFamilyDescriptor()],
+    columnFamilies: openArray[ColFamilyDescriptor] = [],
     errorIfWalFileExists = false): RocksDBResult[RocksDbReadOnlyRef] =
   ## Open a RocksDB instance in read-only mode. If `columnFamilies` is empty
   ## then it will open the default column family. If `dbOpts` or `readOpts` are
@@ -120,13 +120,14 @@ proc openRocksDbReadOnly*(
   ## contains any column families, then all or a subset of the existing column
   ## families can be opened for reading.
 
-  if columnFamilies.len == 0:
-    return err("rocksdb: no column families")
+  var cfs = columnFamilies.toSeq()
+  if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
+    cfs.add(defaultColFamilyDescriptor())
 
   var
-    cfNames = columnFamilies.mapIt(it.name().cstring)
-    cfOpts = columnFamilies.mapIt(it.options.cPtr)
-    columnFamilyHandles = newSeq[ColFamilyHandlePtr](columnFamilies.len)
+    cfNames = cfs.mapIt(it.name().cstring)
+    cfOpts = cfs.mapIt(it.options.cPtr)
+    cfHandles = newSeq[ColFamilyHandlePtr](cfs.len)
     errors: cstring
   let rocksDbPtr = rocksdb_open_for_read_only_column_families(
         dbOpts.cPtr,
@@ -134,7 +135,7 @@ proc openRocksDbReadOnly*(
         cfNames.len().cint,
         cast[cstringArray](cfNames[0].addr),
         cfOpts[0].addr,
-        columnFamilyHandles[0].addr,
+        cfHandles[0].addr,
         errorIfWalFileExists.uint8,
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
@@ -146,7 +147,7 @@ proc openRocksDbReadOnly*(
       dbOpts: dbOpts,
       readOpts: readOpts,
       defaultCfName: DEFAULT_COLUMN_FAMILY_NAME,
-      cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
+      cfTable: newColFamilyTable(cfNames.mapIt($it), cfHandles))
   ok(db)
 
 proc isClosed*(db: RocksDbRef): bool {.inline.} =

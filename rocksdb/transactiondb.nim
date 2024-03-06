@@ -49,18 +49,19 @@ proc openTransactionDb*(
     path: string,
     dbOpts = defaultDbOptions(),
     txDbOpts = defaultTransactionDbOptions(),
-    columnFamilies = @[defaultColFamilyDescriptor()]): RocksDBResult[TransactionDbRef] =
+    columnFamilies: openArray[ColFamilyDescriptor] = []): RocksDBResult[TransactionDbRef] =
   ## Open a `TransactionDbRef` with the given options and column families.
   ## If no column families are provided the default column family will be used.
   ## If no options are provided the default options will be used.
 
-  if columnFamilies.len == 0:
-    return err("rocksdb: no column families")
+  var cfs = columnFamilies.toSeq()
+  if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
+    cfs.add(defaultColFamilyDescriptor())
 
   var
-    cfNames = columnFamilies.mapIt(it.name().cstring)
-    cfOpts = columnFamilies.mapIt(it.options.cPtr)
-    columnFamilyHandles = newSeq[ColFamilyHandlePtr](columnFamilies.len)
+    cfNames = cfs.mapIt(it.name().cstring)
+    cfOpts = cfs.mapIt(it.options.cPtr)
+    cfHandles = newSeq[ColFamilyHandlePtr](cfs.len)
     errors: cstring
 
   let txDbPtr = rocksdb_transactiondb_open_column_families(
@@ -70,7 +71,7 @@ proc openTransactionDb*(
         cfNames.len().cint,
         cast[cstringArray](cfNames[0].addr),
         cfOpts[0].addr,
-        columnFamilyHandles[0].addr,
+        cfHandles[0].addr,
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
@@ -80,7 +81,7 @@ proc openTransactionDb*(
       path: path,
       dbOpts: dbOpts,
       txDbOpts: txDbOpts,
-      cfTable: newColFamilyTable(cfNames.mapIt($it), columnFamilyHandles))
+      cfTable: newColFamilyTable(cfNames.mapIt($it), cfHandles))
   ok(db)
 
 proc isClosed*(db: TransactionDbRef): bool {.inline.} =

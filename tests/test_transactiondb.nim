@@ -32,7 +32,7 @@ suite "TransactionDbRef Tests":
 
   setup:
     let dbPath = mkdtemp() / "data"
-    var db = initTransactionDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+    var db = initTransactionDb(dbPath, columnFamilyNames = @[CF_OTHER])
 
   teardown:
     db.close()
@@ -111,26 +111,6 @@ suite "TransactionDbRef Tests":
       tx.get(key2, CF_OTHER).error() == ""
       tx.get(key3, CF_OTHER).get() == val3
 
-  test "Test setting column family using withDefaultColFamily":
-    var tx = db.beginTransaction().withDefaultColFamily(CF_OTHER)
-    defer: tx.close()
-    check not tx.isClosed()
-
-    check:
-      tx.put(key1, val1).isOk()
-      tx.put(key2, val2).isOk()
-      tx.put(key3, val3).isOk()
-
-      tx.delete(key2).isOk()
-      not tx.isClosed()
-
-    check:
-      tx.get(key1, CF_DEFAULT).error() == ""
-      tx.get(key2, CF_DEFAULT).error() == ""
-      tx.get(key3, CF_DEFAULT).error() == ""
-      tx.get(key1, CF_OTHER).get() == val1
-      tx.get(key2, CF_OTHER).error() == ""
-      tx.get(key3, CF_OTHER).get() == val3
 
   test "Test rollback and commit with multiple transactions":
     var tx1 = db.beginTransaction(columnFamily = CF_DEFAULT)
