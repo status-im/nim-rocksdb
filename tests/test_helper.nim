@@ -18,7 +18,7 @@ import
 
 proc initReadWriteDb*(
     path: string,
-    columnFamilyNames = @["default"]): RocksDbReadWriteRef =
+    columnFamilyNames: openArray[string] = @[]): RocksDbReadWriteRef =
 
   let res = openRocksDb(
       path,
@@ -30,7 +30,7 @@ proc initReadWriteDb*(
 
 proc initReadOnlyDb*(
     path: string,
-    columnFamilyNames = @["default"]): RocksDbReadOnlyRef =
+    columnFamilyNames: openArray[string] = @[]): RocksDbReadOnlyRef =
 
   let res = openRocksDbReadOnly(
       path,
@@ -48,7 +48,7 @@ proc initBackupEngine*(path: string): BackupEngineRef =
 
 proc initTransactionDb*(
     path: string,
-    columnFamilyNames = @["default"]): TransactionDbRef =
+    columnFamilyNames: openArray[string] = @[]): TransactionDbRef =
 
   let res = openTransactionDb(
       path,
