@@ -47,8 +47,6 @@ proc shouldUseNativeLinking(): bool {.compileTime.} =
   when defined(linux):
     return true
 
-const LibrocksbStaticArgs {.strdefine.}: string = ""
-
 type
   rocksdb_t* = object
   rocksdb_backup_engine_t* = object
@@ -114,9 +112,8 @@ type
 
 ##  DB operations
 
-when LibrocksbStaticArgs != "":
+when defined(static_linking):
   {.pragma: importrocks, importc, cdecl.}
-  {.passL: LibrocksbStaticArgs.}
   when defined(windows):
     {.passL: "-lshlwapi -lrpcrt4".}
 else:

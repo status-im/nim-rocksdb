@@ -12,15 +12,27 @@ requires "nim >= 1.6",
          "tempfile",
          "unittest2"
 
-proc test(args, path: string) =
+proc createBuildDir() =
   if not dirExists "build":
     mkDir "build"
-  exec "nim " & getEnv("TEST_LANG", "c") & " " & getEnv("NIMFLAGS") & " " & args &
-    " --outdir:build -r --hints:off --threads:on --skipParentCfg " & path
+
+proc buildStaticDeps() =
+  exec "git submodule update --init"
+  exec "DEBUG_LEVEL=0 make -C vendor/rocksdb libz.a"
+  exec "DEBUG_LEVEL=0 make -C vendor/rocksdb static_lib"
+  # TODO: add this in later
+  #exec "strip --strip-unneeded vendor/rocksdb/libz.a vendor/rocksdb/librocksdb.a"
+
+task build_static, "Build static library":
+  createBuildDir()
+  buildStaticDeps()
+  exec "nim c -d:static_linking --app:staticlib rocksdb.nim"
 
 task test, "Run tests":
-  test "", "tests/test_all.nim"
-  # Too troublesome to install "librocksdb.a" in CI, but this is how we would
-  # test it (we need the C++ linker profile because it's a C++ library):
-  # test "-d:LibrocksbStaticArgs='-l:librocksdb.a' --gcc.linkerexe=g++", "tests/test_all.nim"
+  createBuildDir()
+  exec "nim c -r --threads:on tests/test_all.nim"
 
+task test_static, "Run tests after static linking dependencies":
+  createBuildDir()
+  buildStaticDeps()
+  exec "nim c -d:static_linking -r --threads:on tests/test_all.nim"
