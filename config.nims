@@ -12,6 +12,8 @@ when fileExists("nimble.paths"):
   include "nimble.paths"
 # end Nimble config
 
+switch("gcc.exe", "gcc")
+
 when defined(rocksdb_static_linking):
   import std/[os, strutils]
 
