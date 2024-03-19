@@ -19,9 +19,15 @@ BUILD_DEST=$REPO_DIR/build/lib
 
 
 git submodule update --init
-DEBUG_LEVEL=0 make -C "${ROCKSDB_LIB_DIR}" libz.a static_lib --no-print-directory &>/dev/null
+DEBUG_LEVEL=0 make -C "${ROCKSDB_LIB_DIR}" libz.a libbz2.a liblz4.a libzstd.a \
+    static_lib --no-print-directory # TODO: reduce output
 
 mkdir -p "${BUILD_DEST}"
-cp "${ROCKSDB_LIB_DIR}/libz.a" "${ROCKSDB_LIB_DIR}/librocksdb.a" "${BUILD_DEST}/"
+
+cp "${ROCKSDB_LIB_DIR}/libz.a" "${BUILD_DEST}/"
+cp "${ROCKSDB_LIB_DIR}/libbz2.a" "${BUILD_DEST}/"
+cp "${ROCKSDB_LIB_DIR}/liblz4.a" "${BUILD_DEST}/"
+cp "${ROCKSDB_LIB_DIR}/libzstd.a" "${BUILD_DEST}/"
+cp "${ROCKSDB_LIB_DIR}/librocksdb.a" "${BUILD_DEST}/"
 
 strip --strip-unneeded "${BUILD_DEST}/libz.a" "${BUILD_DEST}/librocksdb.a"
