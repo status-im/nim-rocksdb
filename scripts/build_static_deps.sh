@@ -20,6 +20,7 @@ BUILD_DEST=$REPO_DIR/build/lib
 
 git submodule update --init
 export EXTRA_CXXFLAGS=-fpermissive
+export DISABLE_WARNING_AS_ERROR=true
 DEBUG_LEVEL=0 make -C "${ROCKSDB_LIB_DIR}" libz.a libbz2.a liblz4.a libzstd.a \
     static_lib --no-print-directory # TODO: reduce output
 
