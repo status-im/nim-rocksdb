@@ -12,12 +12,12 @@ when fileExists("nimble.paths"):
   include "nimble.paths"
 # end Nimble config
 
-when defined(static_linking):
-  import std/os
+when defined(rocksdb_static_linking):
+  import std/[os, strutils]
 
-  const libsDir = currentSourcePath.parentDir() & "/vendor/rocksdb"
-  switch("dynlibOverrideAll")
+  const libsDir = currentSourcePath.parentDir().replace('\\', '/') & "/build/lib"
+  switch("gcc.linkerexe", "g++") # use the C++ linker profile because it's a C++ library
+  switch("dynlibOverride", "librocksdb.a")
+  switch("dynlibOverride", "libz.a")
   switch("l", libsDir & "/librocksdb.a")
   switch("l", libsDir & "/libz.a")
-  switch("gcc.linkerexe", "g++") # use the C++ linker profile because it's a C++ library
-  

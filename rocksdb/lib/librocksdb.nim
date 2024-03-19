@@ -112,7 +112,7 @@ type
 
 ##  DB operations
 
-when defined(static_linking):
+when defined(rocksdb_static_linking):
   {.pragma: importrocks, importc, cdecl.}
   when defined(windows):
     {.passL: "-lshlwapi -lrpcrt4".}

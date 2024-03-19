@@ -12,15 +12,16 @@
 set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"/..
+
 REPO_DIR="${PWD}"
 ROCKSDB_LIB_DIR=$REPO_DIR/vendor/rocksdb
 BUILD_DEST=$REPO_DIR/build/lib
 
+
 git submodule update --init
-DEBUG_LEVEL=0 make -C "${ROCKSDB_LIB_DIR}" libz.a
-DEBUG_LEVEL=0 make -C "${ROCKSDB_LIB_DIR}" static_lib
-# TODO: add this in later
-#exec "strip --strip-unneeded vendor/rocksdb/libz.a vendor/rocksdb/librocksdb.a"
+DEBUG_LEVEL=0 make -C "${ROCKSDB_LIB_DIR}" libz.a static_lib --no-print-directory &>/dev/null
 
 mkdir -p "${BUILD_DEST}"
 cp "${ROCKSDB_LIB_DIR}/libz.a" "${ROCKSDB_LIB_DIR}/librocksdb.a" "${BUILD_DEST}/"
+
+strip --strip-unneeded "${BUILD_DEST}/libz.a" "${BUILD_DEST}/librocksdb.a"

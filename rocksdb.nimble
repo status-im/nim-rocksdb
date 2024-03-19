@@ -8,7 +8,7 @@ mode          = ScriptMode.Verbose
 
 ### Dependencies
 requires "nim >= 1.6",
-         "stew",
+         "results",
          "tempfile",
          "unittest2"
 
@@ -17,4 +17,4 @@ task test, "Run tests":
 
 task test_static, "Run tests after static linking dependencies":
   exec "scripts/build_static_deps.sh"
-  exec "nim c -d:static_linking -r --threads:on tests/test_all.nim"
+  exec "nim c -d:rocksdb_static_linking -r --threads:on tests/test_all.nim"
