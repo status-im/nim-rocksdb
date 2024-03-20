@@ -30,12 +30,13 @@ export ROCKSDB_DISABLE_BZIP=1
 # export ROCKSDB_DISABLE_LZ4=1
 # export ROCKSDB_DISABLE_ZSTD=1
 
+export PORTABLE=1
 export DEBUG_LEVEL=0
 
 make -C "${ROCKSDB_LIB_DIR}" -j${NPROC} liblz4.a libzstd.a --no-print-directory # TODO: reduce output
 
-export EXTRA_CFLAGS="-I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
-export EXTRA_CXXFLAGS="-I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
+export EXTRA_CFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
+export EXTRA_CXXFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
 
 make -C "${ROCKSDB_LIB_DIR}" -j${NPROC} static_lib --no-print-directory # TODO: reduce output
 
