@@ -12,6 +12,10 @@ requires "nim >= 1.6",
          "tempfile",
          "unittest2"
 
+task clean, "Remove temporary files":
+  exec "rm -rf build"
+  exec "make -C vendor/rocksdb clean"
+
 task test, "Run tests":
   exec "nim c -r --threads:on tests/test_all.nim"
 

@@ -48,7 +48,11 @@ proc setCreateMissingColumnFamilies*(dbOpts: DbOptionsRef, flag: bool) =
   rocksdb_options_set_create_missing_column_families(dbOpts.cPtr, flag.uint8)
 
 proc defaultDbOptions*(): DbOptionsRef =
-  let opts = newDbOptions()
+  let opts: DbOptionsRef = newDbOptions()
+
+  rocksdb_options_set_compression(opts.cPtr, rocksdb_lz4_compression)
+  rocksdb_options_set_bottommost_compression(opts.cPtr, rocksdb_zstd_compression)
+
   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
   opts.setIncreaseParallelism(countProcessors())
   # This requires snappy - disabled because rocksdb is not always compiled with

@@ -31,8 +31,11 @@ proc cPtr*(engineOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
 # TODO: Add setters and getters for backup options properties.
 
 proc defaultBackupEngineOptions*(): BackupEngineOptionsRef {.inline.} =
-  newBackupEngineOptions()
-  # TODO: set prefered defaults
+  let opts = newBackupEngineOptions()
+  rocksdb_options_set_compression(opts.cPtr, rocksdb_lz4_compression)
+  rocksdb_options_set_bottommost_compression(opts.cPtr, rocksdb_zstd_compression)
+  opts
+
 
 proc close*(engineOpts: BackupEngineOptionsRef) =
   if not engineOpts.isClosed():
