@@ -113,7 +113,18 @@ type
 ##  DB operations
 
 when defined(rocksdb_static_linking):
+  import std/[os, strutils]
+
   {.pragma: importrocks, importc, cdecl.}
+
+  const
+    topLevelPath = currentSourcePath.parentDir().parentDir().parentDir()
+    libsDir = topLevelPath.replace('\\', '/') & "/build/lib"
+
+  {.passL: libsDir & "/librocksdb.a".}
+  {.passL: libsDir & "/liblz4.a".}
+  {.passL: libsDir & "/libzstd.a".}
+
   when defined(windows):
     {.passL: "-lshlwapi -lrpcrt4".}
 else:

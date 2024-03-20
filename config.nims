@@ -12,17 +12,8 @@ when fileExists("nimble.paths"):
   include "nimble.paths"
 # end Nimble config
 
-switch("gcc.exe", "gcc")
-
 when defined(rocksdb_static_linking):
-  import std/[os, strutils]
-
-  const libsDir = currentSourcePath.parentDir().replace('\\', '/') & "/build/lib"
-
   switch("gcc.linkerexe", "g++") # use the C++ linker profile because it's a C++ library
   switch("dynlibOverride", "librocksdb.a")
   switch("dynlibOverride", "liblz4.a")
   switch("dynlibOverride", "libzstd.a")
-  switch("l", libsDir & "/librocksdb.a")
-  switch("l", libsDir & "/liblz4.a")
-  switch("l", libsDir & "/libzstd.a")
