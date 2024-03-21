@@ -32,6 +32,7 @@ export ROCKSDB_DISABLE_BZIP=1
 
 export PORTABLE=1
 export DEBUG_LEVEL=0
+export USE_CLANG=1
 
 make -C "${ROCKSDB_LIB_DIR}" -j${NPROC} liblz4.a libzstd.a --no-print-directory # TODO: reduce output
 
