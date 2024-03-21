@@ -14,7 +14,7 @@ when fileExists("nimble.paths"):
 
 when defined(rocksdb_static_linking):
   #switch("gcc.linkerexe", "g++") # use the C++ linker profile because it's a C++ library
-  switch("clang.linkerexe", "o64-clang++") # use the C++ linker profile because it's a C++ library
+  switch("clang.linkerexe", "clang++") # use the C++ linker profile because it's a C++ library
   switch("dynlibOverride", "librocksdb.a")
   switch("dynlibOverride", "liblz4.a")
   switch("dynlibOverride", "libzstd.a")
