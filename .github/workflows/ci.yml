@@ -12,12 +12,12 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - os: linux
-            cpu: amd64
+          # - os: linux
+          #   cpu: amd64
           # - os: linux
           #   cpu: i386
-          - os: macos
-            cpu: amd64
+          # - os: macos
+          #   cpu: amd64
           - os: windows
             cpu: amd64
           #- os: windows
@@ -139,6 +139,18 @@ jobs:
           curl -L "https://github.com/status-im/nimbus-deps/releases/download/nimbus-deps/nimbus-deps.zip" -o external/nimbus-deps.zip
           7z x -y external/nimbus-deps.zip
           cp -a "./${ROCKSDBSUB}/librocksdb.dll" "${DLLPATH}/librocksdb.dll"
+
+      - name: Install static dependencies (Windows)
+        if: >
+          runner.os == 'Windows'
+        run: |
+          pwd
+          export VCPKG_LIBRARY_LINKAGE=static
+          echo $VCPKG_LIBRARY_LINKAGE
+          /vcpkg install rocksdb[core,lz4,zstd]
+
+          # mkdir build dir
+          # copy static deps
 
       - name: Path to cached dependencies (Windows)
         if: >
