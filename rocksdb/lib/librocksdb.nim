@@ -121,9 +121,14 @@ when defined(rocksdb_static_linking):
     topLevelPath = currentSourcePath.parentDir().parentDir().parentDir()
     libsDir = topLevelPath.replace('\\', '/') & "/build/lib"
 
-  {.passL: libsDir & "/librocksdb.a".}
-  {.passL: libsDir & "/liblz4.a".}
-  {.passL: libsDir & "/libzstd.a".}
+  when defined(windows):
+    {.passL: libsDir & "/librocksdb.lib".}
+    {.passL: libsDir & "/liblz4.lib".}
+    {.passL: libsDir & "/libzstd.lib".}
+  else:
+    {.passL: libsDir & "/librocksdb.a".}
+    {.passL: libsDir & "/liblz4.a".}
+    {.passL: libsDir & "/libzstd.a".}
 
   when defined(windows):
     {.passL: "-lshlwapi -lrpcrt4".}
