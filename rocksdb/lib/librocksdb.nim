@@ -122,9 +122,9 @@ when defined(rocksdb_static_linking):
     libsDir = topLevelPath.replace('\\', '/') & "/build/lib"
 
   when defined(windows):
-    {.passL: libsDir & "/librocksdb.lib".}
-    {.passL: libsDir & "/liblz4.lib".}
-    {.passL: libsDir & "/libzstd.lib".}
+    {.passL: libsDir & "/rocksdb.lib".}
+    {.passL: libsDir & "/lz4.lib".}
+    {.passL: libsDir & "/zstd.lib".}
   else:
     {.passL: libsDir & "/librocksdb.a".}
     {.passL: libsDir & "/liblz4.a".}
