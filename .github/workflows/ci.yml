@@ -147,9 +147,15 @@ jobs:
         run: |
           /c/vcpkg/vcpkg --help
           export VCPKG_LIBRARY_LINKAGE=static
+          export VCPKG_BUILD_TYPE=release
           /c/vcpkg/vcpkg install rocksdb[core,lz4,zstd]
-          # mkdir build dir
-          # copy static deps
+
+          LIBS_DIR=build/lib/
+          mkdir -p ${LIBS_DIR}
+          cp /c/vcpkg/packages/lz4_x64-windows/lib/lz4.lib ${LIBS_DIR}
+          cp /c/vcpkg/packages/zstd_x64-windows/lib/zstd.lib ${LIBS_DIR}
+          cp /c/vcpkg/packages/rocksdb_x64-windows/lib/rocksdb.lib ${LIBS_DIR}
+
 
       - name: Path to cached dependencies (Windows)
         if: >
