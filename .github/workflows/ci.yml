@@ -35,7 +35,7 @@ jobs:
             shell: bash
           - target:
               os: windows
-            builder: windows-2019
+            builder: windows-latest
             shell: msys2 {0}
 
     defaults:
@@ -155,10 +155,6 @@ jobs:
           cp /c/vcpkg/packages/zstd_x64-windows/lib/zstd.lib ${LIBS_DIR}
           cp /c/vcpkg/packages/rocksdb_x64-windows/lib/rocksdb.lib ${LIBS_DIR}
 
-          pwd
-          ls -al ${LIBS_DIR}
-
-
       - name: Path to cached dependencies (Windows)
         if: >
           runner.os == 'Windows'
@@ -208,9 +204,6 @@ jobs:
             export NIMFLAGS="-d:nimRawSetjmp"
           fi
 
-          pwd
-          ls -al
-          ls build/lib/
           nim --version
           nimble --version
           nimble install -y --depsOnly

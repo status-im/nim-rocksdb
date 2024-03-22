@@ -113,15 +113,15 @@ type
 ##  DB operations
 
 when defined(rocksdb_static_linking):
-  import std/[os, strutils]
-
   {.pragma: importrocks, importc, cdecl.}
 
+  import std/[os, strutils]
   const
     topLevelPath = currentSourcePath.parentDir().parentDir().parentDir()
     libsDir = topLevelPath.replace('\\', '/') & "/build/lib"
 
   when defined(windows):
+    {.passL: "-lshlwapi -lrpcrt4".}
     {.passL: libsDir & "/rocksdb.lib".}
     {.passL: libsDir & "/lz4.lib".}
     {.passL: libsDir & "/zstd.lib".}
@@ -130,8 +130,6 @@ when defined(rocksdb_static_linking):
     {.passL: libsDir & "/liblz4.a".}
     {.passL: libsDir & "/libzstd.a".}
 
-  when defined(windows):
-    {.passL: "-lshlwapi -lrpcrt4".}
 else:
   when shouldUseNativeLinking():
     {.pragma: importrocks, importc, cdecl.}
