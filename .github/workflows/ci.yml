@@ -145,7 +145,6 @@ jobs:
         if: >
           runner.os == 'Windows'
         run: |
-          /c/vcpkg/vcpkg --help
           export VCPKG_LIBRARY_LINKAGE=static
           export VCPKG_BUILD_TYPE=release
           /c/vcpkg/vcpkg install rocksdb[core,lz4,zstd]
@@ -155,6 +154,9 @@ jobs:
           cp /c/vcpkg/packages/lz4_x64-windows/lib/lz4.lib ${LIBS_DIR}
           cp /c/vcpkg/packages/zstd_x64-windows/lib/zstd.lib ${LIBS_DIR}
           cp /c/vcpkg/packages/rocksdb_x64-windows/lib/rocksdb.lib ${LIBS_DIR}
+
+          pwd
+          ls -al ${LIBS_DIR}
 
 
       - name: Path to cached dependencies (Windows)
@@ -205,6 +207,10 @@ jobs:
             # https://github.com/status-im/nimbus-eth2/issues/3121
             export NIMFLAGS="-d:nimRawSetjmp"
           fi
+
+          pwd
+          ls -al
+          ls build/lib/
           nim --version
           nimble --version
           nimble install -y --depsOnly
