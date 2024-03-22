@@ -19,6 +19,6 @@ when defined(rocksdb_static_linking):
   else:
     switch("gcc.linkerexe", "g++")
 
-  switch("dynlibOverride", "librocksdb")
-  switch("dynlibOverride", "liblz4")
-  switch("dynlibOverride", "libzstd")
+  switch("dynlibOverride", "rocksdb")
+  switch("dynlibOverride", "lz4")
+  switch("dynlibOverride", "zstd")

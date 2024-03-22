@@ -147,7 +147,7 @@ jobs:
         run: |
           export VCPKG_LIBRARY_LINKAGE=static
           export VCPKG_BUILD_TYPE=release
-          /c/vcpkg/vcpkg install rocksdb[core,lz4,zstd]
+          /c/vcpkg/vcpkg install rocksdb[core,lz4,zstd]:x64-mingw-static
 
           LIBS_DIR=build/lib/
           mkdir -p ${LIBS_DIR}
