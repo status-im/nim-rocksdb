@@ -145,10 +145,13 @@ jobs:
           runner.os == 'Windows'
         run: |
           pwd
+          ls /c/
+          ls /d/
+          ls /d/a/
+          /c/vcpkg --help
           export VCPKG_LIBRARY_LINKAGE=static
-          echo $VCPKG_LIBRARY_LINKAGE
-          /vcpkg install rocksdb[core,lz4,zstd]
 
+          #/vcpkg install rocksdb[core,lz4,zstd]
           # mkdir build dir
           # copy static deps
 
