@@ -12,18 +12,17 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          # - os: linux
-          #   cpu: amd64
+          - os: linux
+            cpu: amd64
           # - os: linux
           #   cpu: i386
-          # - os: macos
-          #   cpu: amd64
+          - os: macos
+            cpu: amd64
           - os: windows
             cpu: amd64
           #- os: windows
             #cpu: i386
-        # branch: [version-1-6, version-2-0, devel]
-        branch: [version-1-6]
+        branch: [version-1-6, version-2-0, devel]
         include:
           - target:
               os: linux
@@ -147,7 +146,7 @@ jobs:
         run: |
           export VCPKG_LIBRARY_LINKAGE=static
           export VCPKG_BUILD_TYPE=release
-          /c/vcpkg/vcpkg install rocksdb[core,lz4,zstd]:x64-windows-static-release
+          /c/vcpkg/vcpkg install rocksdb[core,lz4,zstd]:x64-windows-static
 
           LIBS_DIR=build/lib/
           mkdir -p ${LIBS_DIR}
