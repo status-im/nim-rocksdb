@@ -28,7 +28,7 @@ To statically link librocksdb, you would do something like:
 nim c -d:rocksdb_static_linking --threads:on your_program.nim
 ```
 
-See the config.nims file which contains the static linking configuration which is switched on with the `rocksdb_static_linking` flag.
+See the config.nims file which contains the static linking configuration which is switched on with the `rocksdb_static_linking` flag. Note that static linking is currently not supported on windows.
 
 ### Contribution
 

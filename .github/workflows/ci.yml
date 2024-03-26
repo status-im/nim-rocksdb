@@ -140,20 +140,6 @@ jobs:
           7z x -y external/nimbus-deps.zip
           cp -a "./${ROCKSDBSUB}/librocksdb.dll" "${DLLPATH}/librocksdb.dll"
 
-      - name: Install static dependencies (Windows)
-        if: >
-          runner.os == 'Windows'
-        run: |
-          export VCPKG_LIBRARY_LINKAGE=static
-          export VCPKG_BUILD_TYPE=release
-          /c/vcpkg/vcpkg install rocksdb[core,lz4,zstd]:x64-windows-static
-
-          LIBS_DIR=build/lib/
-          mkdir -p ${LIBS_DIR}
-          cp /c/vcpkg/packages/lz4_x64-windows/lib/lz4.lib ${LIBS_DIR}
-          cp /c/vcpkg/packages/zstd_x64-windows/lib/zstd.lib ${LIBS_DIR}
-          cp /c/vcpkg/packages/rocksdb_x64-windows/lib/rocksdb.lib ${LIBS_DIR}
-
       - name: Path to cached dependencies (Windows)
         if: >
           runner.os == 'Windows'
@@ -207,4 +193,8 @@ jobs:
           nimble --version
           nimble install -y --depsOnly
           nimble test
-          nimble test_static
+
+          # static linking is not supported on windows
+          if [[ "${{ matrix.target.os }}" != "windows" ]]; then
+            nimble test_static
+          fi
