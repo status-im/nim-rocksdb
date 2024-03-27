@@ -8,19 +8,18 @@ mode          = ScriptMode.Verbose
 
 ### Dependencies
 requires "nim >= 1.6",
-         "stew",
+         "results",
          "tempfile",
          "unittest2"
 
-proc test(args, path: string) =
-  if not dirExists "build":
-    mkDir "build"
-  exec "nim " & getEnv("TEST_LANG", "c") & " " & getEnv("NIMFLAGS") & " " & args &
-    " --outdir:build -r --hints:off --threads:on --skipParentCfg " & path
+task clean, "Remove temporary files":
+  exec "rm -rf build"
+  exec "make -C vendor/rocksdb clean"
 
 task test, "Run tests":
-  test "", "tests/test_all.nim"
-  # Too troublesome to install "librocksdb.a" in CI, but this is how we would
-  # test it (we need the C++ linker profile because it's a C++ library):
-  # test "-d:LibrocksbStaticArgs='-l:librocksdb.a' --gcc.linkerexe=g++", "tests/test_all.nim"
+  exec "nim c -r --threads:on tests/test_all.nim"
 
+task test_static, "Run tests after static linking dependencies":
+  when not defined(windows):
+    exec "scripts/build_static_deps.sh"
+  exec "nim c -d:rocksdb_static_linking -r --threads:on tests/test_all.nim"

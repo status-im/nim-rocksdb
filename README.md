@@ -25,10 +25,10 @@ See [simple_example](examples/simple_example.nim)
 To statically link librocksdb, you would do something like:
 
 ```nim
-nim c -d:LibrocksbStaticArgs='-l:librocksdb.a' --gcc.linkerexe=g++ --threads:on your_program.nim
+nim c -d:rocksdb_static_linking --threads:on your_program.nim
 ```
 
-(we need the C++ linker profile because it's a C++ library)
+See the config.nims file which contains the static linking configuration which is switched on with the `rocksdb_static_linking` flag. Note that static linking is currently not supported on windows.
 
 ### Contribution
 

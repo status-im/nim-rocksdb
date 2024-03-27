@@ -8,8 +8,13 @@
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
 import
-  ./rocksdb/[backup, columnfamily, rocksdb, rocksiterator],
-  ./rocksdb/[sstfilewriter, transactiondb, writebatch]
+  ./rocksdb/[backup,
+  columnfamily,
+  rocksdb,
+  rocksiterator,
+  sstfilewriter,
+  transactiondb,
+  writebatch]
 
 export
   backup,

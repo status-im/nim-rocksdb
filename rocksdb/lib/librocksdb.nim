@@ -47,8 +47,6 @@ proc shouldUseNativeLinking(): bool {.compileTime.} =
   when defined(linux):
     return true
 
-const LibrocksbStaticArgs {.strdefine.}: string = ""
-
 type
   rocksdb_t* = object
   rocksdb_backup_engine_t* = object
@@ -114,11 +112,24 @@ type
 
 ##  DB operations
 
-when LibrocksbStaticArgs != "":
+when defined(rocksdb_static_linking):
   {.pragma: importrocks, importc, cdecl.}
-  {.passL: LibrocksbStaticArgs.}
+
+  import std/[os, strutils]
+  const
+    topLevelPath = currentSourcePath.parentDir().parentDir().parentDir()
+    libsDir = topLevelPath.replace('\\', '/') & "/build/lib"
+
   when defined(windows):
     {.passL: "-lshlwapi -lrpcrt4".}
+    {.passL: libsDir & "/rocksdb.lib".}
+    {.passL: libsDir & "/lz4.lib".}
+    {.passL: libsDir & "/zstd.lib".}
+  else:
+    {.passL: libsDir & "/librocksdb.a".}
+    {.passL: libsDir & "/liblz4.a".}
+    {.passL: libsDir & "/libzstd.a".}
+
 else:
   when shouldUseNativeLinking():
     {.pragma: importrocks, importc, cdecl.}

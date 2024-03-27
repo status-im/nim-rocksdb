@@ -11,3 +11,14 @@
 when fileExists("nimble.paths"):
   include "nimble.paths"
 # end Nimble config
+
+when defined(rocksdb_static_linking):
+  # use the C++ linker profile because it's a C++ library
+  when defined(macosx):
+    switch("clang.linkerexe", "clang++")
+  else:
+    switch("gcc.linkerexe", "g++")
+
+  switch("dynlibOverride", "rocksdb")
+  switch("dynlibOverride", "lz4")
+  switch("dynlibOverride", "zstd")
