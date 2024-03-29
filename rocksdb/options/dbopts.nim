@@ -50,7 +50,7 @@ proc setCreateMissingColumnFamilies*(dbOpts: DbOptionsRef, flag: bool) =
 proc defaultDbOptions*(): DbOptionsRef =
   let opts: DbOptionsRef = newDbOptions()
 
-  rocksdb_options_set_compression(opts.cPtr, rocksdb_lz4_compression)
+  # rocksdb_options_set_compression(opts.cPtr, rocksdb_lz4_compression)
   # rocksdb_options_set_bottommost_compression(opts.cPtr, rocksdb_zstd_compression)
 
   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
