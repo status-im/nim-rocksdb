@@ -35,7 +35,7 @@ proc setCreateMissingColumnFamilies*(cfOpts: ColFamilyOptionsRef, flag: bool) =
 proc defaultColFamilyOptions*(): ColFamilyOptionsRef =
   let opts = newColFamilyOptions()
 
-  rocksdb_options_set_compression(opts.cPtr, rocksdb_lz4_compression)
+  # rocksdb_options_set_compression(opts.cPtr, rocksdb_lz4_compression)
   # rocksdb_options_set_bottommost_compression(opts.cPtr, rocksdb_zstd_compression)
 
   # Enable creating column families if they do not exist
