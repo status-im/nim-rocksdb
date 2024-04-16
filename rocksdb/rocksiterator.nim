@@ -34,6 +34,25 @@ proc isClosed*(iter: RocksIteratorRef): bool {.inline.} =
   ## Returns `true` if the iterator is closed and `false` otherwise.
   iter.cPtr.isNil()
 
+proc seekToKey*(iter: RocksIteratorRef, key: openArray[byte]) =
+  ## Seeks to the `key` argument in the column family. If the return code is
+  ## `false`, the iterator has become invalid and should be closed.
+  ##
+  ## It is not clear what happens when the `key` does not exist in the column
+  ## family. The guess is that the interation will proceed at the next key
+  ## position. This is suggested by a comment from the GO port at
+  ##
+  ##    //github.com/DanielMorsing/rocksdb/blob/master/iterator.go:
+  ##
+  ##    Seek moves the iterator the position of the key given or, if the key
+  ##    doesn't exist, the next key that does exist in the database. If the
+  ##    key doesn't exist, and there is no next key, the Iterator becomes
+  ##    invalid.
+  ##
+  doAssert not iter.isClosed()
+  let (cKey, cLen) = (cast[cstring](unsafeAddr key[0]), csize_t(key.len))
+  rocksdb_iter_seek(iter.cPtr, cKey, cLen)
+
 proc seekToFirst*(iter: RocksIteratorRef) =
   ## Seeks to the first entry in the column family.
   doAssert not iter.isClosed()
