@@ -42,7 +42,7 @@ suite "RocksDbRef Tests":
 
     var bytes: seq[byte]
     check db.get(key, proc(data: openArray[byte]) = bytes = @data)[]
-    check not db.get(otherkey, proc(data: openArray[byte]) = bytes = @data)[]
+    check not db.get(otherKey, proc(data: openArray[byte]) = bytes = @data)[]
 
     var r1 = db.get(key)
     check r1.isOk() and r1.value == val
@@ -90,7 +90,7 @@ suite "RocksDbRef Tests":
 
     var bytes: seq[byte]
     check db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
-    check not db.get(otherkey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
+    check not db.get(otherKey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
 
     var r1 = db.get(key)
     check r1.isOk() and r1.value == val
@@ -141,7 +141,7 @@ suite "RocksDbRef Tests":
 
     var bytes: seq[byte]
     check db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
-    check not db.get(otherkey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
+    check not db.get(otherKey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
 
     var bytes2: seq[byte]
     check db.get(otherKey, proc(data: openArray[byte]) = bytes2 = @data, CF_OTHER)[]

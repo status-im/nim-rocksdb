@@ -11,7 +11,10 @@
 
 import
   std/cpuinfo,
-  ../lib/librocksdb
+  ../lib/librocksdb,
+  ./[cache, tableopts]
+
+export cache, tableopts
 
 type
   DbOptionsPtr* = ptr rocksdb_options_t
@@ -47,24 +50,58 @@ proc setCreateMissingColumnFamilies*(dbOpts: DbOptionsRef, flag: bool) =
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_create_missing_column_families(dbOpts.cPtr, flag.uint8)
 
+proc setWriteBufferSize*(dbOpts: DbOptionsRef, maxBufferSize: int) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_write_buffer_size(dbOpts.cPtr, maxBufferSize.csize_t)
+
+proc setRowCache*(dbOpts: DbOptionsRef, cache: CacheRef) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_row_cache(dbOpts.cPtr, cache.cPtr)
+
+proc setMaxBackgroundJobs*(dbOpts: DbOptionsRef, jobs: int) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_max_background_jobs(dbOpts.cPtr, jobs.cint)
+
+proc setBytesPerSync*(dbOpts: DbOptionsRef, bytes: int64) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_bytes_per_sync(dbOpts.cPtr, bytes.csize_t)
+
+proc setBlockBasedTableFactory*(dbOpts: DbOptionsRef, tableOpts: TableOptionsRef) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_block_based_table_factory(dbOpts.cPtr, tableOpts.cPtr)
+
+proc setTargetFileSizeBase*(dbOpts: DbOptionsRef, bytes: int64) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_target_file_size_base(dbOpts.cPtr, bytes.csize_t)
+
+proc setMaxBytesForLevelBase*(dbOpts: DbOptionsRef, bytes: int64) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_max_bytes_for_level_base(dbOpts.cPtr, bytes.csize_t)
+
+proc setMaxBytesForLevelMultiplier*(dbOpts: DbOptionsRef, multiplier: float) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_max_bytes_for_level_multiplier(dbOpts.cPtr, multiplier.cdouble)
+
 proc defaultDbOptions*(): DbOptionsRef =
   let opts: DbOptionsRef = newDbOptions()
 
-  # rocksdb_options_set_compression(opts.cPtr, rocksdb_lz4_compression)
-  # rocksdb_options_set_bottommost_compression(opts.cPtr, rocksdb_zstd_compression)
-
   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
   opts.setIncreaseParallelism(countProcessors())
-  # This requires snappy - disabled because rocksdb is not always compiled with
-  # snappy support (for example Fedora 28, certain Ubuntu versions)
-  # rocksdb_options_optimize_level_style_compaction(options, 0);
   opts.setCreateIfMissing(true)
+
   # default set to keep all files open (-1), allow setting it to a specific
   # value, e.g. in case the application limit would be reached.
   opts.setMaxOpenFiles(-1)
   # Enable creating column families if they do not exist
   opts.setCreateMissingColumnFamilies(true)
-  return opts
+
+  # Options recommended by rocksdb devs themselves, for new databases
+  # https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning#other-general-options
+
+  opts.setMaxBackgroundJobs(6)
+  opts.setBytesPerSync(1048576)
+
+  opts
 
 # TODO: These procs below will not work unless using the latest version of rocksdb
 # Currently, when installing librocksdb-dev on linux the RocksDb version used is 6.11.4

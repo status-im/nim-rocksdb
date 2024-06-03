@@ -130,7 +130,7 @@ when defined(rocksdb_static_linking):
 else:
   when shouldUseNativeLinking():
     {.pragma: importrocks, importc, cdecl.}
-    {.passL: "-lrocksdb".}
+    {.passl: "-lrocksdb".}
   else:
     {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
 

@@ -50,6 +50,10 @@ proc defaultColFamilyOptions*(): ColFamilyOptionsRef =
 #   doAssert not cfOpts.isClosed()
 #   rocksdb_options_get_create_missing_column_families(cfOpts.cPtr).bool
 
+proc setWriteBufferSize*(dbOpts: ColFamilyOptionsRef, maxBufferSize: int) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_write_buffer_size(dbOpts.cPtr, maxBufferSize.csize_t)
+
 proc close*(cfOpts: ColFamilyOptionsRef) =
   if not cfOpts.isClosed():
     rocksdb_options_destroy(cfOpts.cPtr)
