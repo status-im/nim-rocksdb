@@ -120,17 +120,17 @@ when defined(rocksdb_static_linking):
     topLevelPath = currentSourcePath.parentDir().parentDir().parentDir()
     libsDir = topLevelPath.replace('\\', '/') & "/build/lib"
 
-  {.passL: libsDir & "/librocksdb.a".}
-  {.passL: libsDir & "/liblz4.a".}
-  {.passL: libsDir & "/libzstd.a".}
+  {.passl: libsDir & "/librocksdb.a".}
+  {.passl: libsDir & "/liblz4.a".}
+  {.passl: libsDir & "/libzstd.a".}
 
   when defined(windows):
-    {.passL: "-lshlwapi -lrpcrt4".}
+    {.passl: "-lshlwapi -lrpcrt4".}
 
 else:
   when shouldUseNativeLinking():
     {.pragma: importrocks, importc, cdecl.}
-    {.passL: "-lrocksdb".}
+    {.passl: "-lrocksdb".}
   else:
     {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
 

@@ -44,7 +44,7 @@ suite "ColFamily Tests":
 
     var bytes: seq[byte]
     check cf.get(key, proc(data: openArray[byte]) = bytes = @data)[]
-    check not cf.get(otherkey, proc(data: openArray[byte]) = bytes = @data)[]
+    check not cf.get(otherKey, proc(data: openArray[byte]) = bytes = @data)[]
 
     var r1 = cf.get(key)
     check r1.isOk() and r1.value == val

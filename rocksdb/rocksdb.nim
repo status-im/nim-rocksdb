@@ -327,7 +327,7 @@ proc write*(
 proc ingestExternalFile*(
     db: RocksDbReadWriteRef,
     filePath: string,
-    columnFamily = db.defaultCfName): RocksDbResult[void] =
+    columnFamily = db.defaultCfName): RocksDBResult[void] =
   ## Ingest an external sst file into the database. The file will be ingested
   ## into the specified column family or the default column family if none is
   ## provided.

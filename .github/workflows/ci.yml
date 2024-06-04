@@ -136,7 +136,7 @@ jobs:
           curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
           7z x -y external/windeps.zip -o"${DLLPATH}"
           # ROCKSDB
-          curl -L "https://github.com/status-im/nimbus-deps/releases/download/nimbus-deps/nimbus-deps.zip" -o external/nimbus-deps.zip
+          curl -L "https://github.com/status-im/nimbus-deps/releases/download/rocksdb-9.1.0/nimbus-deps.zip" -o external/nimbus-deps.zip
           7z x -y external/nimbus-deps.zip
           cp -a "./${ROCKSDBSUB}/librocksdb.dll" "${DLLPATH}/librocksdb.dll"
 

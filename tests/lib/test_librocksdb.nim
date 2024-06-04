@@ -81,7 +81,7 @@ suite "librocksdb C wrapper Tests":
     rocksdb_backup_engine_restore_db_from_latest_backup(be, dbPath, dbPath,
                                                         restoreOptions, err)
     check: err.isNil
-    rocksdb_restore_options_destroy(restore_options)
+    rocksdb_restore_options_destroy(restoreOptions)
 
     db = rocksdb_open(options, dbPath, err)
     check: err.isNil
