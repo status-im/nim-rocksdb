@@ -113,17 +113,35 @@ jobs:
             git
             mingw-w64-x86_64-toolchain
 
-      - name: Restore Nim DLLs dependencies (Windows) from cache
-        if: runner.os == 'Windows'
-        id: windows-dlls-cache
-        uses: actions/cache@v4
-        with:
-          path: external/dlls-${{ matrix.target.cpu }}
-          key: 'dlls-${{ matrix.target.cpu }}'
+      # - name: Restore Nim DLLs dependencies (Windows) from cache
+      #   if: runner.os == 'Windows'
+      #   id: windows-dlls-cache
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: external/dlls-${{ matrix.target.cpu }}
+      #     key: 'dlls-${{ matrix.target.cpu }}'
+
+      # - name: Install DLL dependencies (Windows)
+      #   if: >
+      #     steps.windows-dlls-cache.outputs.cache-hit != 'true' &&
+      #     runner.os == 'Windows'
+      #   run: |
+      #     if [[ '${{ matrix.target.cpu }}' == 'amd64' ]]; then
+      #       ROCKSDBSUB=x64
+      #     else
+      #       ROCKSDBSUB=x86
+      #     fi
+      #     DLLPATH="external/dlls-${{ matrix.target.cpu }}"
+      #     mkdir external
+      #     curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
+      #     7z x -y external/windeps.zip -o"${DLLPATH}"
+      #     # ROCKSDB
+      #     curl -L "https://github.com/status-im/nimbus-deps/releases/download/rocksdb-9.1.0/nimbus-deps.zip" -o external/nimbus-deps.zip
+      #     7z x -y external/nimbus-deps.zip
+      #     cp -a "./${ROCKSDBSUB}/librocksdb.dll" "${DLLPATH}/librocksdb.dll"
 
       - name: Install DLL dependencies (Windows)
         if: >
-          steps.windows-dlls-cache.outputs.cache-hit != 'true' &&
           runner.os == 'Windows'
         run: |
           if [[ '${{ matrix.target.cpu }}' == 'amd64' ]]; then
@@ -133,12 +151,13 @@ jobs:
           fi
           DLLPATH="external/dlls-${{ matrix.target.cpu }}"
           mkdir external
-          curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
-          7z x -y external/windeps.zip -o"${DLLPATH}"
+          # curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
+          # 7z x -y external/windeps.zip -o"${DLLPATH}"
+
           # ROCKSDB
-          curl -L "https://github.com/status-im/nimbus-deps/releases/download/rocksdb-9.1.0/nimbus-deps.zip" -o external/nimbus-deps.zip
-          7z x -y external/nimbus-deps.zip
-          cp -a "./${ROCKSDBSUB}/librocksdb.dll" "${DLLPATH}/librocksdb.dll"
+          vcpkg install rocksdb[lz4,zstd]:${ROCKSDBSUB}-windows
+          ls $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows/bin
+          cp $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows/bin/rocksdb-shared.dll "${DLLPATH}/librocksdb.dll"
 
       - name: Path to cached dependencies (Windows)
         if: >
