@@ -156,8 +156,8 @@ jobs:
 
           # ROCKSDB
           vcpkg install rocksdb[lz4,zstd]:${ROCKSDBSUB}-windows-release
-          ls $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows/bin
-          cp $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows/bin/rocksdb-shared.dll "${DLLPATH}"
+          ls $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows-release/bin
+          cp $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows-releases/bin/rocksdb-shared.dll "${DLLPATH}"
 
       - name: Path to cached dependencies (Windows)
         if: >
