@@ -156,12 +156,14 @@ jobs:
 
           # ROCKSDB
           git submodule update --init
-          .\vendor\vcpkg\bootstrap-vcpkg.bat
-          .\vendor\vcpkg\vcpkg install rocksdb[lz4,zstd]:x64-windows-release
+          ./vendor/vcpkg/bootstrap-vcpkg.sh
+          ./vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-windows-release
+          ls ./vendor/vcpkg/installed/${ROCKSDBSUB}-windows-release/bin
+          cp -a ./vendor/vcpkg/installed/${ROCKSDBSUB}-windows-release/bin/rocksdb-shared.dll "${DLLPATH}/librocksdb.dll"
 
           # vcpkg install rocksdb[lz4,zstd]:${ROCKSDBSUB}-windows-release
-          ls $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows-release/bin
-          cp $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows-release/bin/rocksdb-shared.dll "${DLLPATH}"
+          #ls $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows-release/bin
+          #cp -a $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows-release/bin/rocksdb-shared.dll "${DLLPATH}/librocksdb.dll"
 
       - name: Path to cached dependencies (Windows)
         if: >
