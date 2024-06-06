@@ -152,17 +152,19 @@ jobs:
           fi
           DLLPATH="external/dlls-${{ matrix.target.cpu }}"
           mkdir external
-          mkdir external/dlls-${{ matrix.target.cpu }}
+          mkdir ${DLLPATH}
 
-          # curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
-          # 7z x -y external/windeps.zip -o"${DLLPATH}"
+          curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
+          7z x -y external/windeps.zip -o"${DLLPATH}"
 
           # ROCKSDB
           git submodule update --init
           ./vendor/vcpkg/bootstrap-vcpkg.sh
           ./vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-windows-release
+
           ls ./vendor/vcpkg/installed/${ROCKSDBSUB}-windows-release/bin
           cp -a ./vendor/vcpkg/installed/${ROCKSDBSUB}-windows-release/bin/rocksdb-shared.dll "${DLLPATH}/librocksdb.dll"
+          ls ${DLLPATH}
 
           # vcpkg install rocksdb[lz4,zstd]:${ROCKSDBSUB}-windows-release
           #ls $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows-release/bin
