@@ -30,6 +30,22 @@ nim c -d:rocksdb_static_linking --threads:on your_program.nim
 
 See the config.nims file which contains the static linking configuration which is switched on with the `rocksdb_static_linking` flag. Note that static linking is currently not supported on windows.
 
+### Building Windows DLLs
+
+You can build RocksDb DLLs for Windows using the vcpkg toolchain which is included as a submodule in this repository. For example on Windows, you would do the following from the root of the repository:
+
+```
+git submodule update --init
+
+.\vendor\vcpkg\bootstrap-vcpkg.bat
+
+.\vendor\vcpkg\vcpkg install rocksdb[lz4,zstd]:x64-windows-release
+
+```
+
+After the build completes the built DLLs will be located in: `.\vendor\vcpkg\installed\${ROCKSDBSUB}-windows-release\bin`
+
+
 ### Contribution
 
 Any contribution intentionally submitted for inclusion in the work by you shall be dual licensed as above, without any
