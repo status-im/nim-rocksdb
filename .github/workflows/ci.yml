@@ -155,9 +155,9 @@ jobs:
           # 7z x -y external/windeps.zip -o"${DLLPATH}"
 
           # ROCKSDB
-          vcpkg install rocksdb[lz4,zstd]:${ROCKSDBSUB}-windows
+          vcpkg install rocksdb[lz4,zstd]:${ROCKSDBSUB}-windows-release
           ls $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows/bin
-          cp $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows/bin/rocksdb-shared.dll "${DLLPATH}/librocksdb.dll"
+          cp $VCPKG_INSTALLATION_ROOT/installed/${ROCKSDBSUB}-windows/bin/rocksdb-shared.dll "${DLLPATH}"
 
       - name: Path to cached dependencies (Windows)
         if: >
