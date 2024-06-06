@@ -12,17 +12,18 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - os: linux
-            cpu: amd64
+          # - os: linux
+          #   cpu: amd64
           # - os: linux
           #   cpu: i386
-          - os: macos
-            cpu: amd64
+          # - os: macos
+          #   cpu: amd64
           - os: windows
             cpu: amd64
           #- os: windows
             #cpu: i386
-        branch: [version-1-6, version-2-0, devel]
+        #branch: [version-1-6, version-2-0, devel]
+        branch: [version-1-6]
         include:
           - target:
               os: linux
@@ -151,6 +152,8 @@ jobs:
           fi
           DLLPATH="external/dlls-${{ matrix.target.cpu }}"
           mkdir external
+          mkdir external/dlls-${{ matrix.target.cpu }}
+
           # curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
           # 7z x -y external/windeps.zip -o"${DLLPATH}"
 
