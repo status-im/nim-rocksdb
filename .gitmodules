@@ -3,3 +3,8 @@
 	url = https://github.com/facebook/rocksdb
 	ignore = dirty
 	branch = master
+[submodule "vendor/vcpkg"]
+	path = vendor/vcpkg
+	url = https://github.com/microsoft/vcpkg
+	ignore = dirty
+	branch = master
