@@ -32,18 +32,18 @@ See the config.nims file which contains the static linking configuration which i
 
 ### Building Windows DLLs
 
-You can build RocksDb DLLs for Windows using the vcpkg toolchain which is included as a submodule in this repository. For example on Windows, you would do the following from the root of the repository:
+Prerequisites:
+- Windows 7 or newer
+- Git
+- Visual Studio 2015 Update 3 or greater with the English language pack
+
+To build RocksDB for Windows, run the following:
 
 ```
-git submodule update --init
-
-.\vendor\vcpkg\bootstrap-vcpkg.bat
-
-.\vendor\vcpkg\vcpkg install rocksdb[lz4,zstd]:x64-windows-release
-
+.\scripts\build_dlls_windows.bat
 ```
 
-After the build completes the built DLLs will be located in: `.\vendor\vcpkg\installed\${ROCKSDBSUB}-windows-release\bin`
+After the build completes the built RocksDB DLLs will be located in the `build` directory.
 
 
 ### Contribution
