@@ -163,7 +163,7 @@ jobs:
           ./vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-windows-release
 
           ls ./vendor/vcpkg/installed/${ROCKSDBSUB}-windows-release/bin
-          cp -a ./vendor/vcpkg/installed/${ROCKSDBSUB}-windows-release/bin/rocksdb-shared.dll "${DLLPATH}/librocksdb.dll"
+          cp ./vendor/vcpkg/installed/${ROCKSDBSUB}-windows-release/bin/rocksdb-shared.dll "${DLLPATH}/librocksdb.dll"
           ls ${DLLPATH}
 
           # vcpkg install rocksdb[lz4,zstd]:${ROCKSDBSUB}-windows-release
