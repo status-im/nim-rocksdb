@@ -2,10 +2,13 @@
 
 SET SCRIPT_DIR=%~dp0
 
+cd %SCRIPT_DIR%\..
+
 git submodule update --init
 
-%SCRIPT_DIR\vendor\vcpkg\bootstrap-vcpkg.bat
+.\vendor\vcpkg\bootstrap-vcpkg.bat
 
-%SCRIPT_DIR\vendor\vcpkg\vcpkg install rocksdb[lz4,zstd]:x64-windows-rocksdb --recurse --overlay-triplets=%SCRIPT_DIR\triplets
+.\vendor\vcpkg\vcpkg install rocksdb[lz4,zstd]:x64-windows-rocksdb --recurse --overlay-triplets=.\triplets
 
-copy %SCRIPT_DIR\vendor\vcpkg\installed\x64-windows-rocksdb\bin\rocksdb-shared.dll %SCRIPT_DIR\librocksdb.dll
+mkdir .\build
+copy .\vendor\vcpkg\installed\x64-windows-rocksdb\bin\rocksdb-shared.dll ./build\librocksdb.dll
