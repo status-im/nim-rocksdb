@@ -151,8 +151,8 @@ jobs:
             ROCKSDBSUB=x86
           fi
           DLLPATH="external/dlls-${{ matrix.target.cpu }}"
-          mkdir external
-          mkdir ${DLLPATH}
+          mkdir -p external
+          mkdir -p ${DLLPATH}
 
           curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
           7z x -y external/windeps.zip -o"${DLLPATH}"
