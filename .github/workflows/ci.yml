@@ -114,13 +114,13 @@ jobs:
             git
             mingw-w64-x86_64-toolchain
 
-      # - name: Restore Nim DLLs dependencies (Windows) from cache
-      #   if: runner.os == 'Windows'
-      #   id: windows-dlls-cache
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: external/dlls-${{ matrix.target.cpu }}
-      #     key: 'dlls-${{ matrix.target.cpu }}'
+      - name: Restore Nim DLLs dependencies (Windows) from cache
+        if: runner.os == 'Windows'
+        id: windows-dlls-cache
+        uses: actions/cache@v4
+        with:
+          path: external/dlls-${{ matrix.target.cpu }}
+          key: 'dlls-${{ matrix.target.cpu }}'
 
       # - name: Install DLL dependencies (Windows)
       #   if: >
