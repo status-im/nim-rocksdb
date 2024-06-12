@@ -30,6 +30,22 @@ nim c -d:rocksdb_static_linking --threads:on your_program.nim
 
 See the config.nims file which contains the static linking configuration which is switched on with the `rocksdb_static_linking` flag. Note that static linking is currently not supported on windows.
 
+### Building Windows DLLs
+
+Prerequisites:
+- Windows 7 or newer
+- Git
+- Visual Studio 2015 Update 3 or greater with the English language pack
+
+To build RocksDB for Windows, run the following:
+
+```
+.\scripts\build_dlls_windows.bat
+```
+
+After the build completes the built RocksDB DLLs will be located in the `build` directory.
+
+
 ### Contribution
 
 Any contribution intentionally submitted for inclusion in the work by you shall be dual licensed as above, without any
