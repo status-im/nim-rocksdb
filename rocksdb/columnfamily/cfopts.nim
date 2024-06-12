@@ -18,6 +18,17 @@ type
   ColFamilyOptionsRef* = ref object
     cPtr: ColFamilyOptionsPtr
 
+  Compression* {.pure.} = enum
+    # Use a slightly clunky name here to avoid global symbol conflicts
+    noCompression = rocksdb_no_compression
+    snappyCompression = rocksdb_snappy_compression
+    zlibCompression = rocksdb_zlib_compression
+    bz2Compression = rocksdb_bz2_compression
+    lz4Compression = rocksdb_lz4_compression
+    lz4hcCompression = rocksdb_lz4hc_compression
+    xpressCompression = rocksdb_xpress_compression
+    zstdCompression = rocksdb_zstd_compression
+
 proc newColFamilyOptions*(): ColFamilyOptionsRef =
   ColFamilyOptionsRef(cPtr: rocksdb_options_create())
 
@@ -53,6 +64,49 @@ proc defaultColFamilyOptions*(): ColFamilyOptionsRef =
 proc setWriteBufferSize*(dbOpts: ColFamilyOptionsRef, maxBufferSize: int) =
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_write_buffer_size(dbOpts.cPtr, maxBufferSize.csize_t)
+
+# https://github.com/facebook/rocksdb/wiki/MemTable
+proc setHashSkipListRep*(
+    dbOpts: ColFamilyOptionsRef, bucketCount, skipListHeight,
+    skipListBranchingFactor: int) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_hash_skip_list_rep(
+    dbOpts.cPtr, bucketCount.csize_t, skipListHeight.cint,
+    skipListBranchingFactor.cint)
+
+proc setHashLinkListRep*(
+    dbOpts: ColFamilyOptionsRef, bucketCount: int) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_hash_link_list_rep(dbOpts.cPtr, bucketCount.csize_t)
+
+proc setMemtableVectorRep*(dbOpts: ColFamilyOptionsRef) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_memtable_vector_rep(dbOpts.cPtr)
+
+proc setMemtableWholeKeyFiltering*(dbOpts: ColFamilyOptionsRef, value: bool) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_memtable_whole_key_filtering(dbOpts.cPtr, value.uint8)
+
+proc setMemtablePrefixBloomSizeRatio*(dbOpts: ColFamilyOptionsRef, value: float) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_memtable_prefix_bloom_size_ratio(dbOpts.cPtr, value)
+
+proc setFixedPrefixExtractor*(dbOpts: ColFamilyOptionsRef, length: int) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_prefix_extractor(
+    dbOpts.cPtr, rocksdb_slicetransform_create_fixed_prefix(length.csize_t))
+
+proc setMaxTotalWalSize*(dbOpts: ColFamilyOptionsRef, size: int) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_max_total_wal_size(dbOpts.cPtr, size.csize_t)
+
+proc setCompression*(dbOpts: ColFamilyOptionsRef, value: Compression) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_compression(dbOpts.cPtr, value.cint)
+
+proc setBottommostCompression*(dbOpts: ColFamilyOptionsRef, value: Compression) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_bottommost_compression(dbOpts.cPtr, value.cint)
 
 proc close*(cfOpts: ColFamilyOptionsRef) =
   if not cfOpts.isClosed():
