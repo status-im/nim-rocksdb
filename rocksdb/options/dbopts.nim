@@ -82,6 +82,14 @@ proc setMaxBytesForLevelMultiplier*(dbOpts: DbOptionsRef, multiplier: float) =
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_max_bytes_for_level_multiplier(dbOpts.cPtr, multiplier.cdouble)
 
+proc setAllowConcurrentMemtableWrite*(dbOpts: DbOptionsRef, value: bool) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_allow_concurrent_memtable_write(dbOpts.cPtr, value.uint8)
+
+proc setOptimizeFiltersForHits*(dbOpts: DbOptionsRef, value: bool) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_optimize_filters_for_hits(dbOpts.cPtr, value.cint)
+
 proc defaultDbOptions*(): DbOptionsRef =
   let opts: DbOptionsRef = newDbOptions()
 
