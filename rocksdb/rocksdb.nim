@@ -63,6 +63,40 @@ type
     writeOpts: WriteOptionsRef
     ingestOptsPtr: IngestExternalFilesOptionsPtr
 
+proc listRocksDbCFs*(
+    path: string;
+    dbOpts = defaultDbOptions();
+      ): RocksDBResult[seq[string]] =
+  ## List exisiting column families on disk. This might be used to find out
+  ## whether there were some columns missing with the version on disk.
+  ##
+  ## Column families previously used must be declared when re-opening an
+  ## existing database. So this function can be used to add some CFs
+  ## on-the-fly to the opener list of CFs
+  ##
+  ## Note that the on-the-fly adding might not be needed in the way described
+  ## above once rocksdb has been upgraded to the latest version, see comments
+  ## at the end of ./columnfamily/cfhandle.nim.
+  ##
+  var
+    lencf: csize_t
+    errors: cstring
+  let
+    cList = rocksdb_list_column_families(
+    dbOpts.cPtr,
+    path.cstring,
+    addr lencf,
+    cast[cstringArray](errors.addr))
+  bailOnErrors(errors)
+
+  var cfs: seq[string]
+  for n in 0 ..< lencf:
+    if cList[n].isNil:
+      return err("short reply")
+    cfs.add $cList[n]
+
+  ok cfs
+
 proc openRocksDb*(
     path: string,
     dbOpts = defaultDbOptions(),
