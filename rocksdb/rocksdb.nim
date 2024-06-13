@@ -63,7 +63,7 @@ type
     writeOpts: WriteOptionsRef
     ingestOptsPtr: IngestExternalFilesOptionsPtr
 
-proc listRocksDbCFs*(
+proc listColumnFamilies*(
     path: string;
     dbOpts = defaultDbOptions();
       ): RocksDBResult[seq[string]] =
