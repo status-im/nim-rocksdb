@@ -90,10 +90,12 @@ proc listRocksDbCFs*(
   bailOnErrors(errors)
 
   var cfs: seq[string]
-  for n in 0 ..< lencf:
-    if cList[n].isNil:
-      return err("short reply")
-    cfs.add $cList[n]
+  if not cList.isNil:
+    for n in 0 ..< lencf:
+      if cList[n].isNil:
+        return err("short reply")
+      cfs.add $cList[n]
+    rocksdb_free(cList)
 
   ok cfs
 
