@@ -92,10 +92,17 @@ proc listColumnFamilies*(
   var cfs: seq[string]
   if not cList.isNil:
     defer: rocksdb_free(cList)
+
     for n in 0 ..< lencf:
       if cList[n].isNil:
+        # Clean up the rest
+        for z in n+1 ..< lencf:
+          if not cList[z].isNil:
+            rocksdb_free(cList[z])
         return err("short reply")
+
       cfs.add $cList[n]
+      rocksdb_free(cList[n])
 
   ok cfs
 
