@@ -91,11 +91,11 @@ proc listRocksDbCFs*(
 
   var cfs: seq[string]
   if not cList.isNil:
+    defer: rocksdb_free(cList)
     for n in 0 ..< lencf:
       if cList[n].isNil:
         return err("short reply")
       cfs.add $cList[n]
-    rocksdb_free(cList)
 
   ok cfs
 
