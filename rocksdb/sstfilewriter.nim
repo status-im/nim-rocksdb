@@ -30,9 +30,11 @@ type
     dbOpts: DbOptionsRef
 
 proc openSstFileWriter*(
-    filePath: string,
-    dbOpts = defaultDbOptions()): RocksDBResult[SstFileWriterRef] =
+    filePath: string;
+    dbOpts = DbOptionsRef(nil);
+      ): RocksDBResult[SstFileWriterRef] =
   ## Creates a new `SstFileWriterRef` and opens the file at the given `filePath`.
+  let dbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
   doAssert not dbOpts.isClosed()
 
   let envOptsPtr = rocksdb_envoptions_create()
