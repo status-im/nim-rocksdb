@@ -65,7 +65,7 @@ type
 
 proc listColumnFamilies*(
     path: string;
-    dbOpts = defaultDbOptions();
+    dbOpts = DbOptionsRef(nil);
       ): RocksDBResult[seq[string]] =
   ## List exisiting column families on disk. This might be used to find out
   ## whether there were some columns missing with the version on disk.
@@ -78,12 +78,17 @@ proc listColumnFamilies*(
   ## above once rocksdb has been upgraded to the latest version, see comments
   ## at the end of ./columnfamily/cfhandle.nim.
   ##
+  let
+    useDbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
+  defer:
+    if dbOpts.isNil: useDbOpts.close()
+
   var
     lencf: csize_t
     errors: cstring
   let
     cList = rocksdb_list_column_families(
-    dbOpts.cPtr,
+    useDbOpts.cPtr,
     path.cstring,
     addr lencf,
     cast[cstringArray](errors.addr))
@@ -107,17 +112,22 @@ proc listColumnFamilies*(
   ok cfs
 
 proc openRocksDb*(
-    path: string,
-    dbOpts = defaultDbOptions(),
-    readOpts = defaultReadOptions(),
-    writeOpts = defaultWriteOptions(),
-    columnFamilies: openArray[ColFamilyDescriptor] = []): RocksDBResult[RocksDbReadWriteRef] =
+    path: string;
+    dbOpts = DbOptionsRef(nil);
+    readOpts = ReadOptionsRef(nil);
+    writeOpts = WriteOptionsRef(nil);
+    columnFamilies: openArray[ColFamilyDescriptor] = [];
+      ): RocksDBResult[RocksDbReadWriteRef] =
   ## Open a RocksDB instance in read-write mode. If `columnFamilies` is empty
   ## then it will open the default column family. If `dbOpts`, `readOpts`, or
   ## `writeOpts` are not supplied then the default options will be used.
   ## By default, column families will be created if they don't yet exist.
   ## All existing column families must be specified if the database has
   ## previously created any column families.
+  let
+    useDbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
+  defer:
+    if dbOpts.isNil: useDbOpts.close()
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
@@ -129,7 +139,7 @@ proc openRocksDb*(
     cfHandles = newSeq[ColFamilyHandlePtr](cfs.len)
     errors: cstring
   let rocksDbPtr = rocksdb_open_column_families(
-        dbOpts.cPtr,
+        useDbOpts.cPtr,
         path.cstring,
         cfNames.len().cint,
         cast[cstringArray](cfNames[0].addr),
@@ -138,7 +148,11 @@ proc openRocksDb*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  let db = RocksDbReadWriteRef(
+  let
+    dbOpts = useDbOpts # don't close on exit
+    readOpts = (if readOpts.isNil: defaultReadOptions() else: readOpts)
+    writeOpts = (if writeOpts.isNil: defaultWriteOptions() else: writeOpts)
+    db = RocksDbReadWriteRef(
       lock: createLock(),
       cPtr: rocksDbPtr,
       path: path,
@@ -151,17 +165,22 @@ proc openRocksDb*(
   ok(db)
 
 proc openRocksDbReadOnly*(
-    path: string,
-    dbOpts = defaultDbOptions(),
-    readOpts = defaultReadOptions(),
-    columnFamilies: openArray[ColFamilyDescriptor] = [],
-    errorIfWalFileExists = false): RocksDBResult[RocksDbReadOnlyRef] =
+    path: string;
+    dbOpts = DbOptionsRef(nil);
+    readOpts = ReadOptionsRef(nil);
+    columnFamilies: openArray[ColFamilyDescriptor] = [];
+    errorIfWalFileExists = false;
+      ): RocksDBResult[RocksDbReadOnlyRef] =
   ## Open a RocksDB instance in read-only mode. If `columnFamilies` is empty
   ## then it will open the default column family. If `dbOpts` or `readOpts` are
   ## not supplied then the default options will be used. By default, column
   ## families will be created if they don't yet exist. If the database already
   ## contains any column families, then all or a subset of the existing column
   ## families can be opened for reading.
+  let
+    useDbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
+  defer:
+    if dbOpts.isNil: useDbOpts.close()
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
@@ -173,7 +192,7 @@ proc openRocksDbReadOnly*(
     cfHandles = newSeq[ColFamilyHandlePtr](cfs.len)
     errors: cstring
   let rocksDbPtr = rocksdb_open_for_read_only_column_families(
-        dbOpts.cPtr,
+        useDbOpts.cPtr,
         path.cstring,
         cfNames.len().cint,
         cast[cstringArray](cfNames[0].addr),
@@ -183,7 +202,10 @@ proc openRocksDbReadOnly*(
         cast[cstringArray](errors.addr))
   bailOnErrors(errors)
 
-  let db = RocksDbReadOnlyRef(
+  let
+    dbOpts = useDbOpts # don't close on exit
+    readOpts = (if readOpts.isNil: defaultReadOptions() else: readOpts)
+    db = RocksDbReadOnlyRef(
       lock: createLock(),
       cPtr: rocksDbPtr,
       path: path,
