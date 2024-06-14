@@ -96,10 +96,6 @@ proc setFixedPrefixExtractor*(dbOpts: ColFamilyOptionsRef, length: int) =
   rocksdb_options_set_prefix_extractor(
     dbOpts.cPtr, rocksdb_slicetransform_create_fixed_prefix(length.csize_t))
 
-proc setMaxTotalWalSize*(dbOpts: ColFamilyOptionsRef, size: int) =
-  doAssert not dbOpts.isClosed()
-  rocksdb_options_set_max_total_wal_size(dbOpts.cPtr, size.csize_t)
-
 proc setCompression*(dbOpts: ColFamilyOptionsRef, value: Compression) =
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_compression(dbOpts.cPtr, value.cint)

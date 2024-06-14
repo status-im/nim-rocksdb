@@ -90,6 +90,10 @@ proc setOptimizeFiltersForHits*(dbOpts: DbOptionsRef, value: bool) =
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_optimize_filters_for_hits(dbOpts.cPtr, value.cint)
 
+proc setMaxTotalWalSize*(dbOpts: DbOptionsRef, size: int) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_max_total_wal_size(dbOpts.cPtr, size.csize_t)
+
 proc defaultDbOptions*(): DbOptionsRef =
   let opts: DbOptionsRef = newDbOptions()
 
