@@ -20,34 +20,14 @@ suite "DbOptionsRef Tests":
 
     check not dbOpts.cPtr.isNil()
 
-    dbOpts.setCreateIfMissing(true)
-    dbOpts.setMaxOpenFiles(10)
-    dbOpts.setCreateMissingColumnFamilies(false)
-
-    # check:
-    #   dbOpts.getCreateIfMissing()
-    #   dbOpts.getMaxOpenFiles() == 10
-    #   not dbOpts.getCreateMissingColumnFamilies()
-
-    dbOpts.close()
-
-  test "Test defaultDbOptions":
-    var dbOpts = defaultDbOptions()
+    dbOpts.createIfMissing = true
+    dbOpts.maxOpenFiles = 10
+    dbOpts.createMissingColumnFamilies = false
 
     check:
-      not dbOpts.cPtr.isNil()
-      # dbOpts.getCreateIfMissing()
-      # dbOpts.getMaxOpenFiles() == -1
-      # dbOpts.getCreateMissingColumnFamilies()
-
-    dbOpts.setCreateIfMissing(false)
-    dbOpts.setMaxOpenFiles(100)
-    dbOpts.setCreateMissingColumnFamilies(false)
-
-    # check:
-    #   not dbOpts.getCreateIfMissing()
-    #   dbOpts.getMaxOpenFiles() == 100
-    #   not dbOpts.getCreateMissingColumnFamilies()
+      dbOpts.createIfMissing
+      dbOpts.maxOpenFiles == 10
+      not dbOpts.createMissingColumnFamilies
 
     dbOpts.close()
 

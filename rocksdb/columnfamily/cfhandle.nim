@@ -28,22 +28,6 @@ proc cPtr*(handle: ColFamilyHandleRef): ColFamilyHandlePtr =
   doAssert not handle.isClosed()
   handle.cPtr
 
-# TODO: These procs below will not work unless using the latest version of rocksdb
-# Currently, when installing librocksdb-dev on linux the RocksDb version used is 6.11.4
-# Need to complete this task: https://github.com/status-im/nim-rocksdb/issues/10
-
-# proc getId*(handle: ColFamilyHandleRef): int =
-#   doAssert not handle.isClosed()
-#   rocksdb_column_family_handle_get_id(handle.cPtr).int
-
-# proc getName*(handle: ColFamilyHandleRef): string =
-#   doAssert not handle.isClosed()
-#   var nameLen: csize_t
-#   $rocksdb_column_family_handle_get_name(handle.cPtr, nameLen.addr)
-
-# proc isDefault*(handle: ColFamilyHandleRef): bool {.inline.} =
-#   handle.getName() == DEFAULT_COLUMN_FAMILY_NAME
-
 proc close*(handle: ColFamilyHandleRef) =
   if not handle.isClosed():
     rocksdb_column_family_handle_destroy(handle.cPtr)

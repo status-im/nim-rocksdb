@@ -14,29 +14,6 @@ import
   ../../rocksdb/columnfamily/cfopts
 
 suite "ColFamilyOptionsRef Tests":
-
-  test "Test newColFamilyOptions":
-    var cfOpts = newColFamilyOptions()
-
-    check not cfOpts.cPtr.isNil()
-    # check not cfOpts.getCreateMissingColumnFamilies()
-
-    cfOpts.setCreateMissingColumnFamilies(true)
-    # check cfOpts.getCreateMissingColumnFamilies()
-
-    cfOpts.close()
-
-  test "Test defaultColFamilyOptions":
-    var cfOpts = defaultColFamilyOptions()
-
-    check not cfOpts.cPtr.isNil()
-    # check cfOpts.getCreateMissingColumnFamilies()
-
-    cfOpts.setCreateMissingColumnFamilies(false)
-    # check not cfOpts.getCreateMissingColumnFamilies()
-
-    cfOpts.close()
-
   test "Test close":
     var cfOpts = defaultColFamilyOptions()
 
