@@ -48,49 +48,40 @@ proc close*(opts: TableOptionsRef) =
     rocksdb_block_based_options_destroy(opts.cPtr)
     opts.cPtr = nil
 
-# TODO there's _a lot_ of options to set - here we expose a select few..
+template opt(nname, ntyp, ctyp: untyped) =
+  proc `nname=`*(opts: TableOptionsRef, value: ntyp) =
+    doAssert not opts.isClosed
+    `rocksdb_block_based_options_set nname`(opts.cPtr, value.ctyp)
 
-proc setBlockSize*(opts: TableOptionsRef, size: int) =
-  rocksdb_block_based_options_set_block_size(opts.cPtr, size.csize_t)
+opt cacheIndexAndFilterBlocks, bool, uint8
+opt cacheIndexAndFilterBlocksWithHighPriority, bool, uint8
+opt pinL0FilterAndIndexBlocksInCache, bool, uint8
+opt pinTopLevelIndexAndFilter, bool, uint8
+opt indexType, IndexType, cint
+opt dataBlockIndexType, DataBlockIndexType, cint
+opt dataBlockHashRatio, float, cdouble
+opt noBlockCache, bool, uint8
+opt blockSize, int, csize_t
+opt blockSizeDeviation, int, cint
+opt blockRestartInterval, int, cint
+opt indexBlockRestartInterval, int, cint
+opt metadataBlockSize, int, csize_t
+opt partitionFilters, bool, uint8
+opt optimizeFiltersForMemory, bool, uint8
+opt useDeltaEncoding, bool, uint8
+opt wholeKeyFiltering, bool, uint8
+opt formatVersion, int, cint
 
-proc setBlockCache*(opts: TableOptionsRef, cache: CacheRef) =
+proc `blockCache=`*(opts: TableOptionsRef, cache: CacheRef) =
   rocksdb_block_based_options_set_block_cache(opts.cPtr, cache.cPtr)
 
-proc setFormatVersion*(opts: TableOptionsRef, version: int) =
-  rocksdb_block_based_options_set_format_version(opts.cPtr, version.cint)
-
-proc setCacheIndexAndFilterBlocks*(opts: TableOptionsRef, value: bool) =
-  rocksdb_block_based_options_set_cache_index_and_filter_blocks(opts.cPtr, value.uint8)
-
-proc setPinL0FilterAndIndexBlocksInCache*(opts: TableOptionsRef, value: bool) =
-  rocksdb_block_based_options_set_pin_l0_filter_and_index_blocks_in_cache(opts.cPtr, value.uint8)
-
-proc setPinTopLevelIndexAndFilter*(opts: TableOptionsRef, value: bool) =
-  rocksdb_block_based_options_set_pin_top_level_index_and_filter(opts.cPtr, value.uint8)
-
-proc setCacheIndexAndFilterBlocksWithHighPriority*(opts: TableOptionsRef, value: bool) =
-  rocksdb_block_based_options_set_cache_index_and_filter_blocks_with_high_priority(opts.cPtr, value.uint8)
-
-proc setFilterPolicy*(opts: TableOptionsRef, policy: FilterPolicyRef) =
+proc `filterPolicy=`*(opts: TableOptionsRef, policy: FilterPolicyRef) =
   rocksdb_block_based_options_set_filter_policy(opts.cPtr, policy.cPtr)
-
-proc setIndexType*(opts: TableOptionsRef, typ: IndexType) =
-  rocksdb_block_based_options_set_index_type(opts.cPtr, typ.cint)
-
-proc setPartitionFilters*(opts: TableOptionsRef, value: bool) =
-  rocksdb_block_based_options_set_partition_filters(opts.cPtr, value.uint8)
-
-proc setDataBlockIndexType*(opts: TableOptionsRef, value: DataBlockIndexType) =
-  rocksdb_block_based_options_set_data_block_index_type(opts.cPtr, value.cint)
-
-proc setDataBlockHashRatio*(opts: TableOptionsRef, value: float) =
-  rocksdb_block_based_options_set_data_block_hash_ratio(opts.cPtr, value.cdouble)
 
 proc defaultTableOptions*(): TableOptionsRef =
   # https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning#other-general-options
   let opts = createTableOptions()
-  opts.setBlockSize(16*1024)
-  opts.setCacheIndexAndFilterBlocks(true)
-  opts.setPinL0FilterAndIndexBlocksInCache(true)
-  opts.setFormatVersion(5)
+  opts.blockSize = 16*1024
+  opts.cacheIndexAndFilterBlocks = true
+  opts.pinL0FilterAndIndexBlocksInCache = true
   opts
