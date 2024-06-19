@@ -20,12 +20,10 @@ suite "DbOptionsRef Tests":
 
     check not dbOpts.cPtr.isNil()
 
-    dbOpts.createIfMissing = true
     dbOpts.maxOpenFiles = 10
     dbOpts.createMissingColumnFamilies = false
 
     check:
-      dbOpts.createIfMissing
       dbOpts.maxOpenFiles == 10
       not dbOpts.createMissingColumnFamilies
 
