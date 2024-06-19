@@ -23,9 +23,10 @@ suite "DbOptionsRef Tests":
     dbOpts.maxOpenFiles = 10
     dbOpts.createMissingColumnFamilies = false
 
-    check:
-      dbOpts.maxOpenFiles == 10
-      not dbOpts.createMissingColumnFamilies
+    # TODO rocksdb 5.17.2 used in some tests has no getters for settings exposed!
+    # check:
+    #   dbOpts.maxOpenFiles == 10
+    #   not dbOpts.createMissingColumnFamilies
 
     dbOpts.close()
 
