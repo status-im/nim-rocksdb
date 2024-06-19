@@ -16,6 +16,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")"/..
 echo "Cleaning up RocksDb build artifacts."
 
 rm -rf build
-make -C vendor/rocksdb clean --no-print-directory > /dev/null
+make -C vendor/rocksdb clean --no-print-directory > /dev/null || true
 
 git submodule foreach --recursive git clean -fdx > /dev/null
