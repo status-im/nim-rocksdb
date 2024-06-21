@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Nim-RocksDB
-# Copyright 2018-2024 Status Research & Development GmbH
+# Copyright 2024 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
