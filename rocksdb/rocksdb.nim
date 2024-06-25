@@ -211,8 +211,14 @@ proc openRocksDbReadOnly*(
     )
   ok(db)
 
-proc getColFamilyHandle*(db: RocksDbRef, name: string): ColFamilyHandleRef {.inline.} =
-  db.cfTable.get(name)
+proc getColFamilyHandle*(
+    db: RocksDbRef, name: string
+): RocksDBResult[ColFamilyHandleRef] =
+  let cfHandle = db.cfTable.get(name)
+  if cfHandle.isNil():
+    err("rocksdb: unknown column family")
+  else:
+    ok(cfHandle)
 
 proc isClosed*(db: RocksDbRef): bool {.inline.} =
   ## Returns `true` if the database has been closed and `false` otherwise.

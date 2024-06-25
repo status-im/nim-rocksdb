@@ -9,12 +9,7 @@
 
 {.used.}
 
-import
-  std/os,
-  tempfile,
-  unittest2,
-  ../rocksdb/rocksdb,
-  ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/rocksdb, ./test_helper
 
 suite "RocksDbRef Tests":
   const
@@ -30,19 +25,30 @@ suite "RocksDbRef Tests":
     let
       dbPath = mkdtemp() / "data"
       db = initReadWriteDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+      defaultCfHandle = db.getColFamilyHandle(CF_DEFAULT).get()
+      otherCfHandle = db.getColFamilyHandle(CF_OTHER).get()
 
   teardown:
     db.close()
     removeDir($dbPath)
 
   test "Basic operations":
-
     var s = db.put(key, val)
     check s.isOk()
 
     var bytes: seq[byte]
-    check db.get(key, proc(data: openArray[byte]) = bytes = @data)[]
-    check not db.get(otherKey, proc(data: openArray[byte]) = bytes = @data)[]
+    check db.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+    )[]
+    check not db.get(
+      otherKey,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+    )[]
 
     var r1 = db.get(key)
     check r1.isOk() and r1.value == val
@@ -84,13 +90,24 @@ suite "RocksDbRef Tests":
       check readOnlyDb.isClosed()
 
   test "Basic operations - default column family":
-
-    var s = db.put(key, val, CF_DEFAULT)
+    var s = db.put(key, val, defaultCfHandle)
     check s.isOk()
 
     var bytes: seq[byte]
-    check db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
-    check not db.get(otherKey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
+    check db.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+      defaultCfHandle,
+    )[]
+    check not db.get(
+      otherKey,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+      defaultCfHandle,
+    )[]
 
     var r1 = db.get(key)
     check r1.isOk() and r1.value == val
@@ -99,79 +116,20 @@ suite "RocksDbRef Tests":
     # there's no error string for missing keys
     check r2.isOk() == false and r2.error.len == 0
 
-    var e1 = db.keyExists(key, CF_DEFAULT)
+    var e1 = db.keyExists(key, defaultCfHandle)
     check e1.isOk() and e1.value == true
 
-    var e2 = db.keyExists(otherKey, CF_DEFAULT)
+    var e2 = db.keyExists(otherKey, defaultCfHandle)
     check e2.isOk() and e2.value == false
 
-    var d = db.delete(key, CF_DEFAULT)
+    var d = db.delete(key, defaultCfHandle)
     check d.isOk()
 
-    e1 = db.keyExists(key, CF_DEFAULT)
+    e1 = db.keyExists(key, defaultCfHandle)
     check e1.isOk() and e1.value == false
 
-    d = db.delete(otherKey, CF_DEFAULT)
+    d = db.delete(otherKey, defaultCfHandle)
     check d.isOk()
-
-    close(db)
-    check db.isClosed()
-
-    # Open database in read only mode
-    block:
-      var
-        readOnlyDb = initReadOnlyDb(dbPath, columnFamilyNames = @[CF_DEFAULT])
-        r = readOnlyDb.keyExists(key, CF_DEFAULT)
-      check r.isOk() and r.value == false
-
-      # Won't compile as designed:
-      # var r2 = readOnlyDb.put(key, @[123.byte], CF_DEFAULT)
-      # check r2.isErr()
-
-      readOnlyDb.close()
-      check readOnlyDb.isClosed()
-
-  test "Basic operations - multiple column families":
-
-    var s = db.put(key, val, CF_DEFAULT)
-    check s.isOk()
-
-    var s2 = db.put(otherKey, val, CF_OTHER)
-    check s2.isOk()
-
-    var bytes: seq[byte]
-    check db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
-    check not db.get(otherKey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
-
-    var bytes2: seq[byte]
-    check db.get(otherKey, proc(data: openArray[byte]) = bytes2 = @data, CF_OTHER)[]
-    check not db.get(key, proc(data: openArray[byte]) = bytes2 = @data, CF_OTHER)[]
-
-    var e1 = db.keyExists(key, CF_DEFAULT)
-    check e1.isOk() and e1.value == true
-    var e2 = db.keyExists(otherKey, CF_DEFAULT)
-    check e2.isOk() and e2.value == false
-
-    var e3 = db.keyExists(key, CF_OTHER)
-    check e3.isOk() and e3.value == false
-    var e4 = db.keyExists(otherKey, CF_OTHER)
-    check e4.isOk() and e4.value == true
-
-    var d = db.delete(key, CF_DEFAULT)
-    check d.isOk()
-    e1 = db.keyExists(key, CF_DEFAULT)
-    check e1.isOk() and e1.value == false
-    d = db.delete(otherKey, CF_DEFAULT)
-    check d.isOk()
-
-    var d2 = db.delete(key, CF_OTHER)
-    check d2.isOk()
-    e3 = db.keyExists(key, CF_OTHER)
-    check e3.isOk() and e3.value == false
-    d2 = db.delete(otherKey, CF_OTHER)
-    check d2.isOk()
-    d2 = db.delete(otherKey, CF_OTHER)
-    check d2.isOk()
 
     db.close()
     check db.isClosed()
@@ -179,20 +137,101 @@ suite "RocksDbRef Tests":
     # Open database in read only mode
     block:
       var
-        readOnlyDb = initReadOnlyDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+        readOnlyDb = initReadOnlyDb(dbPath, columnFamilyNames = @[CF_DEFAULT])
+        r = readOnlyDb.keyExists(key)
+      check r.isOk() and r.value == false
 
-      var r = readOnlyDb.keyExists(key, CF_OTHER)
+      # Won't compile as designed:
+      # var r2 = readOnlyDb.put(key, @[123.byte], defaultCfHandle)
+      # check r2.isErr()
+
+      readOnlyDb.close()
+      check readOnlyDb.isClosed()
+
+  test "Basic operations - multiple column families":
+    var s = db.put(key, val, defaultCfHandle)
+    check s.isOk()
+
+    var s2 = db.put(otherKey, val, otherCfHandle)
+    check s2.isOk()
+
+    var bytes: seq[byte]
+    check db.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+      defaultCfHandle,
+    )[]
+    check not db.get(
+      otherKey,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+      defaultCfHandle,
+    )[]
+
+    var bytes2: seq[byte]
+    check db.get(
+      otherKey,
+      proc(data: openArray[byte]) =
+        bytes2 = @data
+      ,
+      otherCfHandle,
+    )[]
+    check not db.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes2 = @data
+      ,
+      otherCfHandle,
+    )[]
+
+    var e1 = db.keyExists(key, defaultCfHandle)
+    check e1.isOk() and e1.value == true
+    var e2 = db.keyExists(otherKey, defaultCfHandle)
+    check e2.isOk() and e2.value == false
+
+    var e3 = db.keyExists(key, otherCfHandle)
+    check e3.isOk() and e3.value == false
+    var e4 = db.keyExists(otherKey, otherCfHandle)
+    check e4.isOk() and e4.value == true
+
+    var d = db.delete(key, defaultCfHandle)
+    check d.isOk()
+    e1 = db.keyExists(key, defaultCfHandle)
+    check e1.isOk() and e1.value == false
+    d = db.delete(otherKey, defaultCfHandle)
+    check d.isOk()
+
+    var d2 = db.delete(key, otherCfHandle)
+    check d2.isOk()
+    e3 = db.keyExists(key, otherCfHandle)
+    check e3.isOk() and e3.value == false
+    d2 = db.delete(otherKey, otherCfHandle)
+    check d2.isOk()
+    d2 = db.delete(otherKey, otherCfHandle)
+    check d2.isOk()
+
+    db.close()
+    check db.isClosed()
+
+    # Open database in read only mode
+    block:
+      var readOnlyDb =
+        initReadOnlyDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+
+      var r = readOnlyDb.keyExists(key, readOnlyDb.getColFamilyHandle(CF_OTHER).get())
       check r.isOk() and r.value == false
 
       # Does not compile as designed:
-      # var r2 = readOnlyDb.put(key, @[123.byte], CF_OTHER)
+      # var r2 = readOnlyDb.put(key, @[123.byte], otherCfHandle)
       # check r2.isErr()
 
       readOnlyDb.close()
       check readOnlyDb.isClosed()
 
   test "Close multiple times":
-
     check not db.isClosed()
     db.close()
     check db.isClosed()
@@ -201,19 +240,8 @@ suite "RocksDbRef Tests":
 
   test "Unknown column family":
     const CF_UNKNOWN = "unknown"
-
-    let r = db.put(key, val, CF_UNKNOWN)
-    check r.isErr() and r.error() == "rocksdb: unknown column family"
-
-    var bytes: seq[byte]
-    let r2 = db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_UNKNOWN)
-    check r2.isErr() and r2.error() == "rocksdb: unknown column family"
-
-    let r3 = db.keyExists(key, CF_UNKNOWN)
-    check r3.isErr() and r3.error() == "rocksdb: unknown column family"
-
-    let r4 = db.delete(key, CF_UNKNOWN)
-    check r4.isErr() and r4.error() == "rocksdb: unknown column family"
+    let cfHandleRes = db.getColFamilyHandle(CF_UNKNOWN)
+    check cfHandleRes.isErr() and cfHandleRes.error() == "rocksdb: unknown column family"
 
   test "Test missing key and values":
     let
@@ -240,7 +268,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key1, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key1,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == true
@@ -249,7 +282,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key2, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key2,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == true
@@ -258,7 +296,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key3, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key3,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == true
@@ -267,7 +310,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key4, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key4,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == false
@@ -276,7 +324,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key5, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key5,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == false

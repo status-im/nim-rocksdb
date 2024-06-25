@@ -9,12 +9,7 @@
 
 {.used.}
 
-import
-  std/os,
-  tempfile,
-  unittest2,
-  ../rocksdb/columnfamily,
-  ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/columnfamily, ./test_helper
 
 suite "ColFamily Tests":
   const
@@ -43,8 +38,18 @@ suite "ColFamily Tests":
     check cf.put(key, val).isOk()
 
     var bytes: seq[byte]
-    check cf.get(key, proc(data: openArray[byte]) = bytes = @data)[]
-    check not cf.get(otherKey, proc(data: openArray[byte]) = bytes = @data)[]
+    check cf.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+    )[]
+    check not cf.get(
+      otherKey,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+    )[]
 
     var r1 = cf.get(key)
     check r1.isOk() and r1.value == val

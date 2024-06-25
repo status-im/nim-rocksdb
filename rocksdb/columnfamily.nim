@@ -40,7 +40,7 @@ proc withColFamily*(
   doAssert not db.isClosed()
 
   # validate that the column family exists
-  let cfHandle = db.getColFamilyHandle(name)
+  let cfHandle = ?db.getColFamilyHandle(name)
 
   discard db.keyExists(@[0.byte], cfHandle).valueOr:
     return err(error)
@@ -55,7 +55,7 @@ proc withColFamily*(
   doAssert not db.isClosed()
 
   # validate that the column family exists
-  let cfHandle = db.getColFamilyHandle(name)
+  let cfHandle = ?db.getColFamilyHandle(name)
 
   discard db.keyExists(@[0.byte], cfHandle).valueOr:
     return err(error)

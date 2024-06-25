@@ -9,15 +9,9 @@
 
 {.used.}
 
-import
-  std/os,
-  tempfile,
-  unittest2,
-  ../rocksdb/[transactiondb],
-  ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/[transactiondb], ./test_helper
 
 suite "TransactionDbRef Tests":
-
   const
     CF_DEFAULT = "default"
     CF_OTHER = "other"
@@ -31,18 +25,21 @@ suite "TransactionDbRef Tests":
     val3 = @[byte(3)]
 
   setup:
-    let dbPath = mkdtemp() / "data"
-    var db = initTransactionDb(dbPath, columnFamilyNames = @[CF_OTHER])
+    let
+      dbPath = mkdtemp() / "data"
+      db = initTransactionDb(dbPath, columnFamilyNames = @[CF_OTHER])
+      defaultCfHandle = db.getColFamilyHandle(CF_DEFAULT).get()
+      otherCfHandle = db.getColFamilyHandle(CF_OTHER).get()
 
   teardown:
     db.close()
     removeDir($dbPath)
 
-# test multiple transactions
-
+  # test multiple transactions
   test "Test rollback using default column family":
     var tx = db.beginTransaction()
-    defer: tx.close()
+    defer:
+      tx.close()
     check not tx.isClosed()
 
     check:
@@ -67,7 +64,8 @@ suite "TransactionDbRef Tests":
 
   test "Test commit using default column family":
     var tx = db.beginTransaction()
-    defer: tx.close()
+    defer:
+      tx.close()
     check not tx.isClosed()
 
     check:
@@ -91,8 +89,9 @@ suite "TransactionDbRef Tests":
       tx.get(key3).get() == val3
 
   test "Test setting column family in beginTransaction":
-    var tx = db.beginTransaction(columnFamily = CF_OTHER)
-    defer: tx.close()
+    var tx = db.beginTransaction(cfHandle = otherCfHandle)
+    defer:
+      tx.close()
     check not tx.isClosed()
 
     check:
@@ -104,20 +103,21 @@ suite "TransactionDbRef Tests":
       not tx.isClosed()
 
     check:
-      tx.get(key1, CF_DEFAULT).error() == ""
-      tx.get(key2, CF_DEFAULT).error() == ""
-      tx.get(key3, CF_DEFAULT).error() == ""
-      tx.get(key1, CF_OTHER).get() == val1
-      tx.get(key2, CF_OTHER).error() == ""
-      tx.get(key3, CF_OTHER).get() == val3
-
+      tx.get(key1, defaultCfHandle).error() == ""
+      tx.get(key2, defaultCfHandle).error() == ""
+      tx.get(key3, defaultCfHandle).error() == ""
+      tx.get(key1, otherCfHandle).get() == val1
+      tx.get(key2, otherCfHandle).error() == ""
+      tx.get(key3, otherCfHandle).get() == val3
 
   test "Test rollback and commit with multiple transactions":
-    var tx1 = db.beginTransaction(columnFamily = CF_DEFAULT)
-    defer: tx1.close()
+    var tx1 = db.beginTransaction(cfHandle = defaultCfHandle)
+    defer:
+      tx1.close()
     check not tx1.isClosed()
-    var tx2 = db.beginTransaction(columnFamily = CF_OTHER)
-    defer: tx2.close()
+    var tx2 = db.beginTransaction(cfHandle = otherCfHandle)
+    defer:
+      tx2.close()
     check not tx2.isClosed()
 
     check:
@@ -133,41 +133,41 @@ suite "TransactionDbRef Tests":
       not tx2.isClosed()
 
     check:
-      tx1.get(key1, CF_DEFAULT).get() == val1
-      tx1.get(key2, CF_DEFAULT).error() == ""
-      tx1.get(key3, CF_DEFAULT).get() == val3
-      tx1.get(key1, CF_OTHER).error() == ""
-      tx1.get(key2, CF_OTHER).error() == ""
-      tx1.get(key3, CF_OTHER).error() == ""
+      tx1.get(key1, defaultCfHandle).get() == val1
+      tx1.get(key2, defaultCfHandle).error() == ""
+      tx1.get(key3, defaultCfHandle).get() == val3
+      tx1.get(key1, otherCfHandle).error() == ""
+      tx1.get(key2, otherCfHandle).error() == ""
+      tx1.get(key3, otherCfHandle).error() == ""
 
-      tx2.get(key1, CF_DEFAULT).error() == ""
-      tx2.get(key2, CF_DEFAULT).error() == ""
-      tx2.get(key3, CF_DEFAULT).error() == ""
-      tx2.get(key1, CF_OTHER).get() == val1
-      tx2.get(key2, CF_OTHER).error() == ""
-      tx2.get(key3, CF_OTHER).get() == val3
+      tx2.get(key1, defaultCfHandle).error() == ""
+      tx2.get(key2, defaultCfHandle).error() == ""
+      tx2.get(key3, defaultCfHandle).error() == ""
+      tx2.get(key1, otherCfHandle).get() == val1
+      tx2.get(key2, otherCfHandle).error() == ""
+      tx2.get(key3, otherCfHandle).get() == val3
 
     block:
       let res = tx1.rollback()
       check:
         res.isOk()
-        tx1.get(key1, CF_DEFAULT).error() == ""
-        tx1.get(key2, CF_DEFAULT).error() == ""
-        tx1.get(key3, CF_DEFAULT).error() == ""
-        tx1.get(key1, CF_OTHER).error() == ""
-        tx1.get(key2, CF_OTHER).error() == ""
-        tx1.get(key3, CF_OTHER).error() == ""
+        tx1.get(key1, defaultCfHandle).error() == ""
+        tx1.get(key2, defaultCfHandle).error() == ""
+        tx1.get(key3, defaultCfHandle).error() == ""
+        tx1.get(key1, otherCfHandle).error() == ""
+        tx1.get(key2, otherCfHandle).error() == ""
+        tx1.get(key3, otherCfHandle).error() == ""
 
     block:
       let res = tx2.commit()
       check:
         res.isOk()
-        tx2.get(key1, CF_DEFAULT).error() == ""
-        tx2.get(key2, CF_DEFAULT).error() == ""
-        tx2.get(key3, CF_DEFAULT).error() == ""
-        tx2.get(key1, CF_OTHER).get() == val1
-        tx2.get(key2, CF_OTHER).error() == ""
-        tx2.get(key3, CF_OTHER).get() == val3
+        tx2.get(key1, defaultCfHandle).error() == ""
+        tx2.get(key2, defaultCfHandle).error() == ""
+        tx2.get(key3, defaultCfHandle).error() == ""
+        tx2.get(key1, otherCfHandle).get() == val1
+        tx2.get(key2, otherCfHandle).error() == ""
+        tx2.get(key3, otherCfHandle).get() == val3
 
   test "Test close":
     var tx = db.beginTransaction()

@@ -94,8 +94,12 @@ proc openTransactionDb*(
 
 proc getColFamilyHandle*(
     db: TransactionDbRef, name: string
-): ColFamilyHandleRef {.inline.} =
-  db.cfTable.get(name)
+): RocksDBResult[ColFamilyHandleRef] =
+  let cfHandle = db.cfTable.get(name)
+  if cfHandle.isNil():
+    err("rocksdb: unknown column family")
+  else:
+    ok(cfHandle)
 
 proc isClosed*(db: TransactionDbRef): bool {.inline.} =
   ## Returns `true` if the `TransactionDbRef` has been closed.
