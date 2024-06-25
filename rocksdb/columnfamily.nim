@@ -19,43 +19,48 @@
 
 {.push raises: [].}
 
-import
-  ./rocksdb
+import ./columnfamily/cfhandle, ./rocksdb
 
 export rocksdb
 
 type
   ColFamilyReadOnly* = object
     db: RocksDbReadOnlyRef
-    name: string
+    cfHandle: ColFamilyHandleRef
 
   ColFamilyReadWrite* = object
     db: RocksDbReadWriteRef
-    name: string
+    cfHandle: ColFamilyHandleRef
 
 proc withColFamily*(
-    db: RocksDbReadOnlyRef,
-    name: string): RocksDBResult[ColFamilyReadOnly] =
+    db: RocksDbReadOnlyRef, name: string
+): RocksDBResult[ColFamilyReadOnly] =
   ## Creates a new `ColFamilyReadOnly` from the given `RocksDbReadOnlyRef` and
   ## column family name.
+  doAssert not db.isClosed()
 
   # validate that the column family exists
-  discard db.keyExists(@[0.byte], name).valueOr:
+  let cfHandle = db.getColFamilyHandle(name)
+
+  discard db.keyExists(@[0.byte], cfHandle).valueOr:
     return err(error)
 
-  ok(ColFamilyReadOnly(db: db, name: name))
+  ok(ColFamilyReadOnly(db: db, cfHandle: cfHandle))
 
 proc withColFamily*(
-    db: RocksDbReadWriteRef,
-    name: string): RocksDBResult[ColFamilyReadWrite] =
+    db: RocksDbReadWriteRef, name: string
+): RocksDBResult[ColFamilyReadWrite] =
   ## Create a new `ColFamilyReadWrite` from the given `RocksDbReadWriteRef` and
   ## column family name.
+  doAssert not db.isClosed()
 
   # validate that the column family exists
-  discard db.keyExists(@[0.byte], name).valueOr:
+  let cfHandle = db.getColFamilyHandle(name)
+
+  discard db.keyExists(@[0.byte], cfHandle).valueOr:
     return err(error)
 
-  ok(ColFamilyReadWrite(db: db, name: name))
+  ok(ColFamilyReadWrite(db: db, cfHandle: cfHandle))
 
 proc db*(cf: ColFamilyReadOnly | ColFamilyReadWrite): auto {.inline.} =
   ## Returns the underlying `RocksDbReadOnlyRef` or `RocksDbReadWriteRef`.
@@ -66,48 +71,48 @@ proc name*(cf: ColFamilyReadOnly | ColFamilyReadWrite): string {.inline.} =
   cf.name
 
 proc get*(
-    cf: ColFamilyReadOnly | ColFamilyReadWrite,
-    key: openArray[byte],
-    onData: DataProc): RocksDBResult[bool] {.inline.} =
+    cf: ColFamilyReadOnly | ColFamilyReadWrite, key: openArray[byte], onData: DataProc
+): RocksDBResult[bool] {.inline.} =
   ## Gets the value of the given key from the column family using the `onData`
   ## callback.
-  cf.db.get(key, onData, cf.name)
+  cf.db.get(key, onData, cf.cfHandle)
 
 proc get*(
-    cf: ColFamilyReadOnly | ColFamilyReadWrite,
-    key: openArray[byte]): RocksDBResult[seq[byte]] {.inline.} =
+    cf: ColFamilyReadOnly | ColFamilyReadWrite, key: openArray[byte]
+): RocksDBResult[seq[byte]] {.inline.} =
   ## Gets the value of the given key from the column family.
-  cf.db.get(key, cf.name)
+  cf.db.get(key, cf.cfHandle)
 
 proc put*(
-    cf: ColFamilyReadWrite,
-    key, val: openArray[byte]): RocksDBResult[void] {.inline.} =
+    cf: ColFamilyReadWrite, key, val: openArray[byte]
+): RocksDBResult[void] {.inline.} =
   ## Puts a value for the given key into the column family.
-  cf.db.put(key, val, cf.name)
+  cf.db.put(key, val, cf.cfHandle)
 
 proc keyExists*(
-    cf: ColFamilyReadOnly | ColFamilyReadWrite,
-    key: openArray[byte]): RocksDBResult[bool] {.inline.} =
+    cf: ColFamilyReadOnly | ColFamilyReadWrite, key: openArray[byte]
+): RocksDBResult[bool] {.inline.} =
   ## Checks if the given key exists in the column family.
-  cf.db.keyExists(key, cf.name)
+  cf.db.keyExists(key, cf.cfHandle)
 
 proc delete*(
-    cf: ColFamilyReadWrite,
-    key: openArray[byte]): RocksDBResult[void] {.inline.} =
+    cf: ColFamilyReadWrite, key: openArray[byte]
+): RocksDBResult[void] {.inline.} =
   ## Deletes the given key from the column family.
-  cf.db.delete(key, cf.name)
+  cf.db.delete(key, cf.cfHandle)
 
 proc openIterator*(
-    cf: ColFamilyReadOnly | ColFamilyReadWrite): RocksDBResult[RocksIteratorRef] {.inline.} =
+    cf: ColFamilyReadOnly | ColFamilyReadWrite
+): RocksDBResult[RocksIteratorRef] {.inline.} =
   ## Opens an `RocksIteratorRef` for the given column family.
-  cf.db.openIterator(cf.name)
+  cf.db.openIterator(cf.cfHandle)
 
 proc openWriteBatch*(cf: ColFamilyReadWrite): WriteBatchRef {.inline.} =
   ## Opens a `WriteBatchRef` for the given column family.
-  cf.db.openWriteBatch(cf.name)
+  cf.db.openWriteBatch(cf.cfHandle)
 
 proc write*(
-    cf: ColFamilyReadWrite,
-    updates: WriteBatchRef): RocksDBResult[void] {.inline.} =
+    cf: ColFamilyReadWrite, updates: WriteBatchRef
+): RocksDBResult[void] {.inline.} =
   ## Writes the updates in the `WriteBatchRef` to the column family.
   cf.db.write(updates)

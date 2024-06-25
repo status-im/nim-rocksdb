@@ -11,27 +11,19 @@
 
 {.push raises: [].}
 
-import
-  ./lib/librocksdb,
-  ./internal/[cftable, utils],
-  ./rocksresult
+import ./lib/librocksdb, ./internal/cftable, ./rocksresult
 
-export
-  rocksresult
+export rocksresult
 
 type
   WriteBatchPtr* = ptr rocksdb_writebatch_t
 
   WriteBatchRef* = ref object
     cPtr: WriteBatchPtr
-    defaultCfName: string
-    cfTable: ColFamilyTableRef
+    cfHandle: ColFamilyHandleRef
 
-proc newWriteBatch*(cfTable: ColFamilyTableRef, defaultCfName: string): WriteBatchRef =
-  WriteBatchRef(
-    cPtr: rocksdb_writebatch_create(),
-    defaultCfName: defaultCfName,
-    cfTable: cfTable)
+proc newWriteBatch*(cfHandle: ColFamilyHandleRef): WriteBatchRef =
+  WriteBatchRef(cPtr: rocksdb_writebatch_create(), cfHandle: cfHandle)
 
 proc isClosed*(batch: WriteBatchRef): bool {.inline.} =
   ## Returns `true` if the `WriteBatchRef` has been closed and `false` otherwise.
@@ -52,47 +44,36 @@ proc count*(batch: WriteBatchRef): int =
   doAssert not batch.isClosed()
   rocksdb_writebatch_count(batch.cPtr).int
 
-proc put*(
-    batch: WriteBatchRef,
-    key, val: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
+proc put*(batch: WriteBatchRef, key, val: openArray[byte]): RocksDBResult[void] =
   ## Add a put operation to the write batch.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
 
-  let cfHandle = batch.cfTable.get(columnFamily)
-  if cfHandle.isNil:
-    return err("rocksdb: unknown column family")
-
   rocksdb_writebatch_put_cf(
-      batch.cPtr,
-      cfHandle.cPtr,
-      cast[cstring](unsafeAddr key[0]),
-      csize_t(key.len),
-      cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil),
-      csize_t(val.len))
+    batch.cPtr,
+    batch.cfHandle.cPtr,
+    cast[cstring](unsafeAddr key[0]),
+    csize_t(key.len),
+    cast[cstring](if val.len > 0:
+      unsafeAddr val[0]
+    else:
+      nil
+    ),
+    csize_t(val.len),
+  )
 
   ok()
 
-proc delete*(
-    batch: WriteBatchRef,
-    key: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME): RocksDBResult[void] =
+proc delete*(batch: WriteBatchRef, key: openArray[byte]): RocksDBResult[void] =
   ## Add a delete operation to the write batch.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
 
-  let cfHandle = batch.cfTable.get(columnFamily)
-  if cfHandle.isNil:
-    return err("rocksdb: unknown column family")
-
   rocksdb_writebatch_delete_cf(
-      batch.cPtr,
-      cfHandle.cPtr,
-      cast[cstring](unsafeAddr key[0]),
-      csize_t(key.len))
+    batch.cPtr, batch.cfHandle.cPtr, cast[cstring](unsafeAddr key[0]), csize_t(key.len)
+  )
 
   ok()
 

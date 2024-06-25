@@ -26,8 +26,7 @@ import
   ../rocksresult,
   ./txopts
 
-export
-  rocksresult
+export rocksresult
 
 type
   TransactionPtr* = ptr rocksdb_transaction_t
@@ -37,24 +36,22 @@ type
     readOpts: ReadOptionsRef
     writeOpts: WriteOptionsRef
     txOpts: TransactionOptionsRef
-    defaultCfName: string
-    cfTable: ColFamilyTableRef
+    defaultCfHandle: ColFamilyHandleRef
 
 proc newTransaction*(
     cPtr: TransactionPtr,
     readOpts: ReadOptionsRef,
     writeOpts: WriteOptionsRef,
     txOpts: TransactionOptionsRef,
-    defaultCfName: string,
-    cfTable: ColFamilyTableRef): TransactionRef =
-
+    defaultCfHandle: ColFamilyHandleRef,
+): TransactionRef =
   TransactionRef(
-      cPtr: cPtr,
-      readOpts: readOpts,
-      writeOpts: writeOpts,
-      txOpts: txOpts,
-      defaultCfName: defaultCfName,
-      cfTable: cfTable)
+    cPtr: cPtr,
+    readOpts: readOpts,
+    writeOpts: writeOpts,
+    txOpts: txOpts,
+    defaultCfHandle: defaultCfHandle,
+  )
 
 proc isClosed*(tx: TransactionRef): bool {.inline.} =
   ## Returns `true` if the `TransactionRef` has been closed.
@@ -64,28 +61,26 @@ proc get*(
     tx: TransactionRef,
     key: openArray[byte],
     onData: DataProc,
-    columnFamily = tx.defaultCfName): RocksDBResult[bool] =
+    cfHandle = tx.defaultCfHandle,
+): RocksDBResult[bool] =
   ## Get the value for a given key from the transaction using the provided
   ## `onData` callback.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
 
-  let cfHandle = tx.cfTable.get(columnFamily)
-  if cfHandle.isNil():
-    return err("rocksdb: unknown column family")
-
   var
     len: csize_t
     errors: cstring
   let data = rocksdb_transaction_get_cf(
-        tx.cPtr,
-        tx.readOpts.cPtr,
-        cfHandle.cPtr,
-        cast[cstring](unsafeAddr key[0]),
-        csize_t(key.len),
-        len.addr,
-        cast[cstringArray](errors.addr))
+    tx.cPtr,
+    tx.readOpts.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](unsafeAddr key[0]),
+    csize_t(key.len),
+    len.addr,
+    cast[cstringArray](errors.addr),
+  )
   bailOnErrors(errors)
 
   if data.isNil():
@@ -97,67 +92,62 @@ proc get*(
     ok(true)
 
 proc get*(
-    tx: TransactionRef,
-    key: openArray[byte],
-    columnFamily = tx.defaultCfName): RocksDBResult[seq[byte]] =
+    tx: TransactionRef, key: openArray[byte], cfHandle = tx.defaultCfHandle
+): RocksDBResult[seq[byte]] =
   ## Get the value for a given key from the transaction.
 
   var dataRes: RocksDBResult[seq[byte]]
   proc onData(data: openArray[byte]) =
     dataRes.ok(@data)
 
-  let res = tx.get(key, onData, columnFamily)
+  let res = tx.get(key, onData, cfHandle)
   if res.isOk():
     return dataRes
 
   dataRes.err(res.error())
 
 proc put*(
-    tx: TransactionRef,
-    key, val: openArray[byte],
-    columnFamily = tx.defaultCfName): RocksDBResult[void] =
+    tx: TransactionRef, key, val: openArray[byte], cfHandle = tx.defaultCfHandle
+): RocksDBResult[void] =
   ## Put the value for the given key into the transaction.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
 
-  let cfHandle = tx.cfTable.get(columnFamily)
-  if cfHandle.isNil():
-    return err("rocksdb: unknown column family")
-
   var errors: cstring
   rocksdb_transaction_put_cf(
-      tx.cPtr,
-      cfHandle.cPtr,
-      cast[cstring](unsafeAddr key[0]),
-      csize_t(key.len),
-      cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil),
-      csize_t(val.len),
-      cast[cstringArray](errors.addr))
+    tx.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](unsafeAddr key[0]),
+    csize_t(key.len),
+    cast[cstring](if val.len > 0:
+      unsafeAddr val[0]
+    else:
+      nil
+    ),
+    csize_t(val.len),
+    cast[cstringArray](errors.addr),
+  )
   bailOnErrors(errors)
 
   ok()
 
 proc delete*(
-    tx: TransactionRef,
-    key: openArray[byte],
-    columnFamily = tx.defaultCfName): RocksDBResult[void] =
+    tx: TransactionRef, key: openArray[byte], cfHandle = tx.defaultCfHandle
+): RocksDBResult[void] =
   ## Delete the value for the given key from the transaction.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
 
-  let cfHandle = tx.cfTable.get(columnFamily)
-  if cfHandle.isNil:
-    return err("rocksdb: unknown column family")
-
   var errors: cstring
   rocksdb_transaction_delete_cf(
-      tx.cPtr,
-      cfHandle.cPtr,
-      cast[cstring](unsafeAddr key[0]),
-      csize_t(key.len),
-      cast[cstringArray](errors.addr))
+    tx.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](unsafeAddr key[0]),
+    csize_t(key.len),
+    cast[cstringArray](errors.addr),
+  )
   bailOnErrors(errors)
 
   ok()
