@@ -9,9 +9,7 @@
 
 {.push raises: [].}
 
-import
-  std/locks,
-  ../lib/librocksdb
+import std/locks, ../lib/librocksdb
 
 const DEFAULT_COLUMN_FAMILY_NAME* = "default"
 

@@ -9,10 +9,7 @@
 
 {.push raises: [].}
 
-import
-  std/cpuinfo,
-  ../lib/librocksdb,
-  ./[cache, tableopts]
+import std/cpuinfo, ../lib/librocksdb, ./[cache, tableopts]
 
 export cache, tableopts
 

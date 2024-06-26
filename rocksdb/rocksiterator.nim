@@ -12,13 +12,9 @@
 
 {.push raises: [].}
 
-import
-  ./lib/librocksdb,
-  ./internal/utils,
-  ./rocksresult
+import ./lib/librocksdb, ./internal/utils, ./rocksresult
 
-export
-  rocksresult
+export rocksresult
 
 type
   RocksIteratorPtr* = ptr rocksdb_iterator_t
@@ -138,15 +134,22 @@ iterator pairs*(iter: RocksIteratorRef): tuple[key: seq[byte], value: seq[byte]]
   ## the form of a tuple. The iterator is automatically closed after the
   ## iteration.
   doAssert not iter.isClosed()
-  defer: iter.close()
+  defer:
+    iter.close()
 
   iter.seekToFirst()
   while iter.isValid():
     var
       key: seq[byte]
       value: seq[byte]
-    iter.key(proc(data: openArray[byte]) = key = @data)
-    iter.value(proc(data: openArray[byte]) = value = @data)
+    iter.key(
+      proc(data: openArray[byte]) =
+        key = @data
+    )
+    iter.value(
+      proc(data: openArray[byte]) =
+        value = @data
+    )
 
     iter.next()
     yield (key, value)

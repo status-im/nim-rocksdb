@@ -9,23 +9,19 @@
 
 {.push raises: [].}
 
-import
-  std/tables,
-  ../columnfamily/cfhandle
+import std/tables, ../columnfamily/cfhandle
 
-export
-  cfhandle
+export cfhandle
 
-type
-  ColFamilyTableRef* = ref object
-    columnFamilies: TableRef[string, ColFamilyHandleRef]
+type ColFamilyTableRef* = ref object
+  columnFamilies: TableRef[string, ColFamilyHandleRef]
 
 proc newColFamilyTable*(
-    names: openArray[string],
-    handles: openArray[ColFamilyHandlePtr]): ColFamilyTableRef =
+    names: openArray[string], handles: openArray[ColFamilyHandlePtr]
+): ColFamilyTableRef =
   doAssert names.len() == handles.len()
 
-  let cfTable =  newTable[string, ColFamilyHandleRef]()
+  let cfTable = newTable[string, ColFamilyHandleRef]()
   for i, name in names:
     cfTable[name] = newColFamilyHandle(handles[i])
 

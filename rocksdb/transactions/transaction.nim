@@ -26,8 +26,7 @@ import
   ../rocksresult,
   ./txopts
 
-export
-  rocksresult
+export rocksresult
 
 type
   TransactionPtr* = ptr rocksdb_transaction_t
@@ -46,15 +45,16 @@ proc newTransaction*(
     writeOpts: WriteOptionsRef,
     txOpts: TransactionOptionsRef,
     defaultCfName: string,
-    cfTable: ColFamilyTableRef): TransactionRef =
-
+    cfTable: ColFamilyTableRef,
+): TransactionRef =
   TransactionRef(
-      cPtr: cPtr,
-      readOpts: readOpts,
-      writeOpts: writeOpts,
-      txOpts: txOpts,
-      defaultCfName: defaultCfName,
-      cfTable: cfTable)
+    cPtr: cPtr,
+    readOpts: readOpts,
+    writeOpts: writeOpts,
+    txOpts: txOpts,
+    defaultCfName: defaultCfName,
+    cfTable: cfTable,
+  )
 
 proc isClosed*(tx: TransactionRef): bool {.inline.} =
   ## Returns `true` if the `TransactionRef` has been closed.
@@ -64,7 +64,8 @@ proc get*(
     tx: TransactionRef,
     key: openArray[byte],
     onData: DataProc,
-    columnFamily = tx.defaultCfName): RocksDBResult[bool] =
+    columnFamily = tx.defaultCfName,
+): RocksDBResult[bool] =
   ## Get the value for a given key from the transaction using the provided
   ## `onData` callback.
 
@@ -79,13 +80,14 @@ proc get*(
     len: csize_t
     errors: cstring
   let data = rocksdb_transaction_get_cf(
-        tx.cPtr,
-        tx.readOpts.cPtr,
-        cfHandle.cPtr,
-        cast[cstring](unsafeAddr key[0]),
-        csize_t(key.len),
-        len.addr,
-        cast[cstringArray](errors.addr))
+    tx.cPtr,
+    tx.readOpts.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](unsafeAddr key[0]),
+    csize_t(key.len),
+    len.addr,
+    cast[cstringArray](errors.addr),
+  )
   bailOnErrors(errors)
 
   if data.isNil():
@@ -97,9 +99,8 @@ proc get*(
     ok(true)
 
 proc get*(
-    tx: TransactionRef,
-    key: openArray[byte],
-    columnFamily = tx.defaultCfName): RocksDBResult[seq[byte]] =
+    tx: TransactionRef, key: openArray[byte], columnFamily = tx.defaultCfName
+): RocksDBResult[seq[byte]] =
   ## Get the value for a given key from the transaction.
 
   var dataRes: RocksDBResult[seq[byte]]
@@ -113,9 +114,8 @@ proc get*(
   dataRes.err(res.error())
 
 proc put*(
-    tx: TransactionRef,
-    key, val: openArray[byte],
-    columnFamily = tx.defaultCfName): RocksDBResult[void] =
+    tx: TransactionRef, key, val: openArray[byte], columnFamily = tx.defaultCfName
+): RocksDBResult[void] =
   ## Put the value for the given key into the transaction.
 
   if key.len() == 0:
@@ -127,21 +127,25 @@ proc put*(
 
   var errors: cstring
   rocksdb_transaction_put_cf(
-      tx.cPtr,
-      cfHandle.cPtr,
-      cast[cstring](unsafeAddr key[0]),
-      csize_t(key.len),
-      cast[cstring](if val.len > 0: unsafeAddr val[0] else: nil),
-      csize_t(val.len),
-      cast[cstringArray](errors.addr))
+    tx.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](unsafeAddr key[0]),
+    csize_t(key.len),
+    cast[cstring](if val.len > 0:
+      unsafeAddr val[0]
+    else:
+      nil
+    ),
+    csize_t(val.len),
+    cast[cstringArray](errors.addr),
+  )
   bailOnErrors(errors)
 
   ok()
 
 proc delete*(
-    tx: TransactionRef,
-    key: openArray[byte],
-    columnFamily = tx.defaultCfName): RocksDBResult[void] =
+    tx: TransactionRef, key: openArray[byte], columnFamily = tx.defaultCfName
+): RocksDBResult[void] =
   ## Delete the value for the given key from the transaction.
 
   if key.len() == 0:
@@ -153,11 +157,12 @@ proc delete*(
 
   var errors: cstring
   rocksdb_transaction_delete_cf(
-      tx.cPtr,
-      cfHandle.cPtr,
-      cast[cstring](unsafeAddr key[0]),
-      csize_t(key.len),
-      cast[cstringArray](errors.addr))
+    tx.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](unsafeAddr key[0]),
+    csize_t(key.len),
+    cast[cstringArray](errors.addr),
+  )
   bailOnErrors(errors)
 
   ok()

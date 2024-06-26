@@ -9,50 +9,41 @@
 
 {.used.}
 
-import
-    std/sequtils,
-  ../rocksdb/backup,
-  ../rocksdb/rocksdb,
-  ../rocksdb/transactiondb
-
+import std/sequtils, ../rocksdb/backup, ../rocksdb/rocksdb, ../rocksdb/transactiondb
 
 proc initReadWriteDb*(
-    path: string,
-    columnFamilyNames: openArray[string] = @[]): RocksDbReadWriteRef =
-
+    path: string, columnFamilyNames: openArray[string] = @[]
+): RocksDbReadWriteRef =
   let res = openRocksDb(
-      path,
-      columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)))
+    path, columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it))
+  )
   if res.isErr():
     echo res.error()
   doAssert res.isOk()
   res.value()
 
 proc initReadOnlyDb*(
-    path: string,
-    columnFamilyNames: openArray[string] = @[]): RocksDbReadOnlyRef =
-
+    path: string, columnFamilyNames: openArray[string] = @[]
+): RocksDbReadOnlyRef =
   let res = openRocksDbReadOnly(
-      path,
-      columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)))
+    path, columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it))
+  )
   if res.isErr():
     echo res.error()
   doAssert res.isOk()
   res.value()
 
 proc initBackupEngine*(path: string): BackupEngineRef =
-
   let res = openBackupEngine(path)
   doAssert res.isOk()
   res.value()
 
 proc initTransactionDb*(
-    path: string,
-    columnFamilyNames: openArray[string] = @[]): TransactionDbRef =
-
+    path: string, columnFamilyNames: openArray[string] = @[]
+): TransactionDbRef =
   let res = openTransactionDb(
-      path,
-      columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)))
+    path, columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it))
+  )
   if res.isErr():
     echo res.error()
   doAssert res.isOk()

@@ -9,15 +9,9 @@
 
 {.used.}
 
-import
-  std/os,
-  tempfile,
-  unittest2,
-  ../rocksdb/[transactiondb],
-  ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/[transactiondb], ./test_helper
 
 suite "TransactionDbRef Tests":
-
   const
     CF_DEFAULT = "default"
     CF_OTHER = "other"
@@ -38,11 +32,11 @@ suite "TransactionDbRef Tests":
     db.close()
     removeDir($dbPath)
 
-# test multiple transactions
-
+  # test multiple transactions
   test "Test rollback using default column family":
     var tx = db.beginTransaction()
-    defer: tx.close()
+    defer:
+      tx.close()
     check not tx.isClosed()
 
     check:
@@ -67,7 +61,8 @@ suite "TransactionDbRef Tests":
 
   test "Test commit using default column family":
     var tx = db.beginTransaction()
-    defer: tx.close()
+    defer:
+      tx.close()
     check not tx.isClosed()
 
     check:
@@ -92,7 +87,8 @@ suite "TransactionDbRef Tests":
 
   test "Test setting column family in beginTransaction":
     var tx = db.beginTransaction(columnFamily = CF_OTHER)
-    defer: tx.close()
+    defer:
+      tx.close()
     check not tx.isClosed()
 
     check:
@@ -111,13 +107,14 @@ suite "TransactionDbRef Tests":
       tx.get(key2, CF_OTHER).error() == ""
       tx.get(key3, CF_OTHER).get() == val3
 
-
   test "Test rollback and commit with multiple transactions":
     var tx1 = db.beginTransaction(columnFamily = CF_DEFAULT)
-    defer: tx1.close()
+    defer:
+      tx1.close()
     check not tx1.isClosed()
     var tx2 = db.beginTransaction(columnFamily = CF_OTHER)
-    defer: tx2.close()
+    defer:
+      tx2.close()
     check not tx2.isClosed()
 
     check:

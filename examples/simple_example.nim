@@ -17,10 +17,11 @@ proc main() =
   # snappy support (for example Fedora 28, certain Ubuntu versions)
   # rocksdb_options_optimize_level_style_compaction(options, 0);
   # create the DB if it's not already present
-  rocksdb_options_set_create_if_missing(options, 1);
+  rocksdb_options_set_create_if_missing(options, 1)
 
-  # open DB
-  var err: cstring  # memory leak: example code does not free error string!
+  var # open DB
+
+    err: cstring # memory leak: example code does not free error string!
   db = rocksdb_open(options, dbPath, cast[cstringArray](err.addr))
   doAssert err.isNil, $err
 
@@ -32,15 +33,28 @@ proc main() =
   var writeOptions = rocksdb_writeoptions_create()
   let key = "key"
   let put_value = "value"
-  rocksdb_put(db, writeOptions, key.cstring, key.len.csize_t, put_value.cstring,
-      put_value.len.csize_t, cast[cstringArray](err.addr))
+  rocksdb_put(
+    db,
+    writeOptions,
+    key.cstring,
+    key.len.csize_t,
+    put_value.cstring,
+    put_value.len.csize_t,
+    cast[cstringArray](err.addr),
+  )
   doAssert err.isNil, $err
 
   # Get value
   var readOptions = rocksdb_readoptions_create()
   var len: csize_t
-  let raw_value = rocksdb_get(db, readOptions, key.cstring, key.len.csize_t, addr len,
-      cast[cstringArray](err.addr)) # Important: rocksdb_get is not null-terminated
+  let raw_value = rocksdb_get(
+    db,
+    readOptions,
+    key.cstring,
+    key.len.csize_t,
+    addr len,
+    cast[cstringArray](err.addr),
+  ) # Important: rocksdb_get is not null-terminated
   doAssert err.isNil, $err
 
   # Copy it to a regular Nim string (copyMem workaround because raw value is NOT null-terminated)
@@ -57,8 +71,9 @@ proc main() =
 
   # If something is wrong, you might want to restore data from last backup
   var restoreOptions = rocksdb_restore_options_create()
-  rocksdb_backup_engine_restore_db_from_latest_backup(be, dbPath, dbPath,
-      restoreOptions, cast[cstringArray](err.addr))
+  rocksdb_backup_engine_restore_db_from_latest_backup(
+    be, dbPath, dbPath, restoreOptions, cast[cstringArray](err.addr)
+  )
   doAssert err.isNil, $err
   rocksdb_restore_options_destroy(restore_options)
 

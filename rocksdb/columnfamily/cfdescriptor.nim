@@ -9,20 +9,17 @@
 
 {.push raises: [].}
 
-import
-  ../internal/utils,
-  ./cfopts
+import ../internal/utils, ./cfopts
 
 export cfopts
 
-type
-  ColFamilyDescriptor* = object
-    name: string
-    options: ColFamilyOptionsRef
+type ColFamilyDescriptor* = object
+  name: string
+  options: ColFamilyOptionsRef
 
 proc initColFamilyDescriptor*(
-    name: string,
-    options = defaultColFamilyOptions()): ColFamilyDescriptor =
+    name: string, options = defaultColFamilyOptions()
+): ColFamilyDescriptor =
   ColFamilyDescriptor(name: name, options: options)
 
 proc name*(descriptor: ColFamilyDescriptor): string {.inline.} =

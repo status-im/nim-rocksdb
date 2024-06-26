@@ -9,12 +9,9 @@
 
 {.used.}
 
-import
-  unittest2,
-  ../../rocksdb/options/backupopts
+import unittest2, ../../rocksdb/options/backupopts
 
 suite "BackupEngineOptionsRef Tests":
-
   test "Test newBackupEngineOptions":
     var backupOpts = newBackupEngineOptions()
 

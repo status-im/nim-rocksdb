@@ -9,15 +9,9 @@
 
 {.used.}
 
-import
-  std/os,
-  tempfile,
-  unittest2,
-  ../rocksdb/[rocksdb, rocksiterator],
-  ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/[rocksdb, rocksiterator], ./test_helper
 
 suite "RocksIteratorRef Tests":
-
   const
     CF_DEFAULT = "default"
     CF_OTHER = "other"
@@ -34,8 +28,8 @@ suite "RocksIteratorRef Tests":
   setup:
     let
       dbPath = mkdtemp() / "data"
-      db = initReadWriteDb(dbPath,
-        columnFamilyNames = @[CF_DEFAULT, CF_OTHER, CF_EMPTY])
+      db =
+        initReadWriteDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER, CF_EMPTY])
 
     doAssert db.put(key1, val1).isOk()
     doAssert db.put(key2, val2).isOk()
@@ -53,7 +47,8 @@ suite "RocksIteratorRef Tests":
     check res.isOk()
 
     var iter = res.get()
-    defer: iter.close()
+    defer:
+      iter.close()
 
     iter.seekToFirst()
     check iter.isValid()
@@ -78,18 +73,24 @@ suite "RocksIteratorRef Tests":
     check res.isOk()
 
     var iter = res.get()
-    defer: iter.close()
+    defer:
+      iter.close()
 
     iter.seekToLast()
     check iter.isValid()
 
     var expected = byte(3)
     while iter.isValid():
-
       var key: seq[byte]
-      iter.key(proc(data: openArray[byte]) = key = @data)
+      iter.key(
+        proc(data: openArray[byte]) =
+          key = @data
+      )
       var val: seq[byte]
-      iter.value(proc(data: openArray[byte]) = val = @data)
+      iter.value(
+        proc(data: openArray[byte]) =
+          val = @data
+      )
 
       check:
         key == @[expected]
@@ -105,11 +106,13 @@ suite "RocksIteratorRef Tests":
     let res1 = db.openIterator(CF_DEFAULT)
     check res1.isOk()
     var iter1 = res1.get()
-    defer: iter1.close()
+    defer:
+      iter1.close()
     let res2 = db.openIterator(CF_DEFAULT)
     check res2.isOk()
     var iter2 = res2.get()
-    defer: iter2.close()
+    defer:
+      iter2.close()
 
     iter1.seekToFirst()
     check iter1.isValid()
@@ -126,11 +129,13 @@ suite "RocksIteratorRef Tests":
     let res1 = db.openIterator(CF_DEFAULT)
     check res1.isOk()
     var iter1 = res1.get()
-    defer: iter1.close()
+    defer:
+      iter1.close()
     let res2 = db.openIterator(CF_OTHER)
     check res2.isOk()
     var iter2 = res2.get()
-    defer: iter2.close()
+    defer:
+      iter2.close()
 
     iter1.seekToFirst()
     check iter1.isValid()
@@ -153,7 +158,8 @@ suite "RocksIteratorRef Tests":
     let res = db.openIterator(CF_EMPTY)
     check res.isOk()
     var iter = res.get()
-    defer: iter.close()
+    defer:
+      iter.close()
 
     iter.seekToFirst()
     check not iter.isValid()
@@ -165,7 +171,8 @@ suite "RocksIteratorRef Tests":
     let res = db.openIterator(CF_EMPTY)
     check res.isOk()
     var iter = res.get()
-    defer: iter.close()
+    defer:
+      iter.close()
 
     check iter.status().isOk()
     iter.seekToLast()

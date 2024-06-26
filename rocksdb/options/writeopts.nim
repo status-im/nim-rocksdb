@@ -9,8 +9,7 @@
 
 {.push raises: [].}
 
-import
-  ../lib/librocksdb
+import ../lib/librocksdb
 
 type
   WriteOptionsPtr* = ptr rocksdb_writeoptions_t

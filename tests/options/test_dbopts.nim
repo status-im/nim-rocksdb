@@ -9,12 +9,9 @@
 
 {.used.}
 
-import
-  unittest2,
-  ../../rocksdb/options/dbopts
+import unittest2, ../../rocksdb/options/dbopts
 
 suite "DbOptionsRef Tests":
-
   test "Test newDbOptions":
     var dbOpts = newDbOptions()
 

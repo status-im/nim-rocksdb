@@ -1,6 +1,4 @@
-import
-  ../lib/librocksdb,
-  ./cache
+import ../lib/librocksdb, ./cache
 
 type
   # TODO might eventually wrap this
@@ -21,13 +19,18 @@ type
 
   DataBlockIndexType* {.pure.} = enum
     binarySearch = rocksdb_block_based_table_data_block_index_type_binary_search
-    binarySearchAndHash = rocksdb_block_based_table_data_block_index_type_binary_search_and_hash
+    binarySearchAndHash =
+      rocksdb_block_based_table_data_block_index_type_binary_search_and_hash
 
 proc createRibbon*(bitsPerKey: float): FilterPolicyRef =
   FilterPolicyRef(cPtr: rocksdb_filterpolicy_create_ribbon(bitsPerKey))
 
-proc createRibbonHybrid*(bitsPerKey: float, bloomBeforeLevel: int = 0): FilterPolicyRef =
-  FilterPolicyRef(cPtr: rocksdb_filterpolicy_create_ribbon_hybrid(bitsPerKey, bloomBeforeLevel.cint))
+proc createRibbonHybrid*(
+    bitsPerKey: float, bloomBeforeLevel: int = 0
+): FilterPolicyRef =
+  FilterPolicyRef(
+    cPtr: rocksdb_filterpolicy_create_ribbon_hybrid(bitsPerKey, bloomBeforeLevel.cint)
+  )
 
 proc isClosed*(policy: FilterPolicyRef): bool =
   isNil(policy.cPtr)
@@ -81,7 +84,7 @@ proc `filterPolicy=`*(opts: TableOptionsRef, policy: FilterPolicyRef) =
 proc defaultTableOptions*(): TableOptionsRef =
   # https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning#other-general-options
   let opts = createTableOptions()
-  opts.blockSize = 16*1024
+  opts.blockSize = 16 * 1024
   opts.cacheIndexAndFilterBlocks = true
   opts.pinL0FilterAndIndexBlocksInCache = true
   opts
