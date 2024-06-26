@@ -8,7 +8,7 @@ skipDirs = @["examples", "tests"]
 mode = ScriptMode.Verbose
 
 ### Dependencies
-requires "nim >= 1.6", "results", "tempfile", "unittest2", "nph"
+requires "nim >= 1.6", "results", "tempfile", "unittest2", "nph#head"
 
 task format, "Format nim code using nph":
   exec "nph ."
