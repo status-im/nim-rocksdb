@@ -30,20 +30,23 @@ suite "RocksIteratorRef Tests":
       dbPath = mkdtemp() / "data"
       db =
         initReadWriteDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER, CF_EMPTY])
+      defaultCfHandle = db.getColFamilyHandle(CF_DEFAULT).get()
+      otherCfHandle = db.getColFamilyHandle(CF_OTHER).get()
+      emptyCfHandle = db.getColFamilyHandle(CF_EMPTY).get()
 
     doAssert db.put(key1, val1).isOk()
     doAssert db.put(key2, val2).isOk()
     doAssert db.put(key3, val3).isOk()
-    doAssert db.put(key1, val1, CF_OTHER).isOk()
-    doAssert db.put(key2, val2, CF_OTHER).isOk()
-    doAssert db.put(key3, val3, CF_OTHER).isOk()
+    doAssert db.put(key1, val1, otherCfHandle).isOk()
+    doAssert db.put(key2, val2, otherCfHandle).isOk()
+    doAssert db.put(key3, val3, otherCfHandle).isOk()
 
   teardown:
     db.close()
     removeDir($dbPath)
 
   test "Iterate forwards using default column family":
-    let res = db.openIterator(CF_DEFAULT)
+    let res = db.openIterator(defaultCfHandle)
     check res.isOk()
 
     var iter = res.get()
@@ -69,7 +72,7 @@ suite "RocksIteratorRef Tests":
     check expected == byte(4)
 
   test "Iterate backwards using other column family":
-    let res = db.openIterator(CF_OTHER)
+    let res = db.openIterator(otherCfHandle)
     check res.isOk()
 
     var iter = res.get()
@@ -103,12 +106,12 @@ suite "RocksIteratorRef Tests":
     iter.close()
 
   test "Open two iterators on the same column family":
-    let res1 = db.openIterator(CF_DEFAULT)
+    let res1 = db.openIterator(defaultCfHandle)
     check res1.isOk()
     var iter1 = res1.get()
     defer:
       iter1.close()
-    let res2 = db.openIterator(CF_DEFAULT)
+    let res2 = db.openIterator(defaultCfHandle)
     check res2.isOk()
     var iter2 = res2.get()
     defer:
@@ -126,12 +129,12 @@ suite "RocksIteratorRef Tests":
       iter2.value() == @[byte(3)]
 
   test "Open two iterators on different column families":
-    let res1 = db.openIterator(CF_DEFAULT)
+    let res1 = db.openIterator(defaultCfHandle)
     check res1.isOk()
     var iter1 = res1.get()
     defer:
       iter1.close()
-    let res2 = db.openIterator(CF_OTHER)
+    let res2 = db.openIterator(otherCfHandle)
     check res2.isOk()
     var iter2 = res2.get()
     defer:
@@ -148,14 +151,8 @@ suite "RocksIteratorRef Tests":
       iter2.key() == @[byte(3)]
       iter2.value() == @[byte(3)]
 
-  test "Invalid column family":
-    let res = db.openIterator("unknown")
-    check:
-      res.isErr()
-      res.error() == "rocksdb: unknown column family"
-
   test "Empty column family":
-    let res = db.openIterator(CF_EMPTY)
+    let res = db.openIterator(emptyCfHandle)
     check res.isOk()
     var iter = res.get()
     defer:
@@ -168,7 +165,7 @@ suite "RocksIteratorRef Tests":
     check not iter.isValid()
 
   test "Test status":
-    let res = db.openIterator(CF_EMPTY)
+    let res = db.openIterator(emptyCfHandle)
     check res.isOk()
     var iter = res.get()
     defer:
@@ -179,7 +176,7 @@ suite "RocksIteratorRef Tests":
     check iter.status().isOk()
 
   test "Test pairs iterator":
-    let res = db.openIterator(CF_DEFAULT)
+    let res = db.openIterator(defaultCfHandle)
     check res.isOk()
     var iter = res.get()
 

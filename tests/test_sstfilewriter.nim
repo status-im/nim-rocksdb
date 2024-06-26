@@ -29,6 +29,8 @@ suite "SstFileWriterRef Tests":
       dbPath = mkdtemp() / "data"
       sstFilePath = mkdtemp() / "sst"
       db = initReadWriteDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+      defaultCfHandle = db.getColFamilyHandle(CF_DEFAULT).get()
+      otherCfHandle = db.getColFamilyHandle(CF_OTHER).get()
 
   teardown:
     db.close()
@@ -66,13 +68,13 @@ suite "SstFileWriterRef Tests":
       writer.put(key3, val3).isOk()
       writer.finish().isOk()
 
-      db.ingestExternalFile(sstFilePath, CF_OTHER).isOk()
-      db.keyExists(key1, CF_DEFAULT).get() == false
-      db.keyExists(key2, CF_DEFAULT).get() == false
-      db.keyExists(key3, CF_DEFAULT).get() == false
-      db.get(key1, CF_OTHER).get() == val1
-      db.get(key2, CF_OTHER).get() == val2
-      db.get(key3, CF_OTHER).get() == val3
+      db.ingestExternalFile(sstFilePath, otherCfHandle).isOk()
+      db.keyExists(key1, defaultCfHandle).get() == false
+      db.keyExists(key2, defaultCfHandle).get() == false
+      db.keyExists(key3, defaultCfHandle).get() == false
+      db.get(key1, otherCfHandle).get() == val1
+      db.get(key2, otherCfHandle).get() == val2
+      db.get(key3, otherCfHandle).get() == val3
 
   test "Test close":
     let res = openSstFileWriter(sstFilePath)

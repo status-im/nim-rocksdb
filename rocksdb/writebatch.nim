@@ -11,7 +11,7 @@
 
 {.push raises: [].}
 
-import ./lib/librocksdb, ./internal/[cftable, utils], ./rocksresult
+import ./lib/librocksdb, ./internal/cftable, ./rocksresult
 
 export rocksresult
 
@@ -20,13 +20,10 @@ type
 
   WriteBatchRef* = ref object
     cPtr: WriteBatchPtr
-    defaultCfName: string
-    cfTable: ColFamilyTableRef
+    defaultCfHandle: ColFamilyHandleRef
 
-proc newWriteBatch*(cfTable: ColFamilyTableRef, defaultCfName: string): WriteBatchRef =
-  WriteBatchRef(
-    cPtr: rocksdb_writebatch_create(), defaultCfName: defaultCfName, cfTable: cfTable
-  )
+proc newWriteBatch*(defaultCfHandle: ColFamilyHandleRef): WriteBatchRef =
+  WriteBatchRef(cPtr: rocksdb_writebatch_create(), defaultCfHandle: defaultCfHandle)
 
 proc isClosed*(batch: WriteBatchRef): bool {.inline.} =
   ## Returns `true` if the `WriteBatchRef` has been closed and `false` otherwise.
@@ -48,18 +45,12 @@ proc count*(batch: WriteBatchRef): int =
   rocksdb_writebatch_count(batch.cPtr).int
 
 proc put*(
-    batch: WriteBatchRef,
-    key, val: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME,
+    batch: WriteBatchRef, key, val: openArray[byte], cfHandle = batch.defaultCfHandle
 ): RocksDBResult[void] =
   ## Add a put operation to the write batch.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
-
-  let cfHandle = batch.cfTable.get(columnFamily)
-  if cfHandle.isNil:
-    return err("rocksdb: unknown column family")
 
   rocksdb_writebatch_put_cf(
     batch.cPtr,
@@ -77,18 +68,12 @@ proc put*(
   ok()
 
 proc delete*(
-    batch: WriteBatchRef,
-    key: openArray[byte],
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME,
+    batch: WriteBatchRef, key: openArray[byte], cfHandle = batch.defaultCfHandle
 ): RocksDBResult[void] =
   ## Add a delete operation to the write batch.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
-
-  let cfHandle = batch.cfTable.get(columnFamily)
-  if cfHandle.isNil:
-    return err("rocksdb: unknown column family")
 
   rocksdb_writebatch_delete_cf(
     batch.cPtr, cfHandle.cPtr, cast[cstring](unsafeAddr key[0]), csize_t(key.len)

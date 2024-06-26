@@ -36,6 +36,7 @@ type
     path: string
     dbOpts: DbOptionsRef
     txDbOpts: TransactionDbOptionsRef
+    defaultCfHandle: ColFamilyHandleRef
     cfTable: ColFamilyTableRef
 
 proc openTransactionDb*(
@@ -79,15 +80,26 @@ proc openTransactionDb*(
     txDbOpts = (if txDbOpts.isNil: defaultTransactionDbOptions()
     else: txDbOpts
     )
+    cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
     db = TransactionDbRef(
       lock: createLock(),
       cPtr: txDbPtr,
       path: path,
       dbOpts: dbOpts,
       txDbOpts: txDbOpts,
-      cfTable: newColFamilyTable(cfNames.mapIt($it), cfHandles),
+      defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
+      cfTable: cfTable,
     )
   ok(db)
+
+proc getColFamilyHandle*(
+    db: TransactionDbRef, name: string
+): RocksDBResult[ColFamilyHandleRef] =
+  let cfHandle = db.cfTable.get(name)
+  if cfHandle.isNil():
+    err("rocksdb: unknown column family")
+  else:
+    ok(cfHandle)
 
 proc isClosed*(db: TransactionDbRef): bool {.inline.} =
   ## Returns `true` if the `TransactionDbRef` has been closed.
@@ -99,7 +111,7 @@ proc beginTransaction*(
     writeOpts = WriteOptionsRef(nil),
     txDbOpts = TransactionDbOptionsRef(nil),
     txOpts = defaultTransactionOptions(),
-    columnFamily = DEFAULT_COLUMN_FAMILY_NAME,
+    cfHandle = db.defaultCfHandle,
 ): TransactionRef =
   ## Begin a new transaction against the database. The transaction will default
   ## to using the specified column family. If no column family is specified
@@ -114,7 +126,7 @@ proc beginTransaction*(
 
   let txPtr = rocksdb_transaction_begin(db.cPtr, writeOpts.cPtr, txOpts.cPtr, nil)
 
-  newTransaction(txPtr, readOpts, writeOpts, txOpts, columnFamily, db.cfTable)
+  newTransaction(txPtr, readOpts, writeOpts, txOpts, cfHandle)
 
 proc close*(db: TransactionDbRef) =
   ## Close the `TransactionDbRef`.

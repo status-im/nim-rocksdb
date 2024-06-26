@@ -30,7 +30,7 @@ proc newColFamilyTable*(
 proc isClosed*(table: ColFamilyTableRef): bool {.inline.} =
   table.columnFamilies.isNil()
 
-proc get*(table: ColFamilyTableRef, name: string): ColFamilyHandleRef =
+proc get*(table: ColFamilyTableRef, name: string): ColFamilyHandleRef {.inline.} =
   table.columnFamilies.getOrDefault(name)
 
 proc close*(table: ColFamilyTableRef) =

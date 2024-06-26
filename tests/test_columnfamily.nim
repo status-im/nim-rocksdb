@@ -31,7 +31,7 @@ suite "ColFamily Tests":
     removeDir($dbPath)
 
   test "Basic operations":
-    let r0 = db.withColFamily(CF_OTHER)
+    let r0 = db.getColFamily(CF_OTHER)
     check r0.isOk()
     let cf = r0.value()
 
@@ -78,7 +78,7 @@ suite "ColFamily Tests":
 
     # Open database in read only mode
     block:
-      var res = initReadOnlyDb(dbPath).withColFamily(CF_DEFAULT)
+      var res = initReadOnlyDb(dbPath).getColFamily(CF_DEFAULT)
       check res.isOk()
 
       let readOnlyCf = res.value()

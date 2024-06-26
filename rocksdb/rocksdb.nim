@@ -47,7 +47,7 @@ type
     path: string
     dbOpts: DbOptionsRef
     readOpts: ReadOptionsRef
-    defaultCfName: string
+    defaultCfHandle: ColFamilyHandleRef
     cfTable: ColFamilyTableRef
 
   RocksDbReadOnlyRef* = ref object of RocksDbRef
@@ -143,6 +143,7 @@ proc openRocksDb*(
     dbOpts = useDbOpts # don't close on exit
     readOpts = (if readOpts.isNil: defaultReadOptions() else: readOpts)
     writeOpts = (if writeOpts.isNil: defaultWriteOptions() else: writeOpts)
+    cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
     db = RocksDbReadWriteRef(
       lock: createLock(),
       cPtr: rocksDbPtr,
@@ -151,8 +152,8 @@ proc openRocksDb*(
       readOpts: readOpts,
       writeOpts: writeOpts,
       ingestOptsPtr: rocksdb_ingestexternalfileoptions_create(),
-      defaultCfName: DEFAULT_COLUMN_FAMILY_NAME,
-      cfTable: newColFamilyTable(cfNames.mapIt($it), cfHandles),
+      defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
+      cfTable: cfTable,
     )
   ok(db)
 
@@ -198,16 +199,26 @@ proc openRocksDbReadOnly*(
   let
     dbOpts = useDbOpts # don't close on exit
     readOpts = (if readOpts.isNil: defaultReadOptions() else: readOpts)
+    cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
     db = RocksDbReadOnlyRef(
       lock: createLock(),
       cPtr: rocksDbPtr,
       path: path,
       dbOpts: dbOpts,
       readOpts: readOpts,
-      defaultCfName: DEFAULT_COLUMN_FAMILY_NAME,
-      cfTable: newColFamilyTable(cfNames.mapIt($it), cfHandles),
+      defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
+      cfTable: cfTable,
     )
   ok(db)
+
+proc getColFamilyHandle*(
+    db: RocksDbRef, name: string
+): RocksDBResult[ColFamilyHandleRef] =
+  let cfHandle = db.cfTable.get(name)
+  if cfHandle.isNil():
+    err("rocksdb: unknown column family")
+  else:
+    ok(cfHandle)
 
 proc isClosed*(db: RocksDbRef): bool {.inline.} =
   ## Returns `true` if the database has been closed and `false` otherwise.
@@ -222,7 +233,7 @@ proc get*(
     db: RocksDbRef,
     key: openArray[byte],
     onData: DataProc,
-    columnFamily = db.defaultCfName,
+    cfHandle = db.defaultCfHandle,
 ): RocksDBResult[bool] =
   ## Get the value for the given key from the specified column family.
   ## If the value does not exist, `false` will be returned in the result
@@ -233,10 +244,6 @@ proc get*(
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
-
-  let cfHandle = db.cfTable.get(columnFamily)
-  if cfHandle.isNil():
-    return err("rocksdb: unknown column family")
 
   var
     len: csize_t
@@ -261,7 +268,7 @@ proc get*(
     ok(true)
 
 proc get*(
-    db: RocksDbRef, key: openArray[byte], columnFamily = db.defaultCfName
+    db: RocksDbRef, key: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[seq[byte]] =
   ## Get the value for the given key from the specified column family.
   ## If the value does not exist, an empty error will be returned in the result.
@@ -271,23 +278,19 @@ proc get*(
   proc onData(data: openArray[byte]) =
     dataRes.ok(@data)
 
-  let res = db.get(key, onData, columnFamily)
+  let res = db.get(key, onData, cfHandle)
   if res.isOk():
     return dataRes
 
   dataRes.err(res.error())
 
 proc put*(
-    db: RocksDbReadWriteRef, key, val: openArray[byte], columnFamily = db.defaultCfName
+    db: RocksDbReadWriteRef, key, val: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[void] =
   ## Put the value for the given key into the specified column family.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
-
-  let cfHandle = db.cfTable.get(columnFamily)
-  if cfHandle.isNil():
-    return err("rocksdb: unknown column family")
 
   var errors: cstring
   rocksdb_put_cf(
@@ -309,7 +312,7 @@ proc put*(
   ok()
 
 proc keyExists*(
-    db: RocksDbRef, key: openArray[byte], columnFamily = db.defaultCfName
+    db: RocksDbRef, key: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[bool] =
   ## Check if the key exists in the specified column family.
   ## Returns a result containing `true` if the key exists or a result
@@ -323,11 +326,11 @@ proc keyExists*(
     proc(data: openArray[byte]) =
       discard
     ,
-    columnFamily,
+    cfHandle,
   )
 
 proc delete*(
-    db: RocksDbReadWriteRef, key: openArray[byte], columnFamily = db.defaultCfName
+    db: RocksDbReadWriteRef, key: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[void] =
   ## Delete the value for the given key from the specified column family.
   ## If the value does not exist, the delete will be a no-op.
@@ -335,10 +338,6 @@ proc delete*(
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
-
-  let cfHandle = db.cfTable.get(columnFamily)
-  if cfHandle.isNil:
-    return err("rocksdb: unknown column family")
 
   var errors: cstring
   rocksdb_delete_cf(
@@ -354,14 +353,10 @@ proc delete*(
   ok()
 
 proc openIterator*(
-    db: RocksDbRef, columnFamily = db.defaultCfName
+    db: RocksDbRef, cfHandle = db.defaultCfHandle
 ): RocksDBResult[RocksIteratorRef] =
   ## Opens an `RocksIteratorRef` for the specified column family.
   doAssert not db.isClosed()
-
-  let cfHandle = db.cfTable.get(columnFamily)
-  if cfHandle.isNil():
-    return err("rocksdb: unknown column family")
 
   let rocksIterPtr =
     rocksdb_create_iterator_cf(db.cPtr, db.readOpts.cPtr, cfHandle.cPtr)
@@ -369,12 +364,12 @@ proc openIterator*(
   ok(newRocksIterator(rocksIterPtr))
 
 proc openWriteBatch*(
-    db: RocksDbReadWriteRef, columnFamily = db.defaultCfName
+    db: RocksDbReadWriteRef, cfHandle = db.defaultCfHandle
 ): WriteBatchRef =
   ## Opens a `WriteBatchRef` which defaults to using the specified column family.
   doAssert not db.isClosed()
 
-  newWriteBatch(db.cfTable, columnFamily)
+  newWriteBatch(cfHandle)
 
 proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
   ## Apply the updates in the `WriteBatchRef` to the database.
@@ -389,16 +384,12 @@ proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void
   ok()
 
 proc ingestExternalFile*(
-    db: RocksDbReadWriteRef, filePath: string, columnFamily = db.defaultCfName
+    db: RocksDbReadWriteRef, filePath: string, cfHandle = db.defaultCfHandle
 ): RocksDBResult[void] =
   ## Ingest an external sst file into the database. The file will be ingested
   ## into the specified column family or the default column family if none is
   ## provided.
   doAssert not db.isClosed()
-
-  let cfHandle = db.cfTable.get(columnFamily)
-  if cfHandle.isNil():
-    return err("rocksdb: unknown column family")
 
   var
     sstPath = filePath.cstring

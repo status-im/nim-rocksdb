@@ -25,8 +25,11 @@ suite "WriteBatchRef Tests":
     val3 = @[byte(3)]
 
   setup:
-    let dbPath = mkdtemp() / "data"
-    var db = initReadWriteDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+    let
+      dbPath = mkdtemp() / "data"
+      db = initReadWriteDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+      defaultCfHandle = db.getColFamilyHandle(CF_DEFAULT).get()
+      otherCfHandle = db.getColFamilyHandle(CF_OTHER).get()
 
   teardown:
     db.close()
@@ -62,57 +65,27 @@ suite "WriteBatchRef Tests":
       not batch.isClosed()
 
   test "Test writing batch to column family":
-    var batch = db.openWriteBatch()
-    defer:
-      batch.close()
-    check not batch.isClosed()
-
-    check:
-      batch.put(key1, val1, CF_OTHER).isOk()
-      batch.put(key2, val2, CF_OTHER).isOk()
-      batch.put(key3, val3, CF_OTHER).isOk()
-      batch.count() == 3
-
-      batch.delete(key2, CF_OTHER).isOk()
-      batch.count() == 4
-      not batch.isClosed()
-
-    let res = db.write(batch)
-    check:
-      res.isOk()
-      db.get(key1, CF_OTHER).get() == val1
-      db.keyExists(key2, CF_OTHER).get() == false
-      db.get(key3, CF_OTHER).get() == val3
-
-    batch.clear()
-    check:
-      batch.count() == 0
-      not batch.isClosed()
-
-  test "Test writing to multiple column families in single batch":
-    var batch = db.openWriteBatch()
+    var batch = db.openWriteBatch(otherCfHandle)
     defer:
       batch.close()
     check not batch.isClosed()
 
     check:
       batch.put(key1, val1).isOk()
-      batch.put(key1, val1, CF_OTHER).isOk()
-      batch.put(key2, val2, CF_OTHER).isOk()
-      batch.put(key3, val3, CF_OTHER).isOk()
-      batch.count() == 4
+      batch.put(key2, val2).isOk()
+      batch.put(key3, val3).isOk()
+      batch.count() == 3
 
-      batch.delete(key2, CF_OTHER).isOk()
-      batch.count() == 5
+      batch.delete(key2).isOk()
+      batch.count() == 4
       not batch.isClosed()
 
     let res = db.write(batch)
     check:
       res.isOk()
-      db.get(key1).get() == val1
-      db.get(key1, CF_OTHER).get() == val1
-      db.keyExists(key2, CF_OTHER).get() == false
-      db.get(key3, CF_OTHER).get() == val3
+      db.get(key1, otherCfHandle).get() == val1
+      db.keyExists(key2, otherCfHandle).get() == false
+      db.get(key3, otherCfHandle).get() == val3
 
     batch.clear()
     check:
@@ -120,23 +93,25 @@ suite "WriteBatchRef Tests":
       not batch.isClosed()
 
   test "Test writing to multiple column families in multiple batches":
-    var batch1 = db.openWriteBatch()
+    var batch1 = db.openWriteBatch(defaultCfHandle)
     defer:
       batch1.close()
     check not batch1.isClosed()
 
-    var batch2 = db.openWriteBatch()
+    var batch2 = db.openWriteBatch(otherCfHandle)
     defer:
       batch2.close()
     check not batch2.isClosed()
 
     check:
       batch1.put(key1, val1).isOk()
-      batch1.delete(key2, CF_OTHER).isOk()
-      batch1.put(key3, val3, CF_OTHER).isOk()
-      batch2.put(key1, val1, CF_OTHER).isOk()
-      batch2.delete(key1, CF_OTHER).isOk()
+      batch1.delete(key2).isOk()
+      batch1.put(key3, val3).isOk()
+
+      batch2.put(key1, val1).isOk()
+      batch2.delete(key1).isOk()
       batch2.put(key3, val3).isOk()
+
       batch1.count() == 3
       batch2.count() == 3
 
@@ -148,23 +123,9 @@ suite "WriteBatchRef Tests":
       db.get(key1).get() == val1
       db.keyExists(key2).get() == false
       db.get(key3).get() == val3
-      db.keyExists(key1, CF_OTHER).get() == false
-      db.keyExists(key2, CF_OTHER).get() == false
-      db.get(key3, CF_OTHER).get() == val3
-
-  test "Test unknown column family":
-    const CF_UNKNOWN = "unknown"
-
-    var batch = db.openWriteBatch()
-    defer:
-      batch.close()
-    check not batch.isClosed()
-
-    let r = batch.put(key1, val1, CF_UNKNOWN)
-    check r.isErr() and r.error() == "rocksdb: unknown column family"
-
-    let r2 = batch.delete(key1, CF_UNKNOWN)
-    check r2.isErr() and r2.error() == "rocksdb: unknown column family"
+      db.keyExists(key1, otherCfHandle).get() == false
+      db.keyExists(key2, otherCfHandle).get() == false
+      db.get(key3, otherCfHandle).get() == val3
 
   test "Test write empty batch":
     var batch = db.openWriteBatch()
