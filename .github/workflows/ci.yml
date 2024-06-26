@@ -167,10 +167,10 @@ jobs:
           echo '${{ github.workspace }}/nim/bin' >> $GITHUB_PATH
 
       - name: Check nph formatting
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.branch == 'version-2-0'
         run: |
           nimble install -y --depsOnly
-          ./nph .
+          nph .
           git diff --exit-code
 
       - name: Run tests
