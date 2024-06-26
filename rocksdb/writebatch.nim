@@ -20,10 +20,10 @@ type
 
   WriteBatchRef* = ref object
     cPtr: WriteBatchPtr
-    cfHandle: ColFamilyHandleRef
+    defaultCfHandle: ColFamilyHandleRef
 
-proc newWriteBatch*(cfHandle: ColFamilyHandleRef): WriteBatchRef =
-  WriteBatchRef(cPtr: rocksdb_writebatch_create(), cfHandle: cfHandle)
+proc newWriteBatch*(defaultCfHandle: ColFamilyHandleRef): WriteBatchRef =
+  WriteBatchRef(cPtr: rocksdb_writebatch_create(), defaultCfHandle: defaultCfHandle)
 
 proc isClosed*(batch: WriteBatchRef): bool {.inline.} =
   ## Returns `true` if the `WriteBatchRef` has been closed and `false` otherwise.
@@ -44,7 +44,9 @@ proc count*(batch: WriteBatchRef): int =
   doAssert not batch.isClosed()
   rocksdb_writebatch_count(batch.cPtr).int
 
-proc put*(batch: WriteBatchRef, key, val: openArray[byte]): RocksDBResult[void] =
+proc put*(
+    batch: WriteBatchRef, key, val: openArray[byte], cfHandle = batch.defaultCfHandle
+): RocksDBResult[void] =
   ## Add a put operation to the write batch.
 
   if key.len() == 0:
@@ -52,7 +54,7 @@ proc put*(batch: WriteBatchRef, key, val: openArray[byte]): RocksDBResult[void] 
 
   rocksdb_writebatch_put_cf(
     batch.cPtr,
-    batch.cfHandle.cPtr,
+    cfHandle.cPtr,
     cast[cstring](unsafeAddr key[0]),
     csize_t(key.len),
     cast[cstring](if val.len > 0:
@@ -65,14 +67,16 @@ proc put*(batch: WriteBatchRef, key, val: openArray[byte]): RocksDBResult[void] 
 
   ok()
 
-proc delete*(batch: WriteBatchRef, key: openArray[byte]): RocksDBResult[void] =
+proc delete*(
+    batch: WriteBatchRef, key: openArray[byte], cfHandle = batch.defaultCfHandle
+): RocksDBResult[void] =
   ## Add a delete operation to the write batch.
 
   if key.len() == 0:
     return err("rocksdb: key is empty")
 
   rocksdb_writebatch_delete_cf(
-    batch.cPtr, batch.cfHandle.cPtr, cast[cstring](unsafeAddr key[0]), csize_t(key.len)
+    batch.cPtr, cfHandle.cPtr, cast[cstring](unsafeAddr key[0]), csize_t(key.len)
   )
 
   ok()
