@@ -9,13 +9,9 @@
 
 {.used.}
 
-import
-  unittest2,
-  ../../rocksdb/internal/utils,
-  ../../rocksdb/columnfamily/cfdescriptor
+import unittest2, ../../rocksdb/internal/utils, ../../rocksdb/columnfamily/cfdescriptor
 
 suite "ColFamilyDescriptor Tests":
-
   const TEST_CF_NAME = "test"
 
   test "Test initColFamilyDescriptor":
@@ -56,4 +52,3 @@ suite "ColFamilyDescriptor Tests":
     check descriptor.isClosed()
     descriptor.close()
     check descriptor.isClosed()
-

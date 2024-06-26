@@ -9,12 +9,7 @@
 
 {.used.}
 
-import
-  std/os,
-  tempfile,
-  unittest2,
-  ../rocksdb/rocksdb,
-  ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/rocksdb, ./test_helper
 
 suite "RocksDbRef Tests":
   const
@@ -36,13 +31,22 @@ suite "RocksDbRef Tests":
     removeDir($dbPath)
 
   test "Basic operations":
-
     var s = db.put(key, val)
     check s.isOk()
 
     var bytes: seq[byte]
-    check db.get(key, proc(data: openArray[byte]) = bytes = @data)[]
-    check not db.get(otherKey, proc(data: openArray[byte]) = bytes = @data)[]
+    check db.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+    )[]
+    check not db.get(
+      otherKey,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+    )[]
 
     var r1 = db.get(key)
     check r1.isOk() and r1.value == val
@@ -84,13 +88,24 @@ suite "RocksDbRef Tests":
       check readOnlyDb.isClosed()
 
   test "Basic operations - default column family":
-
     var s = db.put(key, val, CF_DEFAULT)
     check s.isOk()
 
     var bytes: seq[byte]
-    check db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
-    check not db.get(otherKey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
+    check db.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+      CF_DEFAULT,
+    )[]
+    check not db.get(
+      otherKey,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+      CF_DEFAULT,
+    )[]
 
     var r1 = db.get(key)
     check r1.isOk() and r1.value == val
@@ -132,7 +147,6 @@ suite "RocksDbRef Tests":
       check readOnlyDb.isClosed()
 
   test "Basic operations - multiple column families":
-
     var s = db.put(key, val, CF_DEFAULT)
     check s.isOk()
 
@@ -140,12 +154,36 @@ suite "RocksDbRef Tests":
     check s2.isOk()
 
     var bytes: seq[byte]
-    check db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
-    check not db.get(otherKey, proc(data: openArray[byte]) = bytes = @data, CF_DEFAULT)[]
+    check db.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+      CF_DEFAULT,
+    )[]
+    check not db.get(
+      otherKey,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+      CF_DEFAULT,
+    )[]
 
     var bytes2: seq[byte]
-    check db.get(otherKey, proc(data: openArray[byte]) = bytes2 = @data, CF_OTHER)[]
-    check not db.get(key, proc(data: openArray[byte]) = bytes2 = @data, CF_OTHER)[]
+    check db.get(
+      otherKey,
+      proc(data: openArray[byte]) =
+        bytes2 = @data
+      ,
+      CF_OTHER,
+    )[]
+    check not db.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes2 = @data
+      ,
+      CF_OTHER,
+    )[]
 
     var e1 = db.keyExists(key, CF_DEFAULT)
     check e1.isOk() and e1.value == true
@@ -178,8 +216,8 @@ suite "RocksDbRef Tests":
 
     # Open database in read only mode
     block:
-      var
-        readOnlyDb = initReadOnlyDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+      var readOnlyDb =
+        initReadOnlyDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
 
       var r = readOnlyDb.keyExists(key, CF_OTHER)
       check r.isOk() and r.value == false
@@ -192,7 +230,6 @@ suite "RocksDbRef Tests":
       check readOnlyDb.isClosed()
 
   test "Close multiple times":
-
     check not db.isClosed()
     db.close()
     check db.isClosed()
@@ -206,7 +243,13 @@ suite "RocksDbRef Tests":
     check r.isErr() and r.error() == "rocksdb: unknown column family"
 
     var bytes: seq[byte]
-    let r2 = db.get(key, proc(data: openArray[byte]) = bytes = @data, CF_UNKNOWN)
+    let r2 = db.get(
+      key,
+      proc(data: openArray[byte]) =
+        bytes = @data
+      ,
+      CF_UNKNOWN,
+    )
     check r2.isErr() and r2.error() == "rocksdb: unknown column family"
 
     let r3 = db.keyExists(key, CF_UNKNOWN)
@@ -240,7 +283,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key1, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key1,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == true
@@ -249,7 +297,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key2, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key2,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == true
@@ -258,7 +311,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key3, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key3,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == true
@@ -267,7 +325,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key4, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key4,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == false
@@ -276,7 +339,12 @@ suite "RocksDbRef Tests":
 
     block:
       var v: seq[byte]
-      let r = db.get(key5, proc(data: openArray[byte]) = v = @data)
+      let r = db.get(
+        key5,
+        proc(data: openArray[byte]) =
+          v = @data
+        ,
+      )
       check:
         r.isOk()
         r.value() == false

@@ -9,11 +9,7 @@
 
 {.used.}
 
-import
-  std/[cpuinfo, os],
-  tempfile,
-  unittest2,
-  ../../rocksdb/lib/librocksdb
+import std/[cpuinfo, os], tempfile, unittest2, ../../rocksdb/lib/librocksdb
 
 suite "librocksdb C wrapper Tests":
   setup:
@@ -37,54 +33,70 @@ suite "librocksdb C wrapper Tests":
     # snappy support (for example Fedora 28, certain Ubuntu versions)
     # rocksdb_options_optimize_level_style_compaction(options, 0);
     # create the DB if it's not already present
-    rocksdb_options_set_create_if_missing(options, 1);
+    rocksdb_options_set_create_if_missing(options, 1)
 
-    # open DB
-    var err: cstringArray  # memory leak: example code does not free error string!
+    var # open DB
+      err: cstringArray # memory leak: example code does not free error string!
     db = rocksdb_open(options, dbPath, err)
-    check: err.isNil
+    check:
+      err.isNil
 
     # open Backup Engine that we will use for backing up our database
     be = rocksdb_backup_engine_open(options, dbBackupPath, err)
-    check: err.isNil
+    check:
+      err.isNil
 
     # Put key-value
     var writeOptions = rocksdb_writeoptions_create()
     let key = "key"
     let put_value = "value"
     rocksdb_put(
-      db, writeOptions, key.cstring, csize_t(key.len),
-      put_value.cstring, csize_t(put_value.len), err)
-    check: err.isNil
+      db,
+      writeOptions,
+      key.cstring,
+      csize_t(key.len),
+      put_value.cstring,
+      csize_t(put_value.len),
+      err,
+    )
+    check:
+      err.isNil
 
     # Get value
     var readOptions = rocksdb_readoptions_create()
     var len: csize_t
-    let raw_value = rocksdb_get(
-      db, readOptions, key.cstring, csize_t(key.len), addr len, err) # Important: rocksdb_get is not null-terminated
-    check: err.isNil
+    let raw_value =
+      rocksdb_get(db, readOptions, key.cstring, csize_t(key.len), addr len, err)
+      # Important: rocksdb_get is not null-terminated
+    check:
+      err.isNil
 
     # Copy it to a regular Nim string (copyMem workaround because non-null terminated)
     var get_value = newString(int(len))
     copyMem(addr get_value[0], unsafeAddr raw_value[0], int(len) * sizeof(char))
 
-    check: $get_value == $put_value
+    check:
+      $get_value == $put_value
 
     # create new backup in a directory specified by DBBackupPath
     rocksdb_backup_engine_create_new_backup(be, db, err)
-    check: err.isNil
+    check:
+      err.isNil
 
     rocksdb_close(db)
 
     # If something is wrong, you might want to restore data from last backup
     var restoreOptions = rocksdb_restore_options_create()
-    rocksdb_backup_engine_restore_db_from_latest_backup(be, dbPath, dbPath,
-                                                        restoreOptions, err)
-    check: err.isNil
+    rocksdb_backup_engine_restore_db_from_latest_backup(
+      be, dbPath, dbPath, restoreOptions, err
+    )
+    check:
+      err.isNil
     rocksdb_restore_options_destroy(restoreOptions)
 
     db = rocksdb_open(options, dbPath, err)
-    check: err.isNil
+    check:
+      err.isNil
 
     # cleanup
     rocksdb_writeoptions_destroy(writeOptions)

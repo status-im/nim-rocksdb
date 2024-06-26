@@ -9,11 +9,9 @@
 
 {.push raises: [].}
 
-import
-  results
+import results
 
-export
-  results
+export results
 
 type
   RocksDBResult*[T] = Result[T, string]

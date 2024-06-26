@@ -9,15 +9,9 @@
 
 {.used.}
 
-import
-  std/os,
-  tempfile,
-  unittest2,
-  ../rocksdb/[rocksdb, sstfilewriter],
-  ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/[rocksdb, sstfilewriter], ./test_helper
 
 suite "SstFileWriterRef Tests":
-
   const
     CF_DEFAULT = "default"
     CF_OTHER = "other"
@@ -34,8 +28,7 @@ suite "SstFileWriterRef Tests":
     let
       dbPath = mkdtemp() / "data"
       sstFilePath = mkdtemp() / "sst"
-      db = initReadWriteDb(dbPath,
-        columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
+      db = initReadWriteDb(dbPath, columnFamilyNames = @[CF_DEFAULT, CF_OTHER])
 
   teardown:
     db.close()
@@ -45,7 +38,8 @@ suite "SstFileWriterRef Tests":
     let res = openSstFileWriter(sstFilePath)
     check res.isOk()
     let writer = res.get()
-    defer: writer.close()
+    defer:
+      writer.close()
 
     check:
       writer.put(key1, val1).isOk()
@@ -63,7 +57,8 @@ suite "SstFileWriterRef Tests":
     let res = openSstFileWriter(sstFilePath)
     check res.isOk()
     let writer = res.get()
-    defer: writer.close()
+    defer:
+      writer.close()
 
     check:
       writer.put(key1, val1).isOk()

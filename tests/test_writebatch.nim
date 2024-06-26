@@ -9,15 +9,9 @@
 
 {.used.}
 
-import
-  std/os,
-  tempfile,
-  unittest2,
-  ../rocksdb/[rocksdb, writebatch],
-  ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/[rocksdb, writebatch], ./test_helper
 
 suite "WriteBatchRef Tests":
-
   const
     CF_DEFAULT = "default"
     CF_OTHER = "other"
@@ -40,7 +34,8 @@ suite "WriteBatchRef Tests":
 
   test "Test writing batch to the default column family":
     var batch = db.openWriteBatch()
-    defer: batch.close()
+    defer:
+      batch.close()
     check not batch.isClosed()
 
     check:
@@ -68,7 +63,8 @@ suite "WriteBatchRef Tests":
 
   test "Test writing batch to column family":
     var batch = db.openWriteBatch()
-    defer: batch.close()
+    defer:
+      batch.close()
     check not batch.isClosed()
 
     check:
@@ -95,7 +91,8 @@ suite "WriteBatchRef Tests":
 
   test "Test writing to multiple column families in single batch":
     var batch = db.openWriteBatch()
-    defer: batch.close()
+    defer:
+      batch.close()
     check not batch.isClosed()
 
     check:
@@ -124,11 +121,13 @@ suite "WriteBatchRef Tests":
 
   test "Test writing to multiple column families in multiple batches":
     var batch1 = db.openWriteBatch()
-    defer: batch1.close()
+    defer:
+      batch1.close()
     check not batch1.isClosed()
 
     var batch2 = db.openWriteBatch()
-    defer: batch2.close()
+    defer:
+      batch2.close()
     check not batch2.isClosed()
 
     check:
@@ -157,7 +156,8 @@ suite "WriteBatchRef Tests":
     const CF_UNKNOWN = "unknown"
 
     var batch = db.openWriteBatch()
-    defer: batch.close()
+    defer:
+      batch.close()
     check not batch.isClosed()
 
     let r = batch.put(key1, val1, CF_UNKNOWN)
@@ -168,7 +168,8 @@ suite "WriteBatchRef Tests":
 
   test "Test write empty batch":
     var batch = db.openWriteBatch()
-    defer: batch.close()
+    defer:
+      batch.close()
     check not batch.isClosed()
 
     check batch.count() == 0

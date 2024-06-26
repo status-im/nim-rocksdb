@@ -9,15 +9,9 @@
 
 {.used.}
 
-import
-  std/os,
-  tempfile,
-  unittest2,
-  ../rocksdb/backup,
-  ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/backup, ./test_helper
 
 suite "BackupEngineRef Tests":
-
   let
     key = @[byte(1), 2, 3, 4, 5]
     val = @[byte(1), 2, 3, 4, 5]
@@ -26,17 +20,14 @@ suite "BackupEngineRef Tests":
     let
       dbPath = mkdtemp() / "data"
       dbBackupPath = mkdtemp() / "backup"
-      dbRestorePath =  mkdtemp() / "restore"
+      dbRestorePath = mkdtemp() / "restore"
 
-    var
-      db = initReadWriteDb(dbPath)
+    var db = initReadWriteDb(dbPath)
 
   teardown:
-
     db.close()
     removeDir($dbPath)
     removeDir($dbBackupPath)
-
 
   test "Test backup":
     var engine = initBackupEngine(dbBackupPath)

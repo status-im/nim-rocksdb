@@ -18,7 +18,6 @@ import
   ../../rocksdb/internal/cftable
 
 suite "ColFamilyTableRef Tests":
-
   const TEST_CF_NAME = "test"
 
   setup:
@@ -27,20 +26,17 @@ suite "ColFamilyTableRef Tests":
       dbOpts = rocksdb_options_create()
       cfOpts = rocksdb_options_create()
 
-    var
-      errors: cstring
+    var errors: cstring
 
-    rocksdb_options_set_create_if_missing(dbOpts, 1);
+    rocksdb_options_set_create_if_missing(dbOpts, 1)
 
     let db = rocksdb_open(dbOpts, dbPath.cstring, cast[cstringArray](errors.addr))
     doAssert errors.isNil()
     doAssert not db.isNil()
 
     let cfHandlePtr = rocksdb_create_column_family(
-        db,
-        cfOpts,
-        TEST_CF_NAME.cstring,
-        cast[cstringArray](errors.addr))
+      db, cfOpts, TEST_CF_NAME.cstring, cast[cstringArray](errors.addr)
+    )
     doAssert errors.isNil()
     doAssert not cfHandlePtr.isNil()
 
@@ -48,11 +44,9 @@ suite "ColFamilyTableRef Tests":
     rocksdb_close(db)
     removeDir($dbPath)
 
-
   test "Test newColFamilyTable":
-    var cfTable = newColFamilyTable(
-          @[TEST_CF_NAME, TEST_CF_NAME],
-          @[cfHandlePtr, cfHandlePtr])
+    var cfTable =
+      newColFamilyTable(@[TEST_CF_NAME, TEST_CF_NAME], @[cfHandlePtr, cfHandlePtr])
 
     check cfTable.get(TEST_CF_NAME).cPtr() == cfHandlePtr
     check not cfTable.isClosed()

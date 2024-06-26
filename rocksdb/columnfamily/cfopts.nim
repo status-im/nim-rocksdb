@@ -9,8 +9,7 @@
 
 {.push raises: [].}
 
-import
-  ../lib/librocksdb, ../options/tableopts
+import ../lib/librocksdb, ../options/tableopts
 
 type
   SlicetransformPtr* = ptr rocksdb_slicetransform_t
@@ -127,21 +126,23 @@ proc `setPrefixExtractor`*(cfOpts: ColFamilyOptionsRef, value: SlicetransformRef
   doAssert not cfOpts.isClosed()
   rocksdb_options_set_prefix_extractor(cfOpts.cPtr, value.cPtr)
 
-proc `blockBasedTableFactory=`*(cfOpts: ColFamilyOptionsRef, tableOpts: TableOptionsRef) =
+proc `blockBasedTableFactory=`*(
+    cfOpts: ColFamilyOptionsRef, tableOpts: TableOptionsRef
+) =
   doAssert not cfOpts.isClosed()
   rocksdb_options_set_block_based_table_factory(cfOpts.cPtr, tableOpts.cPtr)
 
 # https://github.com/facebook/rocksdb/wiki/MemTable
 proc setHashSkipListRep*(
-    cfOpts: ColFamilyOptionsRef, bucketCount, skipListHeight,
-    skipListBranchingFactor: int) =
+    cfOpts: ColFamilyOptionsRef,
+    bucketCount, skipListHeight, skipListBranchingFactor: int,
+) =
   doAssert not cfOpts.isClosed()
   rocksdb_options_set_hash_skip_list_rep(
-    cfOpts.cPtr, bucketCount.csize_t, skipListHeight.cint,
-    skipListBranchingFactor.cint)
+    cfOpts.cPtr, bucketCount.csize_t, skipListHeight.cint, skipListBranchingFactor.cint
+  )
 
-proc setHashLinkListRep*(
-    cfOpts: ColFamilyOptionsRef, bucketCount: int) =
+proc setHashLinkListRep*(cfOpts: ColFamilyOptionsRef, bucketCount: int) =
   doAssert not cfOpts.isClosed()
   rocksdb_options_set_hash_link_list_rep(cfOpts.cPtr, bucketCount.csize_t)
 

@@ -9,8 +9,7 @@
 
 {.push raises: [].}
 
-import
-  ../lib/librocksdb
+import ../lib/librocksdb
 
 type
   ReadOptionsPtr* = ptr rocksdb_readoptions_t
