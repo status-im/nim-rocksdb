@@ -7,6 +7,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  lint:
+    name: "nph Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # In PR, has extra merge commit: ^1 = PR, ^2 = base
+
+      - name: Check nph formatting
+        # Pin nph to a specific version to avoid sudden style differences.
+        # Updating nph version should be accompanied with running the new
+        # version on the project directory.
+        run: |
+          VERSION="v0.5.1"
+          ARCHIVE="nph-linux_x64.tar.gz"
+          curl -L "https://github.com/arnetheduck/nph/releases/download/${VERSION}/${ARCHIVE}" -o ${ARCHIVE}
+          tar -xzf ${ARCHIVE}
+          ./nph .
+          git diff --exit-code
   build:
     strategy:
       fail-fast: false
@@ -165,14 +185,6 @@ jobs:
             QUICK_AND_DIRTY_COMPILER=1 QUICK_AND_DIRTY_NIMBLE=1 CC=gcc \
             bash build_nim.sh nim csources dist/nimble NimBinaries
           echo '${{ github.workspace }}/nim/bin' >> $GITHUB_PATH
-
-      - name: Check nph formatting
-        if: runner.os == 'Linux' && matrix.branch == 'version-2-0'
-        run: |
-          export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-          nimble install nph@#head
-          $HOME/.nimble/bin/nph .
-          git diff --exit-code
 
       - name: Run tests
         run: |
