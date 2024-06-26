@@ -171,7 +171,7 @@ jobs:
         run: |
           export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
           nimble install nph@#head
-          nph .
+          $HOME/.nimble/bin/nph .
           git diff --exit-code
 
       - name: Run tests
