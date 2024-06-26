@@ -36,7 +36,6 @@ suite "librocksdb C wrapper Tests":
     rocksdb_options_set_create_if_missing(options, 1)
 
     var # open DB
-
       err: cstringArray # memory leak: example code does not free error string!
     db = rocksdb_open(options, dbPath, err)
     check:

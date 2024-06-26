@@ -20,7 +20,6 @@ proc main() =
   rocksdb_options_set_create_if_missing(options, 1)
 
   var # open DB
-
     err: cstring # memory leak: example code does not free error string!
   db = rocksdb_open(options, dbPath, cast[cstringArray](err.addr))
   doAssert err.isNil, $err
