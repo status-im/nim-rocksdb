@@ -169,7 +169,9 @@ jobs:
       - name: Check nph formatting
         if: runner.os == 'Linux' && matrix.branch == 'version-2-0'
         run: |
-          nimble format
+          export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+          nimble install nph@#head
+          nph .
           git diff --exit-code
 
       - name: Run tests
