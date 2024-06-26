@@ -9,9 +9,7 @@
 
 {.used.}
 
-import
-  unittest2,
-  ../../rocksdb/columnfamily/cfopts
+import unittest2, ../../rocksdb/columnfamily/cfopts
 
 suite "ColFamilyOptionsRef Tests":
   test "Test close":

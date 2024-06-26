@@ -9,12 +9,9 @@
 
 {.used.}
 
-import
-  unittest2,
-  ../../rocksdb/options/readopts
+import unittest2, ../../rocksdb/options/readopts
 
 suite "ReadOptionsRef Tests":
-
   test "Test newReadOptions":
     var readOpts = newReadOptions()
 

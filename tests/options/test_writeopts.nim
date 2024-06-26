@@ -9,12 +9,9 @@
 
 {.used.}
 
-import
-  unittest2,
-  ../../rocksdb/options/writeopts
+import unittest2, ../../rocksdb/options/writeopts
 
 suite "WriteOptionsRef Tests":
-
   test "Test newWriteOptions":
     var writeOpts = newWriteOptions()
 

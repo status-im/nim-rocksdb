@@ -152,7 +152,6 @@ suite "RocksDbRef Tests":
     var s = db.put(key, val, defaultCfHandle)
     check s.isOk()
 
-    var s2 = db.put(otherKey, val, otherCfHandle)
     check s2.isOk()
 
     var bytes: seq[byte]

@@ -9,8 +9,7 @@
 
 {.push raises: [].}
 
-import
-  ../lib/librocksdb
+import ../lib/librocksdb
 
 type
   ColFamilyHandlePtr* = ptr rocksdb_column_family_handle_t

@@ -9,12 +9,9 @@
 
 {.used.}
 
-import
-  unittest2,
-  ../../rocksdb/transactions/txopts
+import unittest2, ../../rocksdb/transactions/txopts
 
 suite "TransactionOptionsRef Tests":
-
   test "Test newTransactionOptions":
     var txOpts = newTransactionOptions()
 

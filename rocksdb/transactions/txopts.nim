@@ -9,8 +9,7 @@
 
 {.push raises: [].}
 
-import
-  ../lib/librocksdb
+import ../lib/librocksdb
 
 type
   TransactionOptionsPtr* = ptr rocksdb_transaction_options_t

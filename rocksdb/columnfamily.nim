@@ -19,6 +19,7 @@
 
 {.push raises: [].}
 
+import ./rocksdb
 import ./columnfamily/cfhandle, ./rocksdb
 
 export rocksdb

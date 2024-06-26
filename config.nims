@@ -23,5 +23,7 @@ when defined(rocksdb_static_linking):
   switch("dynlibOverride", "lz4")
   switch("dynlibOverride", "zstd")
 
---styleCheck:usages
---styleCheck:error
+--styleCheck:
+  usages
+--styleCheck:
+  error

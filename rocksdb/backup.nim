@@ -12,16 +12,9 @@
 {.push raises: [].}
 
 import
-  ./lib/librocksdb,
-  ./internal/utils,
-  ./options/backupopts,
-  ./rocksdb,
-  ./rocksresult
+  ./lib/librocksdb, ./internal/utils, ./options/backupopts, ./rocksdb, ./rocksresult
 
-export
-  backupopts,
-  rocksdb,
-  rocksresult
+export backupopts, rocksdb, rocksresult
 
 type
   BackupEnginePtr* = ptr rocksdb_backup_engine_t
@@ -32,23 +25,20 @@ type
     backupOpts: BackupEngineOptionsRef
 
 proc openBackupEngine*(
-    path: string,
-    backupOpts = defaultBackupEngineOptions()): RocksDBResult[BackupEngineRef] =
+    path: string, backupOpts = defaultBackupEngineOptions()
+): RocksDBResult[BackupEngineRef] =
   ## Create a new backup engine. The `path` parameter is the path of the backup
   ## directory. Note that the same directory should not be used for both backups
   ## and the database itself.
 
   var errors: cstring
   let backupEnginePtr = rocksdb_backup_engine_open(
-    backupOpts.cPtr,
-    path.cstring,
-    cast[cstringArray](errors.addr))
+    backupOpts.cPtr, path.cstring, cast[cstringArray](errors.addr)
+  )
   bailOnErrors(errors)
 
-  let engine = BackupEngineRef(
-    cPtr: backupEnginePtr,
-    path: path,
-    backupOpts: backupOpts)
+  let engine =
+    BackupEngineRef(cPtr: backupEnginePtr, path: path, backupOpts: backupOpts)
   ok(engine)
 
 proc isClosed*(backupEngine: BackupEngineRef): bool {.inline.} =
@@ -56,26 +46,23 @@ proc isClosed*(backupEngine: BackupEngineRef): bool {.inline.} =
   backupEngine.cPtr.isNil()
 
 proc createNewBackup*(
-    backupEngine: BackupEngineRef,
-    db: RocksDbRef): RocksDBResult[void] =
+    backupEngine: BackupEngineRef, db: RocksDbRef
+): RocksDBResult[void] =
   ## Create a new backup of the database.
   doAssert not backupEngine.isClosed()
   doAssert not db.isClosed()
 
   var errors: cstring
   rocksdb_backup_engine_create_new_backup(
-    backupEngine.cPtr,
-    db.cPtr,
-    cast[cstringArray](errors.addr))
+    backupEngine.cPtr, db.cPtr, cast[cstringArray](errors.addr)
+  )
   bailOnErrors(errors)
 
   ok()
 
 proc restoreDbFromLatestBackup*(
-    backupEngine: BackupEngineRef,
-    dbDir: string,
-    walDir = dbDir,
-    keepLogFiles = false): RocksDBResult[void] =
+    backupEngine: BackupEngineRef, dbDir: string, walDir = dbDir, keepLogFiles = false
+): RocksDBResult[void] =
   ## Restore the database from the latest backup.
   doAssert not backupEngine.isClosed()
 
@@ -88,7 +75,8 @@ proc restoreDbFromLatestBackup*(
     dbDir.cstring,
     walDir.cstring,
     restoreOptions,
-    cast[cstringArray](errors.addr))
+    cast[cstringArray](errors.addr),
+  )
   bailOnErrors(errors)
 
   rocksdb_restore_options_destroy(restoreOptions)

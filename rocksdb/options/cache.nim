@@ -1,5 +1,4 @@
-import
-  ../lib/librocksdb
+import ../lib/librocksdb
 
 type
   CachePtr* = ptr rocksdb_cache_t

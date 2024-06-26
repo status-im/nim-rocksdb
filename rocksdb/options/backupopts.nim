@@ -9,8 +9,7 @@
 
 {.push raises: [].}
 
-import
-  ../lib/librocksdb
+import ../lib/librocksdb
 
 type
   BackupEngineOptionsPtr* = ptr rocksdb_options_t
@@ -33,7 +32,6 @@ proc cPtr*(engineOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
 proc defaultBackupEngineOptions*(): BackupEngineOptionsRef {.inline.} =
   let opts = newBackupEngineOptions()
   opts
-
 
 proc close*(engineOpts: BackupEngineOptionsRef) =
   if not engineOpts.isClosed():
