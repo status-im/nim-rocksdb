@@ -102,7 +102,7 @@ proc openIterator*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite
 ): RocksDBResult[RocksIteratorRef] {.inline.} =
   ## Opens an `RocksIteratorRef` for the given column family.
-  cf.db.openIterator(cf.cfHandle)
+  cf.db.openIterator(cf.handle)
 
 proc openWriteBatch*(cf: ColFamilyReadWrite): WriteBatchRef {.inline.} =
   ## Opens a `WriteBatchRef` for the given column family.
