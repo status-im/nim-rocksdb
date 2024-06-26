@@ -169,8 +169,7 @@ jobs:
       - name: Check nph formatting
         if: runner.os == 'Linux' && matrix.branch == 'version-2-0'
         run: |
-          nimble install -y --depsOnly
-          nph .
+          nimble format
           git diff --exit-code
 
       - name: Run tests
