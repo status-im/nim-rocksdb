@@ -32,35 +32,23 @@ type
     db: RocksDbReadWriteRef
     cfHandle: ColFamilyHandleRef
 
-proc withColFamily*(
+proc getColFamily*(
     db: RocksDbReadOnlyRef, name: string
 ): RocksDBResult[ColFamilyReadOnly] =
   ## Creates a new `ColFamilyReadOnly` from the given `RocksDbReadOnlyRef` and
   ## column family name.
   doAssert not db.isClosed()
 
-  # validate that the column family exists
-  let cfHandle = ?db.getColFamilyHandle(name)
+  ok(ColFamilyReadOnly(db: db, cfHandle: ?db.getColFamilyHandle(name)))
 
-  discard db.keyExists(@[0.byte], cfHandle).valueOr:
-    return err(error)
-
-  ok(ColFamilyReadOnly(db: db, cfHandle: cfHandle))
-
-proc withColFamily*(
+proc getColFamily*(
     db: RocksDbReadWriteRef, name: string
 ): RocksDBResult[ColFamilyReadWrite] =
   ## Create a new `ColFamilyReadWrite` from the given `RocksDbReadWriteRef` and
   ## column family name.
   doAssert not db.isClosed()
 
-  # validate that the column family exists
-  let cfHandle = ?db.getColFamilyHandle(name)
-
-  discard db.keyExists(@[0.byte], cfHandle).valueOr:
-    return err(error)
-
-  ok(ColFamilyReadWrite(db: db, cfHandle: cfHandle))
+  ok(ColFamilyReadWrite(db: db, cfHandle: ?db.getColFamilyHandle(name)))
 
 proc db*(cf: ColFamilyReadOnly | ColFamilyReadWrite): auto {.inline.} =
   ## Returns the underlying `RocksDbReadOnlyRef` or `RocksDbReadWriteRef`.
