@@ -41,17 +41,13 @@ type
 
 proc openTransactionDb*(
     path: string,
-    dbOpts = DbOptionsRef(nil),
-    txDbOpts = TransactionDbOptionsRef(nil),
+    dbOpts = defaultDbOptions(),
+    txDbOpts = defaultTransactionDbOptions(),
     columnFamilies: openArray[ColFamilyDescriptor] = [],
 ): RocksDBResult[TransactionDbRef] =
   ## Open a `TransactionDbRef` with the given options and column families.
   ## If no column families are provided the default column family will be used.
   ## If no options are provided the default options will be used.
-  let useDbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
-  defer:
-    if dbOpts.isNil:
-      useDbOpts.close()
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
@@ -64,7 +60,7 @@ proc openTransactionDb*(
     errors: cstring
 
   let txDbPtr = rocksdb_transactiondb_open_column_families(
-    useDbOpts.cPtr,
+    dbOpts.cPtr,
     txDbOpts.cPtr,
     path.cstring,
     cfNames.len().cint,
@@ -76,10 +72,6 @@ proc openTransactionDb*(
   bailOnErrors(errors)
 
   let
-    dbOpts = useDbOpts # don't close on exit
-    txDbOpts = (if txDbOpts.isNil: defaultTransactionDbOptions()
-    else: txDbOpts
-    )
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
     db = TransactionDbRef(
       lock: createLock(),
@@ -107,9 +99,8 @@ proc isClosed*(db: TransactionDbRef): bool {.inline.} =
 
 proc beginTransaction*(
     db: TransactionDbRef,
-    readOpts = ReadOptionsRef(nil),
-    writeOpts = WriteOptionsRef(nil),
-    txDbOpts = TransactionDbOptionsRef(nil),
+    readOpts = defaultReadOptions(),
+    writeOpts = defaultWriteOptions(),
     txOpts = defaultTransactionOptions(),
     cfHandle = db.defaultCfHandle,
 ): TransactionRef =
@@ -117,12 +108,6 @@ proc beginTransaction*(
   ## to using the specified column family. If no column family is specified
   ## then the default column family will be used.
   doAssert not db.isClosed()
-  let
-    txDbOpts = (if txDbOpts.isNil: defaultTransactionDbOptions()
-    else: txDbOpts
-    )
-    readOpts = (if readOpts.isNil: defaultReadOptions() else: readOpts)
-    writeOpts = (if writeOpts.isNil: defaultWriteOptions() else: writeOpts)
 
   let txPtr = rocksdb_transaction_begin(db.cPtr, writeOpts.cPtr, txOpts.cPtr, nil)
 

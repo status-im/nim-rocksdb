@@ -43,7 +43,6 @@ proc initTransactionDb*(
 ): TransactionDbRef =
   let res = openTransactionDb(
     path,
-    txDbOpts = defaultTransactionDbOptions(),
     columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)),
   )
   if res.isErr():
