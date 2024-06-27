@@ -65,18 +65,18 @@ suite "WriteBatchRef Tests":
       not batch.isClosed()
 
   test "Test writing batch to column family":
-    var batch = db.openWriteBatch(otherCfHandle)
+    var batch = db.openWriteBatch()
     defer:
       batch.close()
     check not batch.isClosed()
 
     check:
-      batch.put(key1, val1).isOk()
-      batch.put(key2, val2).isOk()
-      batch.put(key3, val3).isOk()
+      batch.put(key1, val1, otherCfHandle).isOk()
+      batch.put(key2, val2, otherCfHandle).isOk()
+      batch.put(key3, val3, otherCfHandle).isOk()
       batch.count() == 3
 
-      batch.delete(key2).isOk()
+      batch.delete(key2, otherCfHandle).isOk()
       batch.count() == 4
       not batch.isClosed()
 
@@ -92,26 +92,54 @@ suite "WriteBatchRef Tests":
       batch.count() == 0
       not batch.isClosed()
 
+  test "Test writing to multiple column families in single batch":
+    var batch = db.openWriteBatch()
+    defer:
+      batch.close()
+    check not batch.isClosed()
+
+    check:
+      batch.put(key1, val1, defaultCfHandle).isOk()
+      batch.put(key1, val1, otherCfHandle).isOk()
+      batch.put(key2, val2, otherCfHandle).isOk()
+      batch.put(key3, val3, otherCfHandle).isOk()
+      batch.count() == 4
+
+      batch.delete(key2, otherCfHandle).isOk()
+      batch.count() == 5
+      not batch.isClosed()
+
+    let res = db.write(batch)
+    check:
+      res.isOk()
+      db.get(key1, defaultCfHandle).get() == val1
+      db.get(key1, otherCfHandle).get() == val1
+      db.keyExists(key2, otherCfHandle).get() == false
+      db.get(key3, otherCfHandle).get() == val3
+
+    batch.clear()
+    check:
+      batch.count() == 0
+      not batch.isClosed()
+
   test "Test writing to multiple column families in multiple batches":
-    var batch1 = db.openWriteBatch(defaultCfHandle)
+    var batch1 = db.openWriteBatch()
     defer:
       batch1.close()
     check not batch1.isClosed()
 
-    var batch2 = db.openWriteBatch(otherCfHandle)
+    var batch2 = db.openWriteBatch()
     defer:
       batch2.close()
     check not batch2.isClosed()
 
     check:
       batch1.put(key1, val1).isOk()
-      batch1.delete(key2).isOk()
-      batch1.put(key3, val3).isOk()
-
-      batch2.put(key1, val1).isOk()
-      batch2.delete(key1).isOk()
+      batch1.delete(key2, otherCfHandle).isOk()
+      batch1.put(key3, val3, otherCfHandle).isOk()
+      batch2.put(key1, val1, otherCfHandle).isOk()
+      batch2.delete(key1, otherCfHandle).isOk()
       batch2.put(key3, val3).isOk()
-
       batch1.count() == 3
       batch2.count() == 3
 
