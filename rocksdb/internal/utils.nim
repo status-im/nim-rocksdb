@@ -9,7 +9,13 @@
 
 {.push raises: [].}
 
-import std/locks, ../lib/librocksdb
+import
+  std/locks,
+  ../lib/librocksdb,
+  ../options/dbopts,
+  ../options/readopts,
+  ../options/writeopts,
+  ../transactions/txdbopts
 
 const DEFAULT_COLUMN_FAMILY_NAME* = "default"
 
@@ -18,8 +24,23 @@ proc createLock*(): Lock =
   initLock(lock)
   lock
 
-template bailOnErrors*(errors: cstring): auto =
+template bailOnErrors*(
+    errors: cstring,
+    dbOpts: DbOptionsRef = nil,
+    readOpts: ReadOptionsRef = nil,
+    writeOpts: WriteOptionsRef = nil,
+    txDbOpts: TransactionDbOptionsRef = nil,
+): auto =
   if not errors.isNil:
+    if not dbOpts.isNil():
+      dbOpts.close()
+    if not readOpts.isNil():
+      readOpts.close()
+    if not writeOpts.isNil():
+      writeOpts.close()
+    if not txDbOpts.isNil():
+      txDbOpts.close()
+
     let res = err($(errors))
     rocksdb_free(errors)
     return res

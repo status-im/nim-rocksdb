@@ -124,7 +124,7 @@ proc openRocksDb*(
     cfHandles[0].addr,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors)
+  bailOnErrors(errors, dbOpts, readOpts, writeOpts)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
@@ -174,7 +174,7 @@ proc openRocksDbReadOnly*(
     errorIfWalFileExists.uint8,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors)
+  bailOnErrors(errors, dbOpts, readOpts)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)

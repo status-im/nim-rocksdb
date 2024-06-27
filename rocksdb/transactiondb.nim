@@ -69,7 +69,7 @@ proc openTransactionDb*(
     cfHandles[0].addr,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors)
+  bailOnErrors(errors, dbOpts, txDbOpts = txDbOpts)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
