@@ -9,16 +9,18 @@
 
 {.push raises: [].}
 
-import ../internal/utils, ./cfopts
+import ./cfopts
 
 export cfopts
+
+const DEFAULT_COLUMN_FAMILY_NAME* = "default"
 
 type ColFamilyDescriptor* = object
   name: string
   options: ColFamilyOptionsRef
 
 proc initColFamilyDescriptor*(
-    name: string, options = defaultColFamilyOptions()
+    name: string, options: ColFamilyOptionsRef
 ): ColFamilyDescriptor =
   ColFamilyDescriptor(name: name, options: options)
 
@@ -28,11 +30,16 @@ proc name*(descriptor: ColFamilyDescriptor): string {.inline.} =
 proc options*(descriptor: ColFamilyDescriptor): ColFamilyOptionsRef {.inline.} =
   descriptor.options
 
+proc autoClose*(descriptor: ColFamilyDescriptor): bool {.inline.} =
+  descriptor.options.autoClose
+
 proc isDefault*(descriptor: ColFamilyDescriptor): bool {.inline.} =
   descriptor.name == DEFAULT_COLUMN_FAMILY_NAME
 
-proc defaultColFamilyDescriptor*(): ColFamilyDescriptor {.inline.} =
-  initColFamilyDescriptor(DEFAULT_COLUMN_FAMILY_NAME)
+proc defaultColFamilyDescriptor*(autoClose = false): ColFamilyDescriptor {.inline.} =
+  initColFamilyDescriptor(
+    DEFAULT_COLUMN_FAMILY_NAME, defaultColFamilyOptions(autoClose = autoClose)
+  )
 
 proc isClosed*(descriptor: ColFamilyDescriptor): bool {.inline.} =
   descriptor.options.isClosed()

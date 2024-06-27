@@ -12,12 +12,9 @@
 import
   std/locks,
   ../lib/librocksdb,
-  ../options/dbopts,
-  ../options/readopts,
-  ../options/writeopts,
-  ../transactions/txdbopts
-
-const DEFAULT_COLUMN_FAMILY_NAME* = "default"
+  ../options/[dbopts, readopts, writeopts, backupopts],
+  ../transactions/txdbopts,
+  ../columnfamily/cfdescriptor
 
 proc createLock*(): Lock =
   var lock = Lock()
@@ -30,6 +27,8 @@ template bailOnErrors*(
     readOpts: ReadOptionsRef = nil,
     writeOpts: WriteOptionsRef = nil,
     txDbOpts: TransactionDbOptionsRef = nil,
+    cfDescriptors: openArray[ColFamilyDescriptor] = [],
+    backupOpts: BackupEngineOptionsRef = nil,
 ): auto =
   if not errors.isNil:
     if not dbOpts.isNil() and dbOpts.autoClose:
@@ -40,6 +39,11 @@ template bailOnErrors*(
       writeOpts.close()
     if not txDbOpts.isNil() and dbOpts.autoClose:
       txDbOpts.close()
+    for cfDesc in cfDescriptors:
+      if cfDesc.autoClose:
+        cfDesc.close()
+    if not backupOpts.isNil() and backupOpts.autoClose:
+      backupOpts.close()
 
     let res = err($(errors))
     rocksdb_free(errors)

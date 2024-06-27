@@ -16,9 +16,10 @@ type
 
   BackupEngineOptionsRef* = ref object
     cPtr: BackupEngineOptionsPtr
+    autoClose*: bool # if true then close will be called when the backup engine is closed
 
-proc newBackupEngineOptions*(): BackupEngineOptionsRef =
-  BackupEngineOptionsRef(cPtr: rocksdb_options_create())
+proc newBackupEngineOptions*(autoClose = false): BackupEngineOptionsRef =
+  BackupEngineOptionsRef(cPtr: rocksdb_options_create(), autoClose: autoClose)
 
 proc isClosed*(engineOpts: BackupEngineOptionsRef): bool {.inline.} =
   engineOpts.cPtr.isNil()
@@ -29,8 +30,11 @@ proc cPtr*(engineOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
 
 # TODO: Add setters and getters for backup options properties.
 
-proc defaultBackupEngineOptions*(): BackupEngineOptionsRef {.inline.} =
-  let opts = newBackupEngineOptions()
+proc defaultBackupEngineOptions*(autoClose = false): BackupEngineOptionsRef {.inline.} =
+  let opts = newBackupEngineOptions(autoClose)
+
+  # TODO: set defaults here
+
   opts
 
 proc close*(engineOpts: BackupEngineOptionsRef) =

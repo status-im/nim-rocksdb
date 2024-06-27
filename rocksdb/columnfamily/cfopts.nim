@@ -23,6 +23,7 @@ type
     # type - CF options are a subset of rocksdb_options_t - when in doubt, check:
     # https://github.com/facebook/rocksdb/blob/b8c9a2576af6a1d0ffcfbb517dfcb7e7037bd460/include/rocksdb/options.h#L66
     cPtr: ColFamilyOptionsPtr
+    autoClose*: bool # if true then close will be called when the database is closed
 
   Compression* {.pure.} = enum
     # Use a slightly clunky name here to avoid global symbol conflicts
@@ -50,8 +51,8 @@ proc close*(s: SlicetransformRef) =
     rocksdb_slicetransform_destroy(s.cPtr)
     s.cPtr = nil
 
-proc newColFamilyOptions*(): ColFamilyOptionsRef =
-  ColFamilyOptionsRef(cPtr: rocksdb_options_create())
+proc newColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
+  ColFamilyOptionsRef(cPtr: rocksdb_options_create(), autoClose: autoClose)
 
 proc isClosed*(cfOpts: ColFamilyOptionsRef): bool {.inline.} =
   cfOpts.cPtr.isNil()
@@ -114,8 +115,8 @@ opt blobGCForceThreshold, float, cdouble
 opt blobCompactionReadaheadSize, int, uint64
 opt blobFileStartingLevel, int, cint
 
-proc defaultColFamilyOptions*(): ColFamilyOptionsRef =
-  newColFamilyOptions()
+proc defaultColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
+  newColFamilyOptions(autoClose)
 
 # proc setFixedPrefixExtractor*(dbOpts: ColFamilyOptionsRef, length: int) =
 #   doAssert not dbOpts.isClosed()

@@ -25,7 +25,7 @@ type
     dbOpts: DbOptionsRef
 
 proc openSstFileWriter*(
-    filePath: string, dbOpts = defaultDbOptions()
+    filePath: string, dbOpts = defaultDbOptions(autoClose = true)
 ): RocksDBResult[SstFileWriterRef] =
   ## Creates a new `SstFileWriterRef` and opens the file at the given `filePath`.
   doAssert not dbOpts.isClosed()
@@ -41,7 +41,7 @@ proc openSstFileWriter*(
   rocksdb_sstfilewriter_open(
     writer.cPtr, filePath.cstring, cast[cstringArray](errors.addr)
   )
-  bailOnErrors(errors)
+  bailOnErrors(errors, dbOpts)
 
   ok(writer)
 
@@ -94,8 +94,10 @@ proc finish*(writer: SstFileWriterRef): RocksDBResult[void] =
 proc close*(writer: SstFileWriterRef) =
   ## Closes the `SstFileWriterRef`.
   if not writer.isClosed():
-    writer.dbOpts.close()
     rocksdb_envoptions_destroy(writer.envOptsPtr)
     writer.envOptsPtr = nil
     rocksdb_sstfilewriter_destroy(writer.cPtr)
     writer.cPtr = nil
+
+    if writer.dbOpts.autoClose:
+      writer.dbOpts.close()

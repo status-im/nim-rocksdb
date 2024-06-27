@@ -325,14 +325,18 @@ suite "RocksDbRef Tests":
         db.get(key5).isErr()
 
   test "List column familes":
-    let dbOpts = defaultDbOptions()
-    defer:
-      dbOpts.close()
-
-    let colFamiliesRes = listColumnFamilies(dbPath, dbOpts)
+    let cfRes1 = listColumnFamilies(dbPath)
     check:
-      colFamiliesRes.isOk()
-      colFamiliesRes.value() == @[CF_DEFAULT, CF_OTHER]
+      cfRes1.isOk()
+      cfRes1.value() == @[CF_DEFAULT, CF_OTHER]
+
+    let
+      dbPath2 = dbPath & "2"
+      db2 = initReadWriteDb(dbPath2, columnFamilyNames = @[CF_DEFAULT])
+      cfRes2 = listColumnFamilies(dbPath2)
+    check:
+      cfRes2.isOk()
+      cfRes2.value() == @[CF_DEFAULT]
 
   test "Unknown column family":
     const CF_UNKNOWN = "unknown"

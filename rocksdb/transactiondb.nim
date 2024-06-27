@@ -36,6 +36,7 @@ type
     path: string
     dbOpts: DbOptionsRef
     txDbOpts: TransactionDbOptionsRef
+    cfDescriptors: seq[ColFamilyDescriptor]
     defaultCfHandle: ColFamilyHandleRef
     cfTable: ColFamilyTableRef
 
@@ -51,7 +52,7 @@ proc openTransactionDb*(
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
-    cfs.add(defaultColFamilyDescriptor())
+    cfs.add(defaultColFamilyDescriptor(autoClose = true))
 
   var
     cfNames = cfs.mapIt(it.name().cstring)
@@ -69,7 +70,7 @@ proc openTransactionDb*(
     cfHandles[0].addr,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors, dbOpts, txDbOpts = txDbOpts)
+  bailOnErrors(errors, dbOpts, txDbOpts = txDbOpts, cfDescriptors = cfs)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
@@ -79,6 +80,7 @@ proc openTransactionDb*(
       path: path,
       dbOpts: dbOpts,
       txDbOpts: txDbOpts,
+      cfDescriptors: cfs,
       defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
       cfTable: cfTable,
     )
@@ -108,7 +110,7 @@ proc beginTransaction*(
   ## to using the specified column family. If no column family is specified
   ## then the default column family will be used.
   ##
-  ## The opts types will be closed when the transaction is closed.
+  ##
   doAssert not db.isClosed()
 
   let txPtr = rocksdb_transaction_begin(db.cPtr, writeOpts.cPtr, txOpts.cPtr, nil)
@@ -131,3 +133,7 @@ proc close*(db: TransactionDbRef) =
         db.dbOpts.close()
       if db.txDbOpts.autoClose:
         db.txDbOpts.close()
+
+      for cfDesc in db.cfDescriptors:
+        if cfDesc.autoClose:
+          cfDesc.close()

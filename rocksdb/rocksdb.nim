@@ -47,6 +47,7 @@ type
     path: string
     dbOpts: DbOptionsRef
     readOpts: ReadOptionsRef
+    cfDescriptors: seq[ColFamilyDescriptor]
     defaultCfHandle: ColFamilyHandleRef
     cfTable: ColFamilyTableRef
 
@@ -56,9 +57,7 @@ type
     writeOpts: WriteOptionsRef
     ingestOptsPtr: IngestExternalFilesOptionsPtr
 
-proc listColumnFamilies*(
-    path: string, dbOpts: DbOptionsRef
-): RocksDBResult[seq[string]] =
+proc listColumnFamilies*(path: string): RocksDBResult[seq[string]] =
   ## List exisiting column families on disk. This might be used to find out
   ## whether there were some columns missing with the version on disk.
   ##
@@ -69,22 +68,23 @@ proc listColumnFamilies*(
   ## Note that the on-the-fly adding might not be needed in the way described
   ## above once rocksdb has been upgraded to the latest version, see comments
   ## at the end of ./columnfamily/cfhandle.nim.
-  ##
-  ## dbOpts is not closed by this function so it should be managed by the caller
 
   var
     cfLen: csize_t
     errors: cstring
-  let cfList = rocksdb_list_column_families(
-    dbOpts.cPtr, path.cstring, addr cfLen, cast[cstringArray](errors.addr)
-  )
-  bailOnErrors(errors)
+  let
+    dbOpts = defaultDbOptions(autoClose = true)
+    cfList = rocksdb_list_column_families(
+      dbOpts.cPtr, path.cstring, addr cfLen, cast[cstringArray](errors.addr)
+    )
+  bailOnErrors(errors, dbOpts)
 
   if cfList.isNil or cfLen == 0:
     return ok(newSeqOfCap[string](0))
 
   defer:
     rocksdb_list_column_families_destroy(cfList, cfLen)
+    dbOpts.close()
 
   var colFamilyNames = newSeqOfCap[string](cfLen)
   for i in 0 ..< cfLen:
@@ -108,7 +108,7 @@ proc openRocksDb*(
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
-    cfs.add(defaultColFamilyDescriptor())
+    cfs.add(defaultColFamilyDescriptor(autoClose = true))
 
   var
     cfNames = cfs.mapIt(it.name().cstring)
@@ -124,7 +124,7 @@ proc openRocksDb*(
     cfHandles[0].addr,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors, dbOpts, readOpts, writeOpts)
+  bailOnErrors(errors, dbOpts, readOpts, writeOpts, cfDescriptors = cfs)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
@@ -135,6 +135,7 @@ proc openRocksDb*(
       dbOpts: dbOpts,
       readOpts: readOpts,
       writeOpts: writeOpts,
+      cfDescriptors: cfs,
       ingestOptsPtr: rocksdb_ingestexternalfileoptions_create(),
       defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
       cfTable: cfTable,
@@ -157,7 +158,7 @@ proc openRocksDbReadOnly*(
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
-    cfs.add(defaultColFamilyDescriptor())
+    cfs.add(defaultColFamilyDescriptor(autoClose = true))
 
   var
     cfNames = cfs.mapIt(it.name().cstring)
@@ -174,7 +175,7 @@ proc openRocksDbReadOnly*(
     errorIfWalFileExists.uint8,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors, dbOpts, readOpts)
+  bailOnErrors(errors, dbOpts, readOpts, cfDescriptors = cfs)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
@@ -184,6 +185,7 @@ proc openRocksDbReadOnly*(
       path: path,
       dbOpts: dbOpts,
       readOpts: readOpts,
+      cfDescriptors: cfs,
       defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
       cfTable: cfTable,
     )
@@ -404,10 +406,14 @@ proc close*(db: RocksDbRef) =
       if db.readOpts.autoClose:
         db.readOpts.close()
 
+      for cfDesc in db.cfDescriptors:
+        if cfDesc.autoClose:
+          cfDesc.close()
+
       if db of RocksDbReadWriteRef:
         let db = RocksDbReadWriteRef(db)
         if db.writeOpts.autoClose:
           db.writeOpts.close()
-          
+
         rocksdb_ingestexternalfileoptions_destroy(db.ingestOptsPtr)
         db.ingestOptsPtr = nil

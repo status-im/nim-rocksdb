@@ -9,20 +9,10 @@
 
 {.used.}
 
-import unittest2, ../../rocksdb/internal/utils, ../../rocksdb/columnfamily/cfdescriptor
+import unittest2, ../../rocksdb/columnfamily/cfdescriptor
 
 suite "ColFamilyDescriptor Tests":
   const TEST_CF_NAME = "test"
-
-  test "Test initColFamilyDescriptor":
-    var descriptor = initColFamilyDescriptor(TEST_CF_NAME)
-
-    check:
-      descriptor.name() == TEST_CF_NAME
-      not descriptor.options().isNil()
-      not descriptor.isDefault()
-
-    descriptor.close()
 
   test "Test initColFamilyDescriptor with options":
     var descriptor = initColFamilyDescriptor(TEST_CF_NAME, defaultColFamilyOptions())
