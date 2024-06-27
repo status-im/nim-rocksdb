@@ -107,6 +107,8 @@ proc beginTransaction*(
   ## Begin a new transaction against the database. The transaction will default
   ## to using the specified column family. If no column family is specified
   ## then the default column family will be used.
+  ##
+  ## The opts types will be closed when the transaction is closed.
   doAssert not db.isClosed()
 
   let txPtr = rocksdb_transaction_begin(db.cPtr, writeOpts.cPtr, txOpts.cPtr, nil)

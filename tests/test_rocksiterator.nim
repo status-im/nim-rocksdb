@@ -151,7 +151,6 @@ suite "RocksIteratorRef Tests":
       iter2.key() == @[byte(3)]
       iter2.value() == @[byte(3)]
 
-
   test "Iterate forwards using seek to key":
     let res = db.openIterator(defaultCfHandle)
     check res.isOk()
