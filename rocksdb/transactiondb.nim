@@ -117,11 +117,15 @@ proc beginTransaction*(
 
 proc close*(db: TransactionDbRef) =
   ## Close the `TransactionDbRef`.
+
   withLock(db.lock):
     if not db.isClosed():
-      db.dbOpts.close()
-      db.txDbOpts.close()
+      # the column families should be closed before the database
       db.cfTable.close()
 
       rocksdb_transactiondb_close(db.cPtr)
       db.cPtr = nil
+
+      # opts should be closed after the database is closed
+      db.dbOpts.close()
+      db.txDbOpts.close()

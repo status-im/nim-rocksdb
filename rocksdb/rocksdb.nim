@@ -392,15 +392,18 @@ proc close*(db: RocksDbRef) =
 
   withLock(db.lock):
     if not db.isClosed():
+      # the column families should be closed before the database
+      db.cfTable.close()
+
+      rocksdb_close(db.cPtr)
+      db.cPtr = nil
+
+      # opts should be closed after the database is closed
       db.dbOpts.close()
       db.readOpts.close()
-      db.cfTable.close()
 
       if db of RocksDbReadWriteRef:
         let db = RocksDbReadWriteRef(db)
         db.writeOpts.close()
         rocksdb_ingestexternalfileoptions_destroy(db.ingestOptsPtr)
         db.ingestOptsPtr = nil
-
-      rocksdb_close(db.cPtr)
-      db.cPtr = nil
