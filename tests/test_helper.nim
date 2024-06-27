@@ -42,8 +42,7 @@ proc initTransactionDb*(
     path: string, columnFamilyNames: openArray[string] = @[]
 ): TransactionDbRef =
   let res = openTransactionDb(
-    path,
-    columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)),
+    path, columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it))
   )
   if res.isErr():
     echo res.error()

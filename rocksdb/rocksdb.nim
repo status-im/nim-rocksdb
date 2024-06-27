@@ -57,7 +57,7 @@ type
     ingestOptsPtr: IngestExternalFilesOptionsPtr
 
 proc listColumnFamilies*(
-    path: string, dbOpts = DbOptionsRef(nil)
+    path: string, dbOpts: DbOptionsRef
 ): RocksDBResult[seq[string]] =
   ## List exisiting column families on disk. This might be used to find out
   ## whether there were some columns missing with the version on disk.
@@ -70,36 +70,27 @@ proc listColumnFamilies*(
   ## above once rocksdb has been upgraded to the latest version, see comments
   ## at the end of ./columnfamily/cfhandle.nim.
   ##
-  let useDbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
-  defer:
-    if dbOpts.isNil:
-      useDbOpts.close()
+  ## dbOpts is not closed by this function so it should be managed by the caller
 
   var
-    lencf: csize_t
+    cfLen: csize_t
     errors: cstring
-  let cList = rocksdb_list_column_families(
-    useDbOpts.cPtr, path.cstring, addr lencf, cast[cstringArray](errors.addr)
+  let cfList = rocksdb_list_column_families(
+    dbOpts.cPtr, path.cstring, addr cfLen, cast[cstringArray](errors.addr)
   )
   bailOnErrors(errors)
 
-  var cfs: seq[string]
-  if not cList.isNil:
-    defer:
-      rocksdb_free(cList)
+  if cfList.isNil or cfLen == 0:
+    return ok(newSeqOfCap[string](0))
 
-    for n in 0 ..< lencf:
-      if cList[n].isNil:
-        # Clean up the rest
-        for z in n + 1 ..< lencf:
-          if not cList[z].isNil:
-            rocksdb_free(cList[z])
-        return err("short reply")
+  defer:
+    rocksdb_list_column_families_destroy(cfList, cfLen)
 
-      cfs.add $cList[n]
-      rocksdb_free(cList[n])
+  var colFamilyNames = newSeqOfCap[string](cfLen)
+  for i in 0 ..< cfLen:
+    colFamilyNames.add($cfList[i])
 
-  ok cfs
+  ok(colFamilyNames)
 
 proc openRocksDb*(
     path: string,
