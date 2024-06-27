@@ -175,9 +175,13 @@ proc rollback*(tx: TransactionRef): RocksDBResult[void] =
 proc close*(tx: TransactionRef) =
   ## Close the `TransactionRef`.
   if not tx.isClosed():
-    tx.readOpts.close()
-    tx.writeOpts.close()
-    tx.txOpts.close()
-
     rocksdb_transaction_destroy(tx.cPtr)
     tx.cPtr = nil
+
+    # opts should be closed after the transaction is closed
+    if tx.readOpts.autoClose:
+      tx.readOpts.close()
+    if tx.writeOpts.autoClose:
+      tx.writeOpts.close()
+    if tx.txOpts.autoClose:
+      tx.txOpts.close()

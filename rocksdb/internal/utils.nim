@@ -32,13 +32,13 @@ template bailOnErrors*(
     txDbOpts: TransactionDbOptionsRef = nil,
 ): auto =
   if not errors.isNil:
-    if not dbOpts.isNil():
+    if not dbOpts.isNil() and dbOpts.autoClose:
       dbOpts.close()
-    if not readOpts.isNil():
+    if not readOpts.isNil() and dbOpts.autoClose:
       readOpts.close()
-    if not writeOpts.isNil():
+    if not writeOpts.isNil() and dbOpts.autoClose:
       writeOpts.close()
-    if not txDbOpts.isNil():
+    if not txDbOpts.isNil() and dbOpts.autoClose:
       txDbOpts.close()
 
     let res = err($(errors))

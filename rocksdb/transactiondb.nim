@@ -41,8 +41,8 @@ type
 
 proc openTransactionDb*(
     path: string,
-    dbOpts = defaultDbOptions(),
-    txDbOpts = defaultTransactionDbOptions(),
+    dbOpts = defaultDbOptions(autoClose = true),
+    txDbOpts = defaultTransactionDbOptions(autoClose = true),
     columnFamilies: openArray[ColFamilyDescriptor] = [],
 ): RocksDBResult[TransactionDbRef] =
   ## Open a `TransactionDbRef` with the given options and column families.
@@ -99,9 +99,9 @@ proc isClosed*(db: TransactionDbRef): bool {.inline.} =
 
 proc beginTransaction*(
     db: TransactionDbRef,
-    readOpts = defaultReadOptions(),
-    writeOpts = defaultWriteOptions(),
-    txOpts = defaultTransactionOptions(),
+    readOpts = defaultReadOptions(autoClose = true),
+    writeOpts = defaultWriteOptions(autoClose = true),
+    txOpts = defaultTransactionOptions(autoClose = true),
     cfHandle = db.defaultCfHandle,
 ): TransactionRef =
   ## Begin a new transaction against the database. The transaction will default
@@ -127,5 +127,7 @@ proc close*(db: TransactionDbRef) =
       db.cPtr = nil
 
       # opts should be closed after the database is closed
-      db.dbOpts.close()
-      db.txDbOpts.close()
+      if db.dbOpts.autoClose:
+        db.dbOpts.close()
+      if db.txDbOpts.autoClose:
+        db.txDbOpts.close()

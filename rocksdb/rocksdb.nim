@@ -94,9 +94,9 @@ proc listColumnFamilies*(
 
 proc openRocksDb*(
     path: string,
-    dbOpts = defaultDbOptions(),
-    readOpts = defaultReadOptions(),
-    writeOpts = defaultWriteOptions(),
+    dbOpts = defaultDbOptions(autoClose = true),
+    readOpts = defaultReadOptions(autoClose = true),
+    writeOpts = defaultWriteOptions(autoClose = true),
     columnFamilies: openArray[ColFamilyDescriptor] = [],
 ): RocksDBResult[RocksDbReadWriteRef] =
   ## Open a RocksDB instance in read-write mode. If `columnFamilies` is empty
@@ -143,8 +143,8 @@ proc openRocksDb*(
 
 proc openRocksDbReadOnly*(
     path: string,
-    dbOpts = defaultDbOptions(),
-    readOpts = defaultReadOptions(),
+    dbOpts = defaultDbOptions(autoClose = true),
+    readOpts = defaultReadOptions(autoClose = true),
     columnFamilies: openArray[ColFamilyDescriptor] = [],
     errorIfWalFileExists = false,
 ): RocksDBResult[RocksDbReadOnlyRef] =
@@ -399,11 +399,15 @@ proc close*(db: RocksDbRef) =
       db.cPtr = nil
 
       # opts should be closed after the database is closed
-      db.dbOpts.close()
-      db.readOpts.close()
+      if db.dbOpts.autoClose:
+        db.dbOpts.close()
+      if db.readOpts.autoClose:
+        db.readOpts.close()
 
       if db of RocksDbReadWriteRef:
         let db = RocksDbReadWriteRef(db)
-        db.writeOpts.close()
+        if db.writeOpts.autoClose:
+          db.writeOpts.close()
+          
         rocksdb_ingestexternalfileoptions_destroy(db.ingestOptsPtr)
         db.ingestOptsPtr = nil
