@@ -201,3 +201,22 @@ suite "TransactionDbRef Tests":
     check tx2.isClosed()
     tx2.close()
     check tx2.isClosed()
+
+  test "Test auto close":
+    let
+      dbPath = mkdtemp() / "autoclose"
+      dbOpts = defaultDbOptions(autoClose = false)
+      txDbOpts = defaultTransactionDbOptions(autoClose = true)
+      db = openTransactionDb(dbPath, dbOpts, txDbOpts).get()
+
+    check:
+      dbOpts.isClosed() == false
+      txDbOpts.isClosed() == false
+      db.isClosed() == false
+
+    db.close()
+
+    check:
+      dbOpts.isClosed() == false
+      txDbOpts.isClosed() == true
+      db.isClosed() == true

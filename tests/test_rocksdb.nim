@@ -349,3 +349,22 @@ suite "RocksDbRef Tests":
     check db.isClosed()
     db.close()
     check db.isClosed()
+
+  test "Test auto close":
+    let
+      dbPath = mkdtemp() / "autoclose"
+      dbOpts = defaultDbOptions(autoClose = false)
+      readOpts = defaultReadOptions(autoClose = true)
+      db = openRocksDb(dbPath, dbOpts, readOpts).get()
+
+    check:
+      dbOpts.isClosed() == false
+      readOpts.isClosed() == false
+      db.isClosed() == false
+
+    db.close()
+
+    check:
+      dbOpts.isClosed() == false
+      readOpts.isClosed() == true
+      db.isClosed() == true

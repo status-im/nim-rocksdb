@@ -21,29 +21,29 @@ proc createLock*(): Lock =
   initLock(lock)
   lock
 
+template autoCloseNonNil*(opts: typed) =
+  if not opts.isNil and opts.autoClose:
+    opts.close()
+
 template bailOnErrors*(
     errors: cstring,
     dbOpts: DbOptionsRef = nil,
     readOpts: ReadOptionsRef = nil,
     writeOpts: WriteOptionsRef = nil,
     txDbOpts: TransactionDbOptionsRef = nil,
-    cfDescriptors: openArray[ColFamilyDescriptor] = [],
     backupOpts: BackupEngineOptionsRef = nil,
+    cfDescriptors: openArray[ColFamilyDescriptor] = @[],
 ): auto =
   if not errors.isNil:
-    if not dbOpts.isNil() and dbOpts.autoClose:
-      dbOpts.close()
-    if not readOpts.isNil() and dbOpts.autoClose:
-      readOpts.close()
-    if not writeOpts.isNil() and dbOpts.autoClose:
-      writeOpts.close()
-    if not txDbOpts.isNil() and dbOpts.autoClose:
-      txDbOpts.close()
+    autoCloseNonNil(dbOpts)
+    autoCloseNonNil(readOpts)
+    autoCloseNonNil(writeOpts)
+    autoCloseNonNil(txDbOpts)
+    autoCloseNonNil(backupOpts)
+
     for cfDesc in cfDescriptors:
       if cfDesc.autoClose:
         cfDesc.close()
-    if not backupOpts.isNil() and backupOpts.autoClose:
-      backupOpts.close()
 
     let res = err($(errors))
     rocksdb_free(errors)
