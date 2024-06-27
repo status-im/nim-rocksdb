@@ -30,6 +30,10 @@ proc openBackupEngine*(
   ## Create a new backup engine. The `path` parameter is the path of the backup
   ## directory. Note that the same directory should not be used for both backups
   ## and the database itself.
+  ##
+  ## If no `backupOpts` are provided, the default options will be used. These
+  ## default backup options will be closed when the backup engine is closed.
+  ## If `backupOpts` are provided, they will need to be closed manually.
 
   var errors: cstring
   let backupEnginePtr = rocksdb_backup_engine_open(

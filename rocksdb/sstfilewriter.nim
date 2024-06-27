@@ -28,6 +28,9 @@ proc openSstFileWriter*(
     filePath: string, dbOpts = defaultDbOptions(autoClose = true)
 ): RocksDBResult[SstFileWriterRef] =
   ## Creates a new `SstFileWriterRef` and opens the file at the given `filePath`.
+  ## If `dbOpts` is not supplied then the default options will be used.
+  ## These default options will be closed when the file writer is closed.
+  ## If any options are provided, they will need to be closed manually.
   doAssert not dbOpts.isClosed()
 
   let envOptsPtr = rocksdb_envoptions_create()

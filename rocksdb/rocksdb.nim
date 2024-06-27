@@ -102,6 +102,9 @@ proc openRocksDb*(
   ## Open a RocksDB instance in read-write mode. If `columnFamilies` is empty
   ## then it will open the default column family. If `dbOpts`, `readOpts`, or
   ## `writeOpts` are not supplied then the default options will be used.
+  ## These default options will be closed when the database is closed.
+  ## If any options are provided, they will need to be closed manually.
+  ##
   ## By default, column families will be created if they don't yet exist.
   ## All existing column families must be specified if the database has
   ## previously created any column families.
@@ -151,10 +154,13 @@ proc openRocksDbReadOnly*(
 ): RocksDBResult[RocksDbReadOnlyRef] =
   ## Open a RocksDB instance in read-only mode. If `columnFamilies` is empty
   ## then it will open the default column family. If `dbOpts` or `readOpts` are
-  ## not supplied then the default options will be used. By default, column
-  ## families will be created if they don't yet exist. If the database already
-  ## contains any column families, then all or a subset of the existing column
-  ## families can be opened for reading.
+  ## not supplied then the default options will be used.
+  ## These default options will be closed when the database is closed.
+  ## If any options are provided, they will need to be closed manually.
+  ##
+  ## By default, column families will be created if they don't yet exist.
+  ## If the database already contains any column families, then all or
+  ## a subset of the existing column families can be opened for reading.
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):

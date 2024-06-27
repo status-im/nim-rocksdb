@@ -49,6 +49,8 @@ proc openTransactionDb*(
   ## Open a `TransactionDbRef` with the given options and column families.
   ## If no column families are provided the default column family will be used.
   ## If no options are provided the default options will be used.
+  ## These default options will be closed when the database is closed.
+  ## If any options are provided, they will need to be closed manually.
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
