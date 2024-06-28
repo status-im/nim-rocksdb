@@ -32,7 +32,7 @@ export ROCKSDB_DISABLE_BZIP=1
 export PORTABLE=1
 export DEBUG_LEVEL=0
 
-if ${MAKE} -C "${ROCKSDB_LIB_DIR}" --dry-run static_lib | grep -q 'Nothing to be done'; then
+if ${MAKE} -C "${ROCKSDB_LIB_DIR}" --dry-run unity.a | grep -q "'unity.a' is up to date."; then
   echo "RocksDb static libraries already built. Skipping build."
   exit 0
 else
