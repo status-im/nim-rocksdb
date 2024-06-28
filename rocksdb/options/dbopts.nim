@@ -9,7 +9,7 @@
 
 {.push raises: [].}
 
-import std/cpuinfo, ../lib/librocksdb, ./[cache, tableopts]
+import std/cpuinfo, ../lib/librocksdb, ../internal/utils, ./[cache, tableopts]
 
 export cache, tableopts
 
@@ -18,6 +18,7 @@ type
 
   DbOptionsRef* = ref object
     cPtr: DbOptionsPtr
+    cache: CacheRef
     autoClose*: bool # if true then close will be called when the database is closed
 
 proc newDbOptions*(autoClose = false): DbOptionsRef =
@@ -94,7 +95,11 @@ opt avoidUnnecessaryBlockingIo, bool, uint8
 
 proc `rowCache=`*(dbOpts: DbOptionsRef, cache: CacheRef) =
   doAssert not dbOpts.isClosed()
+  doAssert dbOpts.cache.isNil()
+    # don't allow overwriting an existing cache which could leak memory
+
   rocksdb_options_set_row_cache(dbOpts.cPtr, cache.cPtr)
+  dbOpts.cache = cache
 
 proc defaultDbOptions*(autoClose = false): DbOptionsRef =
   let opts: DbOptionsRef = newDbOptions(autoClose)
@@ -118,3 +123,5 @@ proc close*(dbOpts: DbOptionsRef) =
   if not dbOpts.isClosed():
     rocksdb_options_destroy(dbOpts.cPtr)
     dbOpts.cPtr = nil
+
+    autoCloseNonNil(dbOpts.cache)

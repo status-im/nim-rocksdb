@@ -9,12 +9,14 @@
 
 {.push raises: [].}
 
-import ../lib/librocksdb, ../options/tableopts
+import ../lib/librocksdb, ../internal/utils, ../options/tableopts
 
 type
   SlicetransformPtr* = ptr rocksdb_slicetransform_t
+
   SlicetransformRef* = ref object
     cPtr: SlicetransformPtr
+    autoClose*: bool # if true then close will be called when it's parent is closed
 
   ColFamilyOptionsPtr* = ptr rocksdb_options_t
 
@@ -23,6 +25,8 @@ type
     # type - CF options are a subset of rocksdb_options_t - when in doubt, check:
     # https://github.com/facebook/rocksdb/blob/b8c9a2576af6a1d0ffcfbb517dfcb7e7037bd460/include/rocksdb/options.h#L66
     cPtr: ColFamilyOptionsPtr
+    sliceTransform: SlicetransformRef
+    tableOpts: TableOptionsRef
     autoClose*: bool # if true then close will be called when the database is closed
 
   Compression* {.pure.} = enum
@@ -36,8 +40,11 @@ type
     xpressCompression = rocksdb_xpress_compression
     zstdCompression = rocksdb_zstd_compression
 
-proc createFixedPrefix*(value: int): SlicetransformRef =
-  SlicetransformRef(cPtr: rocksdb_slicetransform_create_fixed_prefix(value.csize_t))
+proc createFixedPrefix*(value: int, autoClose = false): SlicetransformRef =
+  SlicetransformRef(
+    cPtr: rocksdb_slicetransform_create_fixed_prefix(value.csize_t),
+    autoClose: autoClose,
+  )
 
 proc isClosed*(s: SlicetransformRef): bool {.inline.} =
   s.cPtr.isNil()
@@ -65,6 +72,9 @@ proc close*(cfOpts: ColFamilyOptionsRef) =
   if not cfOpts.isClosed():
     rocksdb_options_destroy(cfOpts.cPtr)
     cfOpts.cPtr = nil
+
+    autoCloseNonNil(cfOpts.sliceTransform)
+    autoCloseNonNil(cfOpts.tableOpts)
 
 template opt(nname, ntyp, ctyp: untyped) =
   proc `nname=`*(cfOpts: ColFamilyOptionsRef, value: ntyp) =
@@ -125,13 +135,21 @@ proc defaultColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
 
 proc `setPrefixExtractor`*(cfOpts: ColFamilyOptionsRef, value: SlicetransformRef) =
   doAssert not cfOpts.isClosed()
+  doAssert cfOpts.sliceTransform.isNil()
+    # don't allow overwriting an existing sliceTransform which could leak memory
+
   rocksdb_options_set_prefix_extractor(cfOpts.cPtr, value.cPtr)
+  cfOpts.sliceTransform = value
 
 proc `blockBasedTableFactory=`*(
     cfOpts: ColFamilyOptionsRef, tableOpts: TableOptionsRef
 ) =
   doAssert not cfOpts.isClosed()
+  doAssert cfOpts.tableOpts.isNil()
+    # don't allow overwriting an existing tableOpts which could leak memory
+
   rocksdb_options_set_block_based_table_factory(cfOpts.cPtr, tableOpts.cPtr)
+  cfOpts.tableOpts = tableOpts
 
 # https://github.com/facebook/rocksdb/wiki/MemTable
 proc setHashSkipListRep*(

@@ -77,7 +77,8 @@ proc listColumnFamilies*(path: string): RocksDBResult[seq[string]] =
     cfList = rocksdb_list_column_families(
       dbOpts.cPtr, path.cstring, addr cfLen, cast[cstringArray](errors.addr)
     )
-  bailOnErrors(errors, dbOpts)
+  bailOnErrorsWithCleanup(errors):
+    autoCloseNonNil(dbOpts)
 
   if cfList.isNil or cfLen == 0:
     return ok(newSeqOfCap[string](0))
@@ -127,7 +128,11 @@ proc openRocksDb*(
     cfHandles[0].addr,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors, dbOpts, readOpts, writeOpts, cfDescriptors = cfs)
+  bailOnErrorsWithCleanup(errors):
+    autoCloseNonNil(dbOpts)
+    autoCloseNonNil(readOpts)
+    autoCloseNonNil(writeOpts)
+    autoCloseAll(cfs)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
@@ -181,7 +186,10 @@ proc openRocksDbReadOnly*(
     errorIfWalFileExists.uint8,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors, dbOpts, readOpts, cfDescriptors = cfs)
+  bailOnErrorsWithCleanup(errors):
+    autoCloseNonNil(dbOpts)
+    autoCloseNonNil(readOpts)
+    autoCloseAll(cfs)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
@@ -407,10 +415,8 @@ proc close*(db: RocksDbRef) =
       db.cPtr = nil
 
       # opts should be closed after the database is closed
-      if db.dbOpts.autoClose:
-        db.dbOpts.close()
-      if db.readOpts.autoClose:
-        db.readOpts.close()
+      autoCloseNonNil(db.dbOpts)
+      autoCloseNonNil(db.readOpts)
 
       for cfDesc in db.cfDescriptors:
         if cfDesc.autoClose:
@@ -418,8 +424,7 @@ proc close*(db: RocksDbRef) =
 
       if db of RocksDbReadWriteRef:
         let db = RocksDbReadWriteRef(db)
-        if db.writeOpts.autoClose:
-          db.writeOpts.close()
+        autoCloseNonNil(db.writeOpts)
 
         rocksdb_ingestexternalfileoptions_destroy(db.ingestOptsPtr)
         db.ingestOptsPtr = nil

@@ -1,4 +1,4 @@
-import ../lib/librocksdb, ./cache
+import ../lib/librocksdb, ../internal/utils, ./cache
 
 type
   # TODO might eventually wrap this
@@ -6,11 +6,15 @@ type
 
   TableOptionsRef* = ref object
     cPtr*: TableOptionsPtr
+    cache: CacheRef
+    filterPolicy: FilterPolicyRef
+    autoClose*: bool # if true then close will be called when it's parent is closed
 
   FilterPolicyPtr* = ptr rocksdb_filterpolicy_t
 
   FilterPolicyRef* = ref object
     cPtr*: FilterPolicyPtr
+    autoClose*: bool # if true then close will be called when it's parent is closed
 
   IndexType* {.pure.} = enum
     binarySearch = rocksdb_block_based_table_index_type_binary_search
@@ -22,14 +26,17 @@ type
     binarySearchAndHash =
       rocksdb_block_based_table_data_block_index_type_binary_search_and_hash
 
-proc createRibbon*(bitsPerKey: float): FilterPolicyRef =
-  FilterPolicyRef(cPtr: rocksdb_filterpolicy_create_ribbon(bitsPerKey))
+proc createRibbon*(bitsPerKey: float, autoClose = false): FilterPolicyRef =
+  FilterPolicyRef(
+    cPtr: rocksdb_filterpolicy_create_ribbon(bitsPerKey), autoClose: autoClose
+  )
 
 proc createRibbonHybrid*(
-    bitsPerKey: float, bloomBeforeLevel: int = 0
+    bitsPerKey: float, bloomBeforeLevel: int = 0, autoClose = false
 ): FilterPolicyRef =
   FilterPolicyRef(
-    cPtr: rocksdb_filterpolicy_create_ribbon_hybrid(bitsPerKey, bloomBeforeLevel.cint)
+    cPtr: rocksdb_filterpolicy_create_ribbon_hybrid(bitsPerKey, bloomBeforeLevel.cint),
+    autoClose: autoClose,
   )
 
 proc isClosed*(policy: FilterPolicyRef): bool =
@@ -40,8 +47,8 @@ proc close*(policy: FilterPolicyRef) =
     rocksdb_filterpolicy_destroy(policy.cPtr)
     policy.cPtr = nil
 
-proc createTableOptions*(): TableOptionsRef =
-  TableOptionsRef(cPtr: rocksdb_block_based_options_create())
+proc createTableOptions*(autoClose = false): TableOptionsRef =
+  TableOptionsRef(cPtr: rocksdb_block_based_options_create(), autoClose: autoClose)
 
 proc isClosed*(opts: TableOptionsRef): bool =
   isNil(opts.cPtr)
@@ -50,6 +57,9 @@ proc close*(opts: TableOptionsRef) =
   if not isClosed(opts):
     rocksdb_block_based_options_destroy(opts.cPtr)
     opts.cPtr = nil
+
+    autoCloseNonNil(opts.cache)
+    autoCloseNonNil(opts.filterPolicy)
 
 template opt(nname, ntyp, ctyp: untyped) =
   proc `nname=`*(opts: TableOptionsRef, value: ntyp) =
@@ -76,15 +86,26 @@ opt wholeKeyFiltering, bool, uint8
 opt formatVersion, int, cint
 
 proc `blockCache=`*(opts: TableOptionsRef, cache: CacheRef) =
+  doAssert not opts.isClosed()
+  doAssert opts.cache.isNil()
+    # don't allow overwriting an existing cache which could leak memory
+
   rocksdb_block_based_options_set_block_cache(opts.cPtr, cache.cPtr)
+  opts.cache = cache
 
 proc `filterPolicy=`*(opts: TableOptionsRef, policy: FilterPolicyRef) =
-  rocksdb_block_based_options_set_filter_policy(opts.cPtr, policy.cPtr)
+  doAssert not opts.isClosed()
+  doAssert opts.filterPolicy.isNil()
+    # don't allow overwriting an existing policy which could leak memory
 
-proc defaultTableOptions*(): TableOptionsRef =
+  rocksdb_block_based_options_set_filter_policy(opts.cPtr, policy.cPtr)
+  opts.filterPolicy = policy
+
+proc defaultTableOptions*(autoClose = false): TableOptionsRef =
   # https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning#other-general-options
-  let opts = createTableOptions()
+  let opts = createTableOptions(autoClose)
   opts.blockSize = 16 * 1024
   opts.cacheIndexAndFilterBlocks = true
   opts.pinL0FilterAndIndexBlocksInCache = true
+
   opts

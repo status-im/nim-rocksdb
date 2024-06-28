@@ -44,7 +44,8 @@ proc openSstFileWriter*(
   rocksdb_sstfilewriter_open(
     writer.cPtr, filePath.cstring, cast[cstringArray](errors.addr)
   )
-  bailOnErrors(errors, dbOpts)
+  bailOnErrorsWithCleanup(errors):
+    autoCloseNonNil(dbOpts)
 
   ok(writer)
 
@@ -102,5 +103,4 @@ proc close*(writer: SstFileWriterRef) =
     rocksdb_sstfilewriter_destroy(writer.cPtr)
     writer.cPtr = nil
 
-    if writer.dbOpts.autoClose:
-      writer.dbOpts.close()
+    autoCloseNonNil(writer.dbOpts)
