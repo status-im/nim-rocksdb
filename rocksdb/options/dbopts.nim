@@ -9,7 +9,7 @@
 
 {.push raises: [].}
 
-import std/cpuinfo, ../lib/librocksdb, ./[cache, tableopts]
+import std/cpuinfo, ../lib/librocksdb, ../internal/utils, ./[cache, tableopts]
 
 export cache, tableopts
 
@@ -124,5 +124,4 @@ proc close*(dbOpts: DbOptionsRef) =
     rocksdb_options_destroy(dbOpts.cPtr)
     dbOpts.cPtr = nil
 
-    if not dbOpts.cache.isNil() and dbOpts.cache.autoClose:
-      dbOpts.cache.close()
+    autoCloseNonNil(dbOpts.cache)

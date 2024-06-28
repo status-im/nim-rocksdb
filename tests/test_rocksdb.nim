@@ -350,21 +350,60 @@ suite "RocksDbRef Tests":
     db.close()
     check db.isClosed()
 
-  test "Test auto close":
+  test "Test auto close enabled":
     let
-      dbPath = mkdtemp() / "autoclose"
-      dbOpts = defaultDbOptions(autoClose = false)
+      dbPath = mkdtemp() / "autoclose-enabled"
+      dbOpts = defaultDbOptions(autoClose = true)
       readOpts = defaultReadOptions(autoClose = true)
-      db = openRocksDb(dbPath, dbOpts, readOpts).get()
+      writeOpts = defaultWriteOptions(autoClose = true)
+      columnFamilies =
+        @[
+          initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = true))
+        ]
+      db = openRocksDb(dbPath, dbOpts, readOpts, writeOpts, columnFamilies).get()
 
     check:
       dbOpts.isClosed() == false
       readOpts.isClosed() == false
+      writeOpts.isClosed() == false
+      columnFamilies[0].isClosed() == false
+      db.isClosed() == false
+
+    db.close()
+
+    check:
+      dbOpts.isClosed() == true
+      readOpts.isClosed() == true
+      writeOpts.isClosed() == true
+      columnFamilies[0].isClosed() == true
+      db.isClosed() == true
+
+  test "Test auto close disabled":
+    let
+      dbPath = mkdtemp() / "autoclose-enabled"
+      dbOpts = defaultDbOptions(autoClose = false)
+      readOpts = defaultReadOptions(autoClose = false)
+      writeOpts = defaultWriteOptions(autoClose = false)
+      columnFamilies =
+        @[
+          initColFamilyDescriptor(
+            CF_DEFAULT, defaultColFamilyOptions(autoClose = false)
+          )
+        ]
+      db = openRocksDb(dbPath, dbOpts, readOpts, writeOpts, columnFamilies).get()
+
+    check:
+      dbOpts.isClosed() == false
+      readOpts.isClosed() == false
+      writeOpts.isClosed() == false
+      columnFamilies[0].isClosed() == false
       db.isClosed() == false
 
     db.close()
 
     check:
       dbOpts.isClosed() == false
-      readOpts.isClosed() == true
+      readOpts.isClosed() == false
+      writeOpts.isClosed() == false
+      columnFamilies[0].isClosed() == false
       db.isClosed() == true

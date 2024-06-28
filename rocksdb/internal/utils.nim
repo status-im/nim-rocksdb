@@ -9,41 +9,25 @@
 
 {.push raises: [].}
 
-import
-  std/locks,
-  ../lib/librocksdb,
-  ../options/[dbopts, readopts, writeopts, backupopts],
-  ../transactions/txdbopts,
-  ../columnfamily/cfdescriptor
+import std/locks, ../lib/librocksdb
 
 proc createLock*(): Lock =
   var lock = Lock()
   initLock(lock)
   lock
 
-template autoCloseNonNil*(opts: typed) =
-  if not opts.isNil and opts.autoClose:
-    opts.close()
+template autoCloseNonNil*(closable: typed) =
+  if not closable.isNil and closable.autoClose:
+    closable.close()
 
-template bailOnErrorsAutoCloseOpts*(
-    errors: cstring,
-    dbOpts: DbOptionsRef = nil,
-    readOpts: ReadOptionsRef = nil,
-    writeOpts: WriteOptionsRef = nil,
-    txDbOpts: TransactionDbOptionsRef = nil,
-    backupOpts: BackupEngineOptionsRef = nil,
-    cfDescriptors: openArray[ColFamilyDescriptor] = @[],
-): auto =
+template autoCloseAll*(closables: openArray[typed]) =
+  for c in closables:
+    if c.autoClose:
+      c.close()
+
+template bailOnErrorsWithCleanup*(errors: cstring, cleanup: untyped): auto =
   if not errors.isNil:
-    autoCloseNonNil(dbOpts)
-    autoCloseNonNil(readOpts)
-    autoCloseNonNil(writeOpts)
-    autoCloseNonNil(txDbOpts)
-    autoCloseNonNil(backupOpts)
-
-    for cfDesc in cfDescriptors:
-      if cfDesc.autoClose:
-        cfDesc.close()
+    cleanup
 
     let res = err($(errors))
     rocksdb_free(errors)

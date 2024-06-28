@@ -1,4 +1,4 @@
-import ../lib/librocksdb, ./cache
+import ../lib/librocksdb, ../internal/utils, ./cache
 
 type
   # TODO might eventually wrap this
@@ -8,13 +8,13 @@ type
     cPtr*: TableOptionsPtr
     cache: CacheRef
     filterPolicy: FilterPolicyRef
-    autoClose*: bool # if true then close will be called when the parent type is closed
+    autoClose*: bool # if true then close will be called when it's parent is closed
 
   FilterPolicyPtr* = ptr rocksdb_filterpolicy_t
 
   FilterPolicyRef* = ref object
     cPtr*: FilterPolicyPtr
-    autoClose*: bool # if true then close will be called when the parent type is closed
+    autoClose*: bool # if true then close will be called when it's parent is closed
 
   IndexType* {.pure.} = enum
     binarySearch = rocksdb_block_based_table_index_type_binary_search
@@ -58,10 +58,8 @@ proc close*(opts: TableOptionsRef) =
     rocksdb_block_based_options_destroy(opts.cPtr)
     opts.cPtr = nil
 
-    if not opts.cache.isNil() and opts.cache.autoClose:
-      opts.cache.close()
-    if not opts.filterPolicy.isNil() and opts.filterPolicy.autoClose:
-      opts.filterPolicy.close()
+    autoCloseNonNil(opts.cache)
+    autoCloseNonNil(opts.filterPolicy)
 
 template opt(nname, ntyp, ctyp: untyped) =
   proc `nname=`*(opts: TableOptionsRef, value: ntyp) =

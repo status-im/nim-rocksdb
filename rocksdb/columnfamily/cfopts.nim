@@ -9,14 +9,14 @@
 
 {.push raises: [].}
 
-import ../lib/librocksdb, ../options/tableopts
+import ../lib/librocksdb, ../internal/utils, ../options/tableopts
 
 type
   SlicetransformPtr* = ptr rocksdb_slicetransform_t
 
   SlicetransformRef* = ref object
     cPtr: SlicetransformPtr
-    autoClose*: bool # if true then close will be called when the parent is closed
+    autoClose*: bool # if true then close will be called when it's parent is closed
 
   ColFamilyOptionsPtr* = ptr rocksdb_options_t
 
@@ -73,10 +73,8 @@ proc close*(cfOpts: ColFamilyOptionsRef) =
     rocksdb_options_destroy(cfOpts.cPtr)
     cfOpts.cPtr = nil
 
-    if not cfOpts.sliceTransform.isNil() and cfOpts.sliceTransform.autoClose:
-      cfOpts.sliceTransform.close()
-    if not cfOpts.tableOpts.isNil() and cfOpts.tableOpts.autoClose:
-      cfOpts.tableOpts.close()
+    autoCloseNonNil(cfOpts.sliceTransform)
+    autoCloseNonNil(cfOpts.tableOpts)
 
 template opt(nname, ntyp, ctyp: untyped) =
   proc `nname=`*(cfOpts: ColFamilyOptionsRef, value: ntyp) =

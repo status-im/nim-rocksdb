@@ -72,7 +72,10 @@ proc openTransactionDb*(
     cfHandles[0].addr,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrorsAutoCloseOpts(errors, dbOpts, txDbOpts = txDbOpts, cfDescriptors = cfs)
+  bailOnErrorsWithCleanup(errors):
+    autoCloseNonNil(dbOpts)
+    autoCloseNonNil(txDbOpts)
+    autoCloseAll(cfs)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
@@ -131,11 +134,6 @@ proc close*(db: TransactionDbRef) =
       db.cPtr = nil
 
       # opts should be closed after the database is closed
-      if db.dbOpts.autoClose:
-        db.dbOpts.close()
-      if db.txDbOpts.autoClose:
-        db.txDbOpts.close()
-
-      for cfDesc in db.cfDescriptors:
-        if cfDesc.autoClose:
-          cfDesc.close()
+      autoCloseNonNil(db.dbOpts)
+      autoCloseNonNil(db.txDbOpts)
+      autoCloseAll(db.cfDescriptors)

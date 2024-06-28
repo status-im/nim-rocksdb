@@ -5,7 +5,7 @@ type
 
   CacheRef* = ref object
     cPtr*: CachePtr
-    autoClose*: bool # if true then close will be called when the parent type is closed
+    autoClose*: bool # if true then close will be called when it's parent is closed
 
 proc cacheCreateLRU*(size: int, autoClose = false): CacheRef =
   CacheRef(cPtr: rocksdb_cache_create_lru(size.csize_t), autoClose: autoClose)
