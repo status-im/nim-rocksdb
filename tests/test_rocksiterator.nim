@@ -151,6 +151,20 @@ suite "RocksIteratorRef Tests":
       iter2.key() == @[byte(3)]
       iter2.value() == @[byte(3)]
 
+  test "Iterate forwards using seek to key":
+    let res = db.openIterator(defaultCfHandle)
+    check res.isOk()
+
+    var iter = res.get()
+    defer:
+      iter.close()
+
+    iter.seekToKey(key2)
+    check:
+      iter.isValid()
+      iter.key() == key2
+      iter.value() == val2
+
   test "Empty column family":
     let res = db.openIterator(emptyCfHandle)
     check res.isOk()

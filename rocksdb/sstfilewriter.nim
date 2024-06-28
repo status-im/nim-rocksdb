@@ -25,10 +25,12 @@ type
     dbOpts: DbOptionsRef
 
 proc openSstFileWriter*(
-    filePath: string, dbOpts = DbOptionsRef(nil)
+    filePath: string, dbOpts = defaultDbOptions(autoClose = true)
 ): RocksDBResult[SstFileWriterRef] =
   ## Creates a new `SstFileWriterRef` and opens the file at the given `filePath`.
-  let dbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
+  ## If `dbOpts` is not supplied then the default options will be used.
+  ## These default options will be closed when the file writer is closed.
+  ## If any options are provided, they will need to be closed manually.
   doAssert not dbOpts.isClosed()
 
   let envOptsPtr = rocksdb_envoptions_create()
@@ -42,7 +44,7 @@ proc openSstFileWriter*(
   rocksdb_sstfilewriter_open(
     writer.cPtr, filePath.cstring, cast[cstringArray](errors.addr)
   )
-  bailOnErrors(errors)
+  bailOnErrors(errors, dbOpts)
 
   ok(writer)
 
@@ -99,3 +101,6 @@ proc close*(writer: SstFileWriterRef) =
     writer.envOptsPtr = nil
     rocksdb_sstfilewriter_destroy(writer.cPtr)
     writer.cPtr = nil
+
+    if writer.dbOpts.autoClose:
+      writer.dbOpts.close()

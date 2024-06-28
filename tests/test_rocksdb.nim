@@ -231,18 +231,6 @@ suite "RocksDbRef Tests":
       readOnlyDb.close()
       check readOnlyDb.isClosed()
 
-  test "Close multiple times":
-    check not db.isClosed()
-    db.close()
-    check db.isClosed()
-    db.close()
-    check db.isClosed()
-
-  test "Unknown column family":
-    const CF_UNKNOWN = "unknown"
-    let cfHandleRes = db.getColFamilyHandle(CF_UNKNOWN)
-    check cfHandleRes.isErr() and cfHandleRes.error() == "rocksdb: unknown column family"
-
   test "Test missing key and values":
     let
       key1 = @[byte(1)] # exists with non empty value
@@ -335,3 +323,48 @@ suite "RocksDbRef Tests":
         r.value() == false
         v.len() == 0
         db.get(key5).isErr()
+
+  test "List column familes":
+    let cfRes1 = listColumnFamilies(dbPath)
+    check:
+      cfRes1.isOk()
+      cfRes1.value() == @[CF_DEFAULT, CF_OTHER]
+
+    let
+      dbPath2 = dbPath & "2"
+      db2 = initReadWriteDb(dbPath2, columnFamilyNames = @[CF_DEFAULT])
+      cfRes2 = listColumnFamilies(dbPath2)
+    check:
+      cfRes2.isOk()
+      cfRes2.value() == @[CF_DEFAULT]
+
+  test "Unknown column family":
+    const CF_UNKNOWN = "unknown"
+    let cfHandleRes = db.getColFamilyHandle(CF_UNKNOWN)
+    check cfHandleRes.isErr() and cfHandleRes.error() == "rocksdb: unknown column family"
+
+  test "Close multiple times":
+    check not db.isClosed()
+    db.close()
+    check db.isClosed()
+    db.close()
+    check db.isClosed()
+
+  test "Test auto close":
+    let
+      dbPath = mkdtemp() / "autoclose"
+      dbOpts = defaultDbOptions(autoClose = false)
+      readOpts = defaultReadOptions(autoClose = true)
+      db = openRocksDb(dbPath, dbOpts, readOpts).get()
+
+    check:
+      dbOpts.isClosed() == false
+      readOpts.isClosed() == false
+      db.isClosed() == false
+
+    db.close()
+
+    check:
+      dbOpts.isClosed() == false
+      readOpts.isClosed() == true
+      db.isClosed() == true

@@ -15,7 +15,10 @@ proc initReadWriteDb*(
     path: string, columnFamilyNames: openArray[string] = @[]
 ): RocksDbReadWriteRef =
   let res = openRocksDb(
-    path, columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it))
+    path,
+    columnFamilies = columnFamilyNames.mapIt(
+      initColFamilyDescriptor(it, defaultColFamilyOptions(autoClose = true))
+    ),
   )
   if res.isErr():
     echo res.error()
@@ -26,7 +29,10 @@ proc initReadOnlyDb*(
     path: string, columnFamilyNames: openArray[string] = @[]
 ): RocksDbReadOnlyRef =
   let res = openRocksDbReadOnly(
-    path, columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it))
+    path,
+    columnFamilies = columnFamilyNames.mapIt(
+      initColFamilyDescriptor(it, defaultColFamilyOptions(autoClose = true))
+    ),
   )
   if res.isErr():
     echo res.error()
@@ -43,8 +49,9 @@ proc initTransactionDb*(
 ): TransactionDbRef =
   let res = openTransactionDb(
     path,
-    txDbOpts = defaultTransactionDbOptions(),
-    columnFamilies = columnFamilyNames.mapIt(initColFamilyDescriptor(it)),
+    columnFamilies = columnFamilyNames.mapIt(
+      initColFamilyDescriptor(it, defaultColFamilyOptions(autoClose = true))
+    ),
   )
   if res.isErr():
     echo res.error()

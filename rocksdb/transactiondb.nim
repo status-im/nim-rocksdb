@@ -36,26 +36,25 @@ type
     path: string
     dbOpts: DbOptionsRef
     txDbOpts: TransactionDbOptionsRef
+    cfDescriptors: seq[ColFamilyDescriptor]
     defaultCfHandle: ColFamilyHandleRef
     cfTable: ColFamilyTableRef
 
 proc openTransactionDb*(
     path: string,
-    dbOpts = DbOptionsRef(nil),
-    txDbOpts = TransactionDbOptionsRef(nil),
+    dbOpts = defaultDbOptions(autoClose = true),
+    txDbOpts = defaultTransactionDbOptions(autoClose = true),
     columnFamilies: openArray[ColFamilyDescriptor] = [],
 ): RocksDBResult[TransactionDbRef] =
   ## Open a `TransactionDbRef` with the given options and column families.
   ## If no column families are provided the default column family will be used.
   ## If no options are provided the default options will be used.
-  let useDbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
-  defer:
-    if dbOpts.isNil:
-      useDbOpts.close()
+  ## These default options will be closed when the database is closed.
+  ## If any options are provided, they will need to be closed manually.
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
-    cfs.add(defaultColFamilyDescriptor())
+    cfs.add(defaultColFamilyDescriptor(autoClose = true))
 
   var
     cfNames = cfs.mapIt(it.name().cstring)
@@ -64,7 +63,7 @@ proc openTransactionDb*(
     errors: cstring
 
   let txDbPtr = rocksdb_transactiondb_open_column_families(
-    useDbOpts.cPtr,
+    dbOpts.cPtr,
     txDbOpts.cPtr,
     path.cstring,
     cfNames.len().cint,
@@ -73,13 +72,9 @@ proc openTransactionDb*(
     cfHandles[0].addr,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors)
+  bailOnErrors(errors, dbOpts, txDbOpts = txDbOpts, cfDescriptors = cfs)
 
   let
-    dbOpts = useDbOpts # don't close on exit
-    txDbOpts = (if txDbOpts.isNil: defaultTransactionDbOptions()
-    else: txDbOpts
-    )
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
     db = TransactionDbRef(
       lock: createLock(),
@@ -87,6 +82,7 @@ proc openTransactionDb*(
       path: path,
       dbOpts: dbOpts,
       txDbOpts: txDbOpts,
+      cfDescriptors: cfs,
       defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
       cfTable: cfTable,
     )
@@ -107,22 +103,17 @@ proc isClosed*(db: TransactionDbRef): bool {.inline.} =
 
 proc beginTransaction*(
     db: TransactionDbRef,
-    readOpts = ReadOptionsRef(nil),
-    writeOpts = WriteOptionsRef(nil),
-    txDbOpts = TransactionDbOptionsRef(nil),
-    txOpts = defaultTransactionOptions(),
+    readOpts = defaultReadOptions(autoClose = true),
+    writeOpts = defaultWriteOptions(autoClose = true),
+    txOpts = defaultTransactionOptions(autoClose = true),
     cfHandle = db.defaultCfHandle,
 ): TransactionRef =
   ## Begin a new transaction against the database. The transaction will default
   ## to using the specified column family. If no column family is specified
   ## then the default column family will be used.
+  ##
+  ##
   doAssert not db.isClosed()
-  let
-    txDbOpts = (if txDbOpts.isNil: defaultTransactionDbOptions()
-    else: txDbOpts
-    )
-    readOpts = (if readOpts.isNil: defaultReadOptions() else: readOpts)
-    writeOpts = (if writeOpts.isNil: defaultWriteOptions() else: writeOpts)
 
   let txPtr = rocksdb_transaction_begin(db.cPtr, writeOpts.cPtr, txOpts.cPtr, nil)
 
@@ -130,11 +121,21 @@ proc beginTransaction*(
 
 proc close*(db: TransactionDbRef) =
   ## Close the `TransactionDbRef`.
+
   withLock(db.lock):
     if not db.isClosed():
-      db.dbOpts.close()
-      db.txDbOpts.close()
+      # the column families should be closed before the database
       db.cfTable.close()
 
       rocksdb_transactiondb_close(db.cPtr)
       db.cPtr = nil
+
+      # opts should be closed after the database is closed
+      if db.dbOpts.autoClose:
+        db.dbOpts.close()
+      if db.txDbOpts.autoClose:
+        db.txDbOpts.close()
+
+      for cfDesc in db.cfDescriptors:
+        if cfDesc.autoClose:
+          cfDesc.close()

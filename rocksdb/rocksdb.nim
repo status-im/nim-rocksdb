@@ -47,6 +47,7 @@ type
     path: string
     dbOpts: DbOptionsRef
     readOpts: ReadOptionsRef
+    cfDescriptors: seq[ColFamilyDescriptor]
     defaultCfHandle: ColFamilyHandleRef
     cfTable: ColFamilyTableRef
 
@@ -56,9 +57,7 @@ type
     writeOpts: WriteOptionsRef
     ingestOptsPtr: IngestExternalFilesOptionsPtr
 
-proc listColumnFamilies*(
-    path: string, dbOpts = DbOptionsRef(nil)
-): RocksDBResult[seq[string]] =
+proc listColumnFamilies*(path: string): RocksDBResult[seq[string]] =
   ## List exisiting column families on disk. This might be used to find out
   ## whether there were some columns missing with the version on disk.
   ##
@@ -69,59 +68,50 @@ proc listColumnFamilies*(
   ## Note that the on-the-fly adding might not be needed in the way described
   ## above once rocksdb has been upgraded to the latest version, see comments
   ## at the end of ./columnfamily/cfhandle.nim.
-  ##
-  let useDbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
-  defer:
-    if dbOpts.isNil:
-      useDbOpts.close()
 
   var
-    lencf: csize_t
+    cfLen: csize_t
     errors: cstring
-  let cList = rocksdb_list_column_families(
-    useDbOpts.cPtr, path.cstring, addr lencf, cast[cstringArray](errors.addr)
-  )
-  bailOnErrors(errors)
+  let
+    dbOpts = defaultDbOptions(autoClose = true)
+    cfList = rocksdb_list_column_families(
+      dbOpts.cPtr, path.cstring, addr cfLen, cast[cstringArray](errors.addr)
+    )
+  bailOnErrors(errors, dbOpts)
 
-  var cfs: seq[string]
-  if not cList.isNil:
-    defer:
-      rocksdb_free(cList)
+  if cfList.isNil or cfLen == 0:
+    return ok(newSeqOfCap[string](0))
 
-    for n in 0 ..< lencf:
-      if cList[n].isNil:
-        # Clean up the rest
-        for z in n + 1 ..< lencf:
-          if not cList[z].isNil:
-            rocksdb_free(cList[z])
-        return err("short reply")
+  defer:
+    rocksdb_list_column_families_destroy(cfList, cfLen)
+    dbOpts.close()
 
-      cfs.add $cList[n]
-      rocksdb_free(cList[n])
+  var colFamilyNames = newSeqOfCap[string](cfLen)
+  for i in 0 ..< cfLen:
+    colFamilyNames.add($cfList[i])
 
-  ok cfs
+  ok(colFamilyNames)
 
 proc openRocksDb*(
     path: string,
-    dbOpts = DbOptionsRef(nil),
-    readOpts = ReadOptionsRef(nil),
-    writeOpts = WriteOptionsRef(nil),
+    dbOpts = defaultDbOptions(autoClose = true),
+    readOpts = defaultReadOptions(autoClose = true),
+    writeOpts = defaultWriteOptions(autoClose = true),
     columnFamilies: openArray[ColFamilyDescriptor] = [],
 ): RocksDBResult[RocksDbReadWriteRef] =
   ## Open a RocksDB instance in read-write mode. If `columnFamilies` is empty
   ## then it will open the default column family. If `dbOpts`, `readOpts`, or
   ## `writeOpts` are not supplied then the default options will be used.
+  ## These default options will be closed when the database is closed.
+  ## If any options are provided, they will need to be closed manually.
+  ##
   ## By default, column families will be created if they don't yet exist.
   ## All existing column families must be specified if the database has
   ## previously created any column families.
-  let useDbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
-  defer:
-    if dbOpts.isNil:
-      useDbOpts.close()
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
-    cfs.add(defaultColFamilyDescriptor())
+    cfs.add(defaultColFamilyDescriptor(autoClose = true))
 
   var
     cfNames = cfs.mapIt(it.name().cstring)
@@ -129,7 +119,7 @@ proc openRocksDb*(
     cfHandles = newSeq[ColFamilyHandlePtr](cfs.len)
     errors: cstring
   let rocksDbPtr = rocksdb_open_column_families(
-    useDbOpts.cPtr,
+    dbOpts.cPtr,
     path.cstring,
     cfNames.len().cint,
     cast[cstringArray](cfNames[0].addr),
@@ -137,12 +127,9 @@ proc openRocksDb*(
     cfHandles[0].addr,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors)
+  bailOnErrors(errors, dbOpts, readOpts, writeOpts, cfDescriptors = cfs)
 
   let
-    dbOpts = useDbOpts # don't close on exit
-    readOpts = (if readOpts.isNil: defaultReadOptions() else: readOpts)
-    writeOpts = (if writeOpts.isNil: defaultWriteOptions() else: writeOpts)
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
     db = RocksDbReadWriteRef(
       lock: createLock(),
@@ -151,6 +138,7 @@ proc openRocksDb*(
       dbOpts: dbOpts,
       readOpts: readOpts,
       writeOpts: writeOpts,
+      cfDescriptors: cfs,
       ingestOptsPtr: rocksdb_ingestexternalfileoptions_create(),
       defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
       cfTable: cfTable,
@@ -159,25 +147,24 @@ proc openRocksDb*(
 
 proc openRocksDbReadOnly*(
     path: string,
-    dbOpts = DbOptionsRef(nil),
-    readOpts = ReadOptionsRef(nil),
+    dbOpts = defaultDbOptions(autoClose = true),
+    readOpts = defaultReadOptions(autoClose = true),
     columnFamilies: openArray[ColFamilyDescriptor] = [],
     errorIfWalFileExists = false,
 ): RocksDBResult[RocksDbReadOnlyRef] =
   ## Open a RocksDB instance in read-only mode. If `columnFamilies` is empty
   ## then it will open the default column family. If `dbOpts` or `readOpts` are
-  ## not supplied then the default options will be used. By default, column
-  ## families will be created if they don't yet exist. If the database already
-  ## contains any column families, then all or a subset of the existing column
-  ## families can be opened for reading.
-  let useDbOpts = (if dbOpts.isNil: defaultDbOptions() else: dbOpts)
-  defer:
-    if dbOpts.isNil:
-      useDbOpts.close()
+  ## not supplied then the default options will be used.
+  ## These default options will be closed when the database is closed.
+  ## If any options are provided, they will need to be closed manually.
+  ##
+  ## By default, column families will be created if they don't yet exist.
+  ## If the database already contains any column families, then all or
+  ## a subset of the existing column families can be opened for reading.
 
   var cfs = columnFamilies.toSeq()
   if DEFAULT_COLUMN_FAMILY_NAME notin columnFamilies.mapIt(it.name()):
-    cfs.add(defaultColFamilyDescriptor())
+    cfs.add(defaultColFamilyDescriptor(autoClose = true))
 
   var
     cfNames = cfs.mapIt(it.name().cstring)
@@ -185,7 +172,7 @@ proc openRocksDbReadOnly*(
     cfHandles = newSeq[ColFamilyHandlePtr](cfs.len)
     errors: cstring
   let rocksDbPtr = rocksdb_open_for_read_only_column_families(
-    useDbOpts.cPtr,
+    dbOpts.cPtr,
     path.cstring,
     cfNames.len().cint,
     cast[cstringArray](cfNames[0].addr),
@@ -194,11 +181,9 @@ proc openRocksDbReadOnly*(
     errorIfWalFileExists.uint8,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors)
+  bailOnErrors(errors, dbOpts, readOpts, cfDescriptors = cfs)
 
   let
-    dbOpts = useDbOpts # don't close on exit
-    readOpts = (if readOpts.isNil: defaultReadOptions() else: readOpts)
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
     db = RocksDbReadOnlyRef(
       lock: createLock(),
@@ -206,6 +191,7 @@ proc openRocksDbReadOnly*(
       path: path,
       dbOpts: dbOpts,
       readOpts: readOpts,
+      cfDescriptors: cfs,
       defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
       cfTable: cfTable,
     )
@@ -414,15 +400,26 @@ proc close*(db: RocksDbRef) =
 
   withLock(db.lock):
     if not db.isClosed():
-      db.dbOpts.close()
-      db.readOpts.close()
+      # the column families should be closed before the database
       db.cfTable.close()
-
-      if db of RocksDbReadWriteRef:
-        let db = RocksDbReadWriteRef(db)
-        db.writeOpts.close()
-        rocksdb_ingestexternalfileoptions_destroy(db.ingestOptsPtr)
-        db.ingestOptsPtr = nil
 
       rocksdb_close(db.cPtr)
       db.cPtr = nil
+
+      # opts should be closed after the database is closed
+      if db.dbOpts.autoClose:
+        db.dbOpts.close()
+      if db.readOpts.autoClose:
+        db.readOpts.close()
+
+      for cfDesc in db.cfDescriptors:
+        if cfDesc.autoClose:
+          cfDesc.close()
+
+      if db of RocksDbReadWriteRef:
+        let db = RocksDbReadWriteRef(db)
+        if db.writeOpts.autoClose:
+          db.writeOpts.close()
+
+        rocksdb_ingestexternalfileoptions_destroy(db.ingestOptsPtr)
+        db.ingestOptsPtr = nil
