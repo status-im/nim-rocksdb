@@ -25,7 +25,7 @@ template autoCloseNonNil*(opts: typed) =
   if not opts.isNil and opts.autoClose:
     opts.close()
 
-template bailOnErrors*(
+template bailOnErrorsAutoCloseOpts*(
     errors: cstring,
     dbOpts: DbOptionsRef = nil,
     readOpts: ReadOptionsRef = nil,
@@ -45,6 +45,12 @@ template bailOnErrors*(
       if cfDesc.autoClose:
         cfDesc.close()
 
+    let res = err($(errors))
+    rocksdb_free(errors)
+    return res
+
+template bailOnErrors*(errors: cstring): auto =
+  if not errors.isNil:
     let res = err($(errors))
     rocksdb_free(errors)
     return res

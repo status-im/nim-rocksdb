@@ -77,7 +77,7 @@ proc listColumnFamilies*(path: string): RocksDBResult[seq[string]] =
     cfList = rocksdb_list_column_families(
       dbOpts.cPtr, path.cstring, addr cfLen, cast[cstringArray](errors.addr)
     )
-  bailOnErrors(errors, dbOpts)
+  bailOnErrorsAutoCloseOpts(errors, dbOpts)
 
   if cfList.isNil or cfLen == 0:
     return ok(newSeqOfCap[string](0))
@@ -127,7 +127,7 @@ proc openRocksDb*(
     cfHandles[0].addr,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors, dbOpts, readOpts, writeOpts, cfDescriptors = cfs)
+  bailOnErrorsAutoCloseOpts(errors, dbOpts, readOpts, writeOpts, cfDescriptors = cfs)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
@@ -181,7 +181,7 @@ proc openRocksDbReadOnly*(
     errorIfWalFileExists.uint8,
     cast[cstringArray](errors.addr),
   )
-  bailOnErrors(errors, dbOpts, readOpts, cfDescriptors = cfs)
+  bailOnErrorsAutoCloseOpts(errors, dbOpts, readOpts, cfDescriptors = cfs)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)

@@ -44,7 +44,7 @@ proc openSstFileWriter*(
   rocksdb_sstfilewriter_open(
     writer.cPtr, filePath.cstring, cast[cstringArray](errors.addr)
   )
-  bailOnErrors(errors, dbOpts)
+  bailOnErrorsAutoCloseOpts(errors, dbOpts)
 
   ok(writer)
 

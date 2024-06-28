@@ -39,7 +39,8 @@ proc openBackupEngine*(
   let backupEnginePtr = rocksdb_backup_engine_open(
     backupOpts.cPtr, path.cstring, cast[cstringArray](errors.addr)
   )
-  bailOnErrors(errors, backupOpts = backupOpts)
+
+  bailOnErrorsAutoCloseOpts(errors, backupOpts = backupOpts)
 
   let engine =
     BackupEngineRef(cPtr: backupEnginePtr, path: path, backupOpts: backupOpts)
