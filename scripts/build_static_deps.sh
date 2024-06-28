@@ -23,7 +23,7 @@ BUILD_DEST="${REPO_DIR}/build/lib"
 
 git submodule update --init
 
-if ${MAKE} -C "${ROCKSDB_LIB_DIR}" --dry-run static_lib | grep -q 'Nothing to be done'; then
+if ${MAKE} -C "${ROCKSDB_LIB_DIR}" --dry-run unity.a | grep -q "'unity.a' is up to date."; then
   echo "RocksDb static libraries already built. Skipping build."
   exit 0
 else
@@ -45,7 +45,7 @@ ${MAKE} -C "${ROCKSDB_LIB_DIR}" liblz4.a libzstd.a --no-print-directory > /dev/n
 export EXTRA_CFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
 export EXTRA_CXXFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
 
-${MAKE} -C "${ROCKSDB_LIB_DIR}" static_lib --no-print-directory > /dev/null
+${MAKE} -C "${ROCKSDB_LIB_DIR}" unity.a --no-print-directory > /dev/null
 
 #cat "${REPO_DIR}/vendor/rocksdb/make_config.mk"
 
@@ -53,4 +53,4 @@ mkdir -p "${BUILD_DEST}"
 
 cp "${ROCKSDB_LIB_DIR}/liblz4.a" "${BUILD_DEST}/"
 cp "${ROCKSDB_LIB_DIR}/libzstd.a" "${BUILD_DEST}/"
-cp "${ROCKSDB_LIB_DIR}/librocksdb.a" "${BUILD_DEST}/"
+cp "${ROCKSDB_LIB_DIR}/unity.a" "${BUILD_DEST}/librocksdb.a"
