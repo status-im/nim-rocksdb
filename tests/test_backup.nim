@@ -59,3 +59,33 @@ suite "BackupEngineRef Tests":
     check engine.isClosed()
     engine.close()
     check engine.isClosed()
+
+  test "Test auto close enabled":
+    let
+      backupOpts = defaultBackupEngineOptions(autoClose = true)
+      backupEngine = openBackupEngine(dbPath, backupOpts).get()
+
+    check:
+      backupOpts.isClosed() == false
+      backupEngine.isClosed() == false
+
+    backupEngine.close()
+
+    check:
+      backupOpts.isClosed() == true
+      backupEngine.isClosed() == true
+
+  test "Test auto close disabled":
+    let
+      backupOpts = defaultBackupEngineOptions(autoClose = false)
+      backupEngine = openBackupEngine(dbPath, backupOpts).get()
+
+    check:
+      backupOpts.isClosed() == false
+      backupEngine.isClosed() == false
+
+    backupEngine.close()
+
+    check:
+      backupOpts.isClosed() == false
+      backupEngine.isClosed() == true

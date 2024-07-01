@@ -1,5 +1,7 @@
 import ../lib/librocksdb, ../internal/utils, ./cache
 
+export cache
+
 type
   # TODO might eventually wrap this
   TableOptionsPtr* = ptr rocksdb_block_based_table_options_t

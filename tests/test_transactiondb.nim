@@ -202,21 +202,96 @@ suite "TransactionDbRef Tests":
     tx2.close()
     check tx2.isClosed()
 
-  test "Test auto close":
+  test "Test auto close enabled":
     let
-      dbPath = mkdtemp() / "autoclose"
-      dbOpts = defaultDbOptions(autoClose = false)
+      dbPath = mkdtemp() / "autoclose-enabled"
+      dbOpts = defaultDbOptions(autoClose = true)
       txDbOpts = defaultTransactionDbOptions(autoClose = true)
-      db = openTransactionDb(dbPath, dbOpts, txDbOpts).get()
+      columnFamilies =
+        @[
+          initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = true))
+        ]
+      db = openTransactionDb(dbPath, dbOpts, txDbOpts, columnFamilies).get()
 
     check:
       dbOpts.isClosed() == false
       txDbOpts.isClosed() == false
+      columnFamilies[0].isClosed() == false
+      db.isClosed() == false
+
+    db.close()
+
+    check:
+      dbOpts.isClosed() == true
+      txDbOpts.isClosed() == true
+      columnFamilies[0].isClosed() == true
+      db.isClosed() == true
+
+  test "Test auto close enabled":
+    let
+      dbPath = mkdtemp() / "autoclose-disabled"
+      dbOpts = defaultDbOptions(autoClose = false)
+      txDbOpts = defaultTransactionDbOptions(autoClose = false)
+      columnFamilies =
+        @[
+          initColFamilyDescriptor(
+            CF_DEFAULT, defaultColFamilyOptions(autoClose = false)
+          )
+        ]
+      db = openTransactionDb(dbPath, dbOpts, txDbOpts, columnFamilies).get()
+
+    check:
+      dbOpts.isClosed() == false
+      txDbOpts.isClosed() == false
+      columnFamilies[0].isClosed() == false
       db.isClosed() == false
 
     db.close()
 
     check:
       dbOpts.isClosed() == false
-      txDbOpts.isClosed() == true
+      txDbOpts.isClosed() == false
+      columnFamilies[0].isClosed() == false
       db.isClosed() == true
+
+  test "Test auto close tx enabled":
+    let
+      readOpts = defaultReadOptions(autoClose = true)
+      writeOpts = defaultWriteOptions(autoClose = true)
+      txOpts = defaultTransactionOptions(autoClose = true)
+      tx = db.beginTransaction(readOpts, writeOpts, txOpts)
+
+    check:
+      readOpts.isClosed() == false
+      writeOpts.isClosed() == false
+      txOpts.isClosed() == false
+      tx.isClosed() == false
+
+    tx.close()
+
+    check:
+      readOpts.isClosed() == true
+      writeOpts.isClosed() == true
+      txOpts.isClosed() == true
+      tx.isClosed() == true
+
+  test "Test auto close tx disabled":
+    let
+      readOpts = defaultReadOptions(autoClose = false)
+      writeOpts = defaultWriteOptions(autoClose = false)
+      txOpts = defaultTransactionOptions(autoClose = false)
+      tx = db.beginTransaction(readOpts, writeOpts, txOpts)
+
+    check:
+      readOpts.isClosed() == false
+      writeOpts.isClosed() == false
+      txOpts.isClosed() == false
+      tx.isClosed() == false
+
+    tx.close()
+
+    check:
+      readOpts.isClosed() == false
+      writeOpts.isClosed() == false
+      txOpts.isClosed() == false
+      tx.isClosed() == true

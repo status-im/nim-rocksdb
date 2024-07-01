@@ -380,7 +380,7 @@ suite "RocksDbRef Tests":
 
   test "Test auto close disabled":
     let
-      dbPath = mkdtemp() / "autoclose-enabled"
+      dbPath = mkdtemp() / "autoclose-disabled"
       dbOpts = defaultDbOptions(autoClose = false)
       readOpts = defaultReadOptions(autoClose = false)
       writeOpts = defaultWriteOptions(autoClose = false)

@@ -17,6 +17,7 @@ import
   ./options/test_dbopts,
   ./options/test_readopts,
   ./options/test_writeopts,
+  ./options/test_tableopts,
   ./transactions/test_txdbopts,
   ./transactions/test_txopts,
   ./test_backup,

@@ -11,12 +11,13 @@
 
 import ../lib/librocksdb, ../internal/utils, ../options/tableopts
 
+export tableopts
+
 type
   SlicetransformPtr* = ptr rocksdb_slicetransform_t
 
   SlicetransformRef* = ref object
     cPtr: SlicetransformPtr
-    autoClose*: bool # if true then close will be called when it's parent is closed
 
   ColFamilyOptionsPtr* = ptr rocksdb_options_t
 
@@ -25,7 +26,6 @@ type
     # type - CF options are a subset of rocksdb_options_t - when in doubt, check:
     # https://github.com/facebook/rocksdb/blob/b8c9a2576af6a1d0ffcfbb517dfcb7e7037bd460/include/rocksdb/options.h#L66
     cPtr: ColFamilyOptionsPtr
-    sliceTransform: SlicetransformRef
     tableOpts: TableOptionsRef
     autoClose*: bool # if true then close will be called when the database is closed
 
@@ -40,11 +40,8 @@ type
     xpressCompression = rocksdb_xpress_compression
     zstdCompression = rocksdb_zstd_compression
 
-proc createFixedPrefix*(value: int, autoClose = false): SlicetransformRef =
-  SlicetransformRef(
-    cPtr: rocksdb_slicetransform_create_fixed_prefix(value.csize_t),
-    autoClose: autoClose,
-  )
+proc createFixedPrefix*(value: int): SlicetransformRef =
+  SlicetransformRef(cPtr: rocksdb_slicetransform_create_fixed_prefix(value.csize_t))
 
 proc isClosed*(s: SlicetransformRef): bool {.inline.} =
   s.cPtr.isNil()
@@ -73,7 +70,6 @@ proc close*(cfOpts: ColFamilyOptionsRef) =
     rocksdb_options_destroy(cfOpts.cPtr)
     cfOpts.cPtr = nil
 
-    autoCloseNonNil(cfOpts.sliceTransform)
     autoCloseNonNil(cfOpts.tableOpts)
 
 template opt(nname, ntyp, ctyp: untyped) =
@@ -135,11 +131,14 @@ proc defaultColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
 
 proc `setPrefixExtractor`*(cfOpts: ColFamilyOptionsRef, value: SlicetransformRef) =
   doAssert not cfOpts.isClosed()
-  doAssert cfOpts.sliceTransform.isNil()
-    # don't allow overwriting an existing sliceTransform which could leak memory
 
+  # Destroys the existing slice transform if there is one attached to the column
+  # family options and takes ownership of the passed slice transform. After this call,
+  # the ColFamilyOptionsRef is responsible for cleaning up the policy when it is no
+  # longer needed so we set the filter policy to nil so that isClosed() will return true
+  # and prevent the filter policy from being double freed which was causing a seg fault.
   rocksdb_options_set_prefix_extractor(cfOpts.cPtr, value.cPtr)
-  cfOpts.sliceTransform = value
+  value.cPtr = nil
 
 proc `blockBasedTableFactory=`*(
     cfOpts: ColFamilyOptionsRef, tableOpts: TableOptionsRef

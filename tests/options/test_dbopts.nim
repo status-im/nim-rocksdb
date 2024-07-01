@@ -13,7 +13,7 @@ import unittest2, ../../rocksdb/options/dbopts
 
 suite "DbOptionsRef Tests":
   test "Test newDbOptions":
-    var dbOpts = newDbOptions()
+    let dbOpts = newDbOptions()
 
     check not dbOpts.cPtr.isNil()
 
@@ -28,10 +28,27 @@ suite "DbOptionsRef Tests":
     dbOpts.close()
 
   test "Test close":
-    var dbOpts = defaultDbOptions()
+    let dbOpts = defaultDbOptions()
 
     check not dbOpts.isClosed()
     dbOpts.close()
     check dbOpts.isClosed()
     dbOpts.close()
     check dbOpts.isClosed()
+
+  test "Test auto close enabled":
+    let
+      dbOpts = defaultDbOptions()
+      cache = cacheCreateLRU(1000, autoClose = true)
+
+    dbOpts.rowCache = cache
+
+    check:
+      dbOpts.isClosed() == false
+      cache.isClosed() == false
+
+    dbOpts.close()
+
+    check:
+      dbOpts.isClosed() == true
+      cache.isClosed() == true

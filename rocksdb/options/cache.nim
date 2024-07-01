@@ -10,6 +10,9 @@ type
 proc cacheCreateLRU*(size: int, autoClose = false): CacheRef =
   CacheRef(cPtr: rocksdb_cache_create_lru(size.csize_t), autoClose: autoClose)
 
+proc isClosed*(cache: CacheRef): bool =
+  isNil(cache.cPtr)
+
 proc close*(cache: CacheRef) =
   if cache.cPtr != nil:
     rocksdb_cache_destroy(cache.cPtr)
