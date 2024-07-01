@@ -21,7 +21,7 @@ type
     cache: CacheRef
     autoClose*: bool # if true then close will be called when the database is closed
 
-proc newDbOptions*(autoClose = false): DbOptionsRef =
+proc createDbOptions*(autoClose = false): DbOptionsRef =
   DbOptionsRef(cPtr: rocksdb_options_create(), autoClose: autoClose)
 
 proc isClosed*(dbOpts: DbOptionsRef): bool {.inline.} =
@@ -102,7 +102,7 @@ proc `rowCache=`*(dbOpts: DbOptionsRef, cache: CacheRef) =
   dbOpts.cache = cache
 
 proc defaultDbOptions*(autoClose = false): DbOptionsRef =
-  let opts: DbOptionsRef = newDbOptions(autoClose)
+  let opts: DbOptionsRef = createDbOptions(autoClose)
 
   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
   opts.increaseParallelism(countProcessors())

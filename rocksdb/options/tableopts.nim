@@ -7,14 +7,14 @@ type
   TableOptionsPtr* = ptr rocksdb_block_based_table_options_t
 
   TableOptionsRef* = ref object
-    cPtr*: TableOptionsPtr
+    cPtr: TableOptionsPtr
     cache: CacheRef
     autoClose*: bool # if true then close will be called when it's parent is closed
 
   FilterPolicyPtr* = ptr rocksdb_filterpolicy_t
 
   FilterPolicyRef* = ref object
-    cPtr*: FilterPolicyPtr
+    cPtr: FilterPolicyPtr
 
   IndexType* {.pure.} = enum
     binarySearch = rocksdb_block_based_table_index_type_binary_search
@@ -39,6 +39,10 @@ proc createRibbonHybrid*(
 proc isClosed*(policy: FilterPolicyRef): bool =
   isNil(policy.cPtr)
 
+proc cPtr*(policy: FilterPolicyRef): FilterPolicyPtr =
+  doAssert not policy.isClosed()
+  policy.cPtr
+
 proc close*(policy: FilterPolicyRef) =
   if not isClosed(policy):
     rocksdb_filterpolicy_destroy(policy.cPtr)
@@ -50,12 +54,9 @@ proc createTableOptions*(autoClose = false): TableOptionsRef =
 proc isClosed*(opts: TableOptionsRef): bool =
   isNil(opts.cPtr)
 
-proc close*(opts: TableOptionsRef) =
-  if not isClosed(opts):
-    rocksdb_block_based_options_destroy(opts.cPtr)
-    opts.cPtr = nil
-
-    autoCloseNonNil(opts.cache)
+proc cPtr*(opts: TableOptionsRef): TableOptionsPtr =
+  doAssert not opts.isClosed()
+  opts.cPtr
 
 template opt(nname, ntyp, ctyp: untyped) =
   proc `nname=`*(opts: TableOptionsRef, value: ntyp) =
@@ -109,3 +110,10 @@ proc defaultTableOptions*(autoClose = false): TableOptionsRef =
   opts.pinL0FilterAndIndexBlocksInCache = true
 
   opts
+
+proc close*(opts: TableOptionsRef) =
+  if not isClosed(opts):
+    rocksdb_block_based_options_destroy(opts.cPtr)
+    opts.cPtr = nil
+
+    autoCloseNonNil(opts.cache)

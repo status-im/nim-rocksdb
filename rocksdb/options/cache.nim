@@ -4,7 +4,7 @@ type
   CachePtr* = ptr rocksdb_cache_t
 
   CacheRef* = ref object
-    cPtr*: CachePtr
+    cPtr: CachePtr
     autoClose*: bool # if true then close will be called when it's parent is closed
 
 proc cacheCreateLRU*(size: int, autoClose = false): CacheRef =
@@ -12,6 +12,10 @@ proc cacheCreateLRU*(size: int, autoClose = false): CacheRef =
 
 proc isClosed*(cache: CacheRef): bool =
   isNil(cache.cPtr)
+
+proc cPtr*(cache: CacheRef): CachePtr =
+  doAssert not cache.isClosed()
+  cache.cPtr
 
 proc close*(cache: CacheRef) =
   if cache.cPtr != nil:

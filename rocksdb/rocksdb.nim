@@ -363,7 +363,7 @@ proc openWriteBatch*(
   ## Opens a `WriteBatchRef` which defaults to using the specified column family.
   doAssert not db.isClosed()
 
-  newWriteBatch(cfHandle)
+  createWriteBatch(cfHandle)
 
 proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
   ## Apply the updates in the `WriteBatchRef` to the database.

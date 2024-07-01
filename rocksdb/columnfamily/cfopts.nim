@@ -55,7 +55,7 @@ proc close*(s: SlicetransformRef) =
     rocksdb_slicetransform_destroy(s.cPtr)
     s.cPtr = nil
 
-proc newColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
+proc createColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
   ColFamilyOptionsRef(cPtr: rocksdb_options_create(), autoClose: autoClose)
 
 proc isClosed*(cfOpts: ColFamilyOptionsRef): bool {.inline.} =
@@ -122,7 +122,7 @@ opt blobCompactionReadaheadSize, int, uint64
 opt blobFileStartingLevel, int, cint
 
 proc defaultColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
-  newColFamilyOptions(autoClose)
+  createColFamilyOptions(autoClose)
 
 # proc setFixedPrefixExtractor*(dbOpts: ColFamilyOptionsRef, length: int) =
 #   doAssert not dbOpts.isClosed()

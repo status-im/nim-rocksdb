@@ -13,7 +13,7 @@ import unittest2, ../../rocksdb/options/dbopts
 
 suite "DbOptionsRef Tests":
   test "Test newDbOptions":
-    let dbOpts = newDbOptions()
+    let dbOpts = createDbOptions()
 
     check not dbOpts.cPtr.isNil()
 

@@ -18,7 +18,7 @@ type
     cPtr: WriteOptionsPtr
     autoClose*: bool # if true then close will be called when the database is closed
 
-proc newWriteOptions*(autoClose = false): WriteOptionsRef =
+proc createWriteOptions*(autoClose = false): WriteOptionsRef =
   WriteOptionsRef(cPtr: rocksdb_writeoptions_create(), autoClose: autoClose)
 
 proc isClosed*(writeOpts: WriteOptionsRef): bool {.inline.} =
@@ -31,7 +31,7 @@ proc cPtr*(writeOpts: WriteOptionsRef): WriteOptionsPtr =
 # TODO: Add setters and getters for write options properties.
 
 proc defaultWriteOptions*(autoClose = false): WriteOptionsRef {.inline.} =
-  newWriteOptions(autoClose)
+  createWriteOptions(autoClose)
   # TODO: set prefered defaults
 
 proc close*(writeOpts: WriteOptionsRef) =

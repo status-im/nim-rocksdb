@@ -13,7 +13,7 @@ import unittest2, ../../rocksdb/options/readopts
 
 suite "ReadOptionsRef Tests":
   test "Test newReadOptions":
-    var readOpts = newReadOptions()
+    var readOpts = createReadOptions()
 
     check not readOpts.cPtr.isNil()
 

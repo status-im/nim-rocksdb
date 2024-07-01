@@ -13,7 +13,7 @@ import unittest2, ../../rocksdb/options/writeopts
 
 suite "WriteOptionsRef Tests":
   test "Test newWriteOptions":
-    var writeOpts = newWriteOptions()
+    var writeOpts = createWriteOptions()
 
     check not writeOpts.cPtr.isNil()
 
