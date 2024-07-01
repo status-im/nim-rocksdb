@@ -417,10 +417,7 @@ proc close*(db: RocksDbRef) =
       # opts should be closed after the database is closed
       autoCloseNonNil(db.dbOpts)
       autoCloseNonNil(db.readOpts)
-
-      for cfDesc in db.cfDescriptors:
-        if cfDesc.autoClose:
-          cfDesc.close()
+      autoCloseAll(db.cfDescriptors)
 
       if db of RocksDbReadWriteRef:
         let db = RocksDbReadWriteRef(db)
