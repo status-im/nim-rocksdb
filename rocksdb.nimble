@@ -22,10 +22,13 @@ task clean, "Remove temporary files":
   exec "make -C vendor/rocksdb clean"
 
 task test, "Run tests":
+  let runTests = "nim c -r --threads:on tests/test_all.nim"
+  when defined(linux):
+    exec "export LD_LIBRARY_PATH=build; " & runTests
+  when defined(macosx):
+    exec "export DYLD_LIBRARY_PATH=build; " & runTests
   when defined(windows):
-    exec "nim c -r --threads:on tests/test_all.nim"
-  else:
-    exec "export LD_LIBRARY_PATH=build; nim c -r --threads:on tests/test_all.nim"
+    exec runTests
 
 task test_static, "Run tests after static linking dependencies":
   when defined(windows):
