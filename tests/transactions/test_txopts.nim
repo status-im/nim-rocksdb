@@ -13,7 +13,7 @@ import unittest2, ../../rocksdb/transactions/txopts
 
 suite "TransactionOptionsRef Tests":
   test "Test newTransactionOptions":
-    var txOpts = newTransactionOptions()
+    var txOpts = createTransactionOptions()
 
     check not txOpts.cPtr.isNil()
 

@@ -1,20 +1,20 @@
 import ../lib/librocksdb, ../internal/utils, ./cache
 
+export cache
+
 type
   # TODO might eventually wrap this
   TableOptionsPtr* = ptr rocksdb_block_based_table_options_t
 
   TableOptionsRef* = ref object
-    cPtr*: TableOptionsPtr
+    cPtr: TableOptionsPtr
     cache: CacheRef
-    filterPolicy: FilterPolicyRef
     autoClose*: bool # if true then close will be called when it's parent is closed
 
   FilterPolicyPtr* = ptr rocksdb_filterpolicy_t
 
   FilterPolicyRef* = ref object
-    cPtr*: FilterPolicyPtr
-    autoClose*: bool # if true then close will be called when it's parent is closed
+    cPtr: FilterPolicyPtr
 
   IndexType* {.pure.} = enum
     binarySearch = rocksdb_block_based_table_index_type_binary_search
@@ -27,20 +27,21 @@ type
       rocksdb_block_based_table_data_block_index_type_binary_search_and_hash
 
 proc createRibbon*(bitsPerKey: float, autoClose = false): FilterPolicyRef =
-  FilterPolicyRef(
-    cPtr: rocksdb_filterpolicy_create_ribbon(bitsPerKey), autoClose: autoClose
-  )
+  FilterPolicyRef(cPtr: rocksdb_filterpolicy_create_ribbon(bitsPerKey))
 
 proc createRibbonHybrid*(
     bitsPerKey: float, bloomBeforeLevel: int = 0, autoClose = false
 ): FilterPolicyRef =
   FilterPolicyRef(
-    cPtr: rocksdb_filterpolicy_create_ribbon_hybrid(bitsPerKey, bloomBeforeLevel.cint),
-    autoClose: autoClose,
+    cPtr: rocksdb_filterpolicy_create_ribbon_hybrid(bitsPerKey, bloomBeforeLevel.cint)
   )
 
 proc isClosed*(policy: FilterPolicyRef): bool =
   isNil(policy.cPtr)
+
+proc cPtr*(policy: FilterPolicyRef): FilterPolicyPtr =
+  doAssert not policy.isClosed()
+  policy.cPtr
 
 proc close*(policy: FilterPolicyRef) =
   if not isClosed(policy):
@@ -53,13 +54,9 @@ proc createTableOptions*(autoClose = false): TableOptionsRef =
 proc isClosed*(opts: TableOptionsRef): bool =
   isNil(opts.cPtr)
 
-proc close*(opts: TableOptionsRef) =
-  if not isClosed(opts):
-    rocksdb_block_based_options_destroy(opts.cPtr)
-    opts.cPtr = nil
-
-    autoCloseNonNil(opts.cache)
-    autoCloseNonNil(opts.filterPolicy)
+proc cPtr*(opts: TableOptionsRef): TableOptionsPtr =
+  doAssert not opts.isClosed()
+  opts.cPtr
 
 template opt(nname, ntyp, ctyp: untyped) =
   proc `nname=`*(opts: TableOptionsRef, value: ntyp) =
@@ -95,11 +92,15 @@ proc `blockCache=`*(opts: TableOptionsRef, cache: CacheRef) =
 
 proc `filterPolicy=`*(opts: TableOptionsRef, policy: FilterPolicyRef) =
   doAssert not opts.isClosed()
-  doAssert opts.filterPolicy.isNil()
-    # don't allow overwriting an existing policy which could leak memory
 
+  # Destroys the existing policy if there is one attached to the table options
+  # and takes ownership of the passed in policy. After this call, the TableOptionsRef
+  # is responsible for cleaning up the policy when it is no longer needed
+  # so we set the filter policy to nil so that isClosed() will return true
+  # and prevent the filter policy from being double freed which was causing a seg fault.
+  # See here: https://github.com/facebook/rocksdb/blob/22fe23edc89e9842ed72b613de172cd80d3b00da/include/rocksdb/filter_policy.h#L152
   rocksdb_block_based_options_set_filter_policy(opts.cPtr, policy.cPtr)
-  opts.filterPolicy = policy
+  policy.cPtr = nil
 
 proc defaultTableOptions*(autoClose = false): TableOptionsRef =
   # https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning#other-general-options
@@ -109,3 +110,10 @@ proc defaultTableOptions*(autoClose = false): TableOptionsRef =
   opts.pinL0FilterAndIndexBlocksInCache = true
 
   opts
+
+proc close*(opts: TableOptionsRef) =
+  if not isClosed(opts):
+    rocksdb_block_based_options_destroy(opts.cPtr)
+    opts.cPtr = nil
+
+    autoCloseNonNil(opts.cache)

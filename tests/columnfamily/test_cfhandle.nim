@@ -44,7 +44,7 @@ suite "ColFamilyHandleRef Tests":
     removeDir($dbPath)
 
   test "Test newColFamilyHandle":
-    var cfHandle = newColFamilyHandle(cfHandlePtr)
+    let cfHandle = newColFamilyHandle(cfHandlePtr)
 
     check:
       not cfHandle.cPtr.isNil()
@@ -53,7 +53,7 @@ suite "ColFamilyHandleRef Tests":
     cfHandle.close()
 
   test "Test close":
-    var cfHandle = newColFamilyHandle(cfHandlePtr)
+    let cfHandle = newColFamilyHandle(cfHandlePtr)
 
     check not cfHandle.isClosed()
     cfHandle.close()

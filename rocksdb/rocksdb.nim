@@ -363,7 +363,7 @@ proc openWriteBatch*(
   ## Opens a `WriteBatchRef` which defaults to using the specified column family.
   doAssert not db.isClosed()
 
-  newWriteBatch(cfHandle)
+  createWriteBatch(cfHandle)
 
 proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
   ## Apply the updates in the `WriteBatchRef` to the database.
@@ -417,10 +417,7 @@ proc close*(db: RocksDbRef) =
       # opts should be closed after the database is closed
       autoCloseNonNil(db.dbOpts)
       autoCloseNonNil(db.readOpts)
-
-      for cfDesc in db.cfDescriptors:
-        if cfDesc.autoClose:
-          cfDesc.close()
+      autoCloseAll(db.cfDescriptors)
 
       if db of RocksDbReadWriteRef:
         let db = RocksDbReadWriteRef(db)

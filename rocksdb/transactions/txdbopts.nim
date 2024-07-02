@@ -18,7 +18,7 @@ type
     cPtr: TransactionDbOptionsPtr
     autoClose*: bool # if true then close will be called when the database is closed
 
-proc newTransactionDbOptions*(autoClose = false): TransactionDbOptionsRef =
+proc createTransactionDbOptions*(autoClose = false): TransactionDbOptionsRef =
   TransactionDbOptionsRef(
     cPtr: rocksdb_transactiondb_options_create(), autoClose: autoClose
   )
@@ -35,7 +35,7 @@ proc cPtr*(txDbOpts: TransactionDbOptionsRef): TransactionDbOptionsPtr =
 proc defaultTransactionDbOptions*(
     autoClose = false
 ): TransactionDbOptionsRef {.inline.} =
-  newTransactionDbOptions(autoClose)
+  createTransactionDbOptions(autoClose)
   # TODO: set prefered defaults
 
 proc close*(txDbOpts: TransactionDbOptionsRef) =

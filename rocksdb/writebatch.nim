@@ -22,7 +22,7 @@ type
     cPtr: WriteBatchPtr
     defaultCfHandle: ColFamilyHandleRef
 
-proc newWriteBatch*(defaultCfHandle: ColFamilyHandleRef): WriteBatchRef =
+proc createWriteBatch*(defaultCfHandle: ColFamilyHandleRef): WriteBatchRef =
   WriteBatchRef(cPtr: rocksdb_writebatch_create(), defaultCfHandle: defaultCfHandle)
 
 proc isClosed*(batch: WriteBatchRef): bool {.inline.} =

@@ -18,7 +18,7 @@ type
     cPtr: ReadOptionsPtr
     autoClose*: bool # if true then close will be called when the database is closed
 
-proc newReadOptions*(autoClose = false): ReadOptionsRef =
+proc createReadOptions*(autoClose = false): ReadOptionsRef =
   ReadOptionsRef(cPtr: rocksdb_readoptions_create(), autoClose: autoClose)
 
 proc isClosed*(readOpts: ReadOptionsRef): bool {.inline.} =
@@ -31,7 +31,7 @@ proc cPtr*(readOpts: ReadOptionsRef): ReadOptionsPtr =
 # TODO: Add setters and getters for read options properties.
 
 proc defaultReadOptions*(autoClose = false): ReadOptionsRef {.inline.} =
-  newReadOptions(autoClose)
+  createReadOptions(autoClose)
   # TODO: set prefered defaults
 
 proc close*(readOpts: ReadOptionsRef) =

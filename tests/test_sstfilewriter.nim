@@ -86,3 +86,33 @@ suite "SstFileWriterRef Tests":
     check writer.isClosed()
     writer.close()
     check writer.isClosed()
+
+  test "Test auto close enabled":
+    let
+      dbOpts = defaultDbOptions(autoClose = true)
+      writer = openSstFileWriter(sstFilePath, dbOpts).get()
+
+    check:
+      dbOpts.isClosed() == false
+      writer.isClosed() == false
+
+    writer.close()
+
+    check:
+      dbOpts.isClosed() == true
+      writer.isClosed() == true
+
+  test "Test auto close disabled":
+    let
+      dbOpts = defaultDbOptions(autoClose = false)
+      writer = openSstFileWriter(sstFilePath, dbOpts).get()
+
+    check:
+      dbOpts.isClosed() == false
+      writer.isClosed() == false
+
+    writer.close()
+
+    check:
+      dbOpts.isClosed() == false
+      writer.isClosed() == true

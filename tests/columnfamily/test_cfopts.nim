@@ -20,3 +20,45 @@ suite "ColFamilyOptionsRef Tests":
     check cfOpts.isClosed()
     cfOpts.close()
     check cfOpts.isClosed()
+
+  test "Test auto close enabled":
+    let
+      cfOpts = defaultColFamilyOptions()
+      tableOpts = defaultTableOptions(autoClose = true)
+      sliceTransform = createFixedPrefix(1000)
+
+    cfOpts.blockBasedTableFactory = tableOpts
+    cfOpts.setPrefixExtractor(sliceTransform)
+
+    check:
+      cfOpts.isClosed() == false
+      tableOpts.isClosed() == false
+      sliceTransform.isClosed() == true # closed because tableopts takes ownership
+
+    cfOpts.close()
+
+    check:
+      cfOpts.isClosed() == true
+      tableOpts.isClosed() == true
+      sliceTransform.isClosed() == true
+
+  test "Test auto close disabled":
+    let
+      cfOpts = defaultColFamilyOptions()
+      tableOpts = defaultTableOptions(autoClose = false)
+      sliceTransform = createFixedPrefix(1000)
+
+    cfOpts.blockBasedTableFactory = tableOpts
+    cfOpts.setPrefixExtractor(sliceTransform)
+
+    check:
+      cfOpts.isClosed() == false
+      tableOpts.isClosed() == false
+      sliceTransform.isClosed() == true # closed because tableopts takes ownership
+
+    cfOpts.close()
+
+    check:
+      cfOpts.isClosed() == true
+      tableOpts.isClosed() == false
+      sliceTransform.isClosed() == true
