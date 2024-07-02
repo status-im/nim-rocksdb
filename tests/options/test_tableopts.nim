@@ -36,45 +36,43 @@ suite "TableOptionsRef Tests":
     check tableOpts.isClosed()
 
   test "Test auto close enabled":
-    # TODO: enable filter policy once creating updated DLL build
     let
       tableOpts = defaultTableOptions()
       cache = cacheCreateLRU(1000, autoClose = true)
-      # filter = createRibbon(9.9, autoClose = true)
+      filter = createRibbon(9.9)
 
     tableOpts.blockCache = cache
-    # tableOpts.filterPolicy = filter
+    tableOpts.filterPolicy = filter
 
     check:
       tableOpts.isClosed() == false
       cache.isClosed() == false
-      # filter.isClosed() == true # closed because tableopts takes ownership
+      filter.isClosed() == true # closed because tableopts takes ownership
 
     tableOpts.close()
 
     check:
       tableOpts.isClosed() == true
       cache.isClosed() == true
-      # filter.isClosed() == true
+      filter.isClosed() == true
 
   test "Test auto close disabled":
-    # TODO: enable filter policy once creating updated DLL build
     let
       tableOpts = defaultTableOptions()
       cache = cacheCreateLRU(1000, autoClose = false)
-      # filter = createRibbon(9.9, autoClose = true)
+      filter = createRibbon(9.9)
 
     tableOpts.blockCache = cache
-    # tableOpts.filterPolicy = filter
+    tableOpts.filterPolicy = filter
 
     check:
       tableOpts.isClosed() == false
       cache.isClosed() == false
-      # filter.isClosed() == true # closed because tableopts takes ownership
+      filter.isClosed() == true # closed because tableopts takes ownership
 
     tableOpts.close()
 
     check:
       tableOpts.isClosed() == true
       cache.isClosed() == false
-      # filter.isClosed() == true
+      filter.isClosed() == true

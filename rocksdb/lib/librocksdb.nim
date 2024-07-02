@@ -24,10 +24,6 @@
 
 {.push raises: [].}
 
-proc shouldUseNativeLinking(): bool {.compileTime.} =
-  when defined(linux):
-    return true
-
 type
   rocksdb_t* = object
   rocksdb_backup_engine_t* = object
@@ -108,10 +104,6 @@ when defined(rocksdb_static_linking):
   when defined(windows):
     {.passl: "-lshlwapi -lrpcrt4".}
 else:
-  when shouldUseNativeLinking():
-    {.pragma: importrocks, importc, cdecl.}
-    {.passl: "-lrocksdb".}
-  else:
-    {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
+  {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
 
 include ./rocksdb_gen.nim

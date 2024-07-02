@@ -26,11 +26,11 @@ type
     binarySearchAndHash =
       rocksdb_block_based_table_data_block_index_type_binary_search_and_hash
 
-proc createRibbon*(bitsPerKey: float, autoClose = false): FilterPolicyRef =
+proc createRibbon*(bitsPerKey: float): FilterPolicyRef =
   FilterPolicyRef(cPtr: rocksdb_filterpolicy_create_ribbon(bitsPerKey))
 
 proc createRibbonHybrid*(
-    bitsPerKey: float, bloomBeforeLevel: int = 0, autoClose = false
+    bitsPerKey: float, bloomBeforeLevel: int = 0
 ): FilterPolicyRef =
   FilterPolicyRef(
     cPtr: rocksdb_filterpolicy_create_ribbon_hybrid(bitsPerKey, bloomBeforeLevel.cint)

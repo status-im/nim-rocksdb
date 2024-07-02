@@ -66,59 +66,6 @@ jobs:
         with:
           submodules: true
 
-      - name: Install build dependencies (Linux i386)
-        if: runner.os == 'Linux' && matrix.target.cpu == 'i386'
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-fast update -qq
-          sudo DEBIAN_FRONTEND='noninteractive' apt-fast install \
-            --no-install-recommends -yq gcc-multilib g++-multilib \
-            libz-dev:i386 libbz2-dev:i386 libssl-dev:i386 liblz4-dev:i386
-          mkdir -p external/bin
-          cat << EOF > external/bin/gcc
-          #!/bin/bash
-          exec $(which gcc) -m32 "\$@"
-          EOF
-          cat << EOF > external/bin/g++
-          #!/bin/bash
-          exec $(which g++) -m32 "\$@"
-          EOF
-          chmod 755 external/bin/gcc external/bin/g++
-          echo '${{ github.workspace }}/external/bin' >> $GITHUB_PATH
-
-      - name: Restore rocksdb from cache (Linux + macOS)
-        if: runner.os != 'Windows'
-        id: rocksdb-cache
-        uses: actions/cache@v4
-        with:
-          path: rocks-db-cache-${{ matrix.target.cpu }}
-          key: 'rocksdb-v1-${{ matrix.target.os }}-${{ matrix.target.cpu }}'
-
-      - name: Build and install rocksdb (Linux i386 + macOS)
-        # no librocksdb-dev:i386
-        if: (runner.os == 'Linux' && matrix.target.cpu == 'i386') || runner.os == 'Macos'
-        run: |
-          curl -O -L -s -S https://raw.githubusercontent.com/status-im/nimbus-build-system/master/scripts/build_rocksdb.sh
-          bash build_rocksdb.sh rocks-db-cache-${{ matrix.target.cpu }}
-
-      - name: Install rocksdb (Linux amd64)
-        # mysterious illegal instruction error if we build our own librocksdb
-        if: runner.os == 'Linux' && matrix.target.cpu == 'amd64'
-        run: |
-         sudo apt-get -q update
-         sudo apt-get install -y librocksdb-dev
-
-      - name: MSYS2 (Windows i386)
-        if: runner.os == 'Windows' && matrix.target.cpu == 'i386'
-        uses: msys2/setup-msys2@v2
-        with:
-          path-type: inherit
-          msystem: MINGW32
-          install: >-
-            base-devel
-            git
-            mingw-w64-i686-toolchain
-
       - name: MSYS2 (Windows amd64)
         if: runner.os == 'Windows' && matrix.target.cpu == 'amd64'
         uses: msys2/setup-msys2@v2
@@ -129,27 +76,27 @@ jobs:
             git
             mingw-w64-x86_64-toolchain
 
-      - name: Install DLL dependencies (Windows)
-        if: >
-          runner.os == 'Windows'
-        run: |
-          if [[ '${{ matrix.target.cpu }}' == 'amd64' ]]; then
-            ROCKSDBSUB=x64
-          else
-            ROCKSDBSUB=x86
-          fi
-          DLLPATH="external/dlls-${{ matrix.target.cpu }}"
-          mkdir -p ${DLLPATH}
+      # - name: Install DLL dependencies (Windows)
+      #   if: >
+      #     runner.os == 'Windows'
+      #   run: |
+      #     if [[ '${{ matrix.target.cpu }}' == 'amd64' ]]; then
+      #       ROCKSDBSUB=x64
+      #     else
+      #       ROCKSDBSUB=x86
+      #     fi
+      #     DLLPATH="external/dlls-${{ matrix.target.cpu }}"
+      #     mkdir -p ${DLLPATH}
 
-          # ROCKSDB
-          ./scripts/build_dlls_windows.sh
-          cp ./build/librocksdb.dll "${DLLPATH}/librocksdb.dll"
+      #     # ROCKSDB
+      #     ./scripts/build_dlls_windows.sh
+      #     cp ./build/librocksdb.dll "${DLLPATH}/librocksdb.dll"
 
-      - name: Path to cached dependencies (Windows)
-        if: >
-          runner.os == 'Windows'
-        run: |
-          echo '${{ github.workspace }}'"/external/dlls-${{ matrix.target.cpu }}" >> $GITHUB_PATH
+      # - name: Path to cached dependencies (Windows)
+      #   if: >
+      #     runner.os == 'Windows'
+      #   run: |
+      #     echo '${{ github.workspace }}'"/external/dlls-${{ matrix.target.cpu }}" >> $GITHUB_PATH
 
       - name: Derive environment variables
         run: |
