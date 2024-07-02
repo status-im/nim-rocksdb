@@ -20,10 +20,9 @@ suite "DbOptionsRef Tests":
     dbOpts.maxOpenFiles = 10
     dbOpts.createMissingColumnFamilies = false
 
-    # TODO rocksdb 5.17.2 used in some tests has no getters for settings exposed!
-    # check:
-    #   dbOpts.maxOpenFiles == 10
-    #   not dbOpts.createMissingColumnFamilies
+    check:
+      dbOpts.maxOpenFiles == 10
+      not dbOpts.createMissingColumnFamilies
 
     dbOpts.close()
 
@@ -36,20 +35,19 @@ suite "DbOptionsRef Tests":
     dbOpts.close()
     check dbOpts.isClosed()
 
-  # This is currently failing in MacOS CI due to older version of RocksDb
-  # test "Test auto close enabled":
-  #   let
-  #     dbOpts = defaultDbOptions()
-  #     cache = cacheCreateLRU(1000, autoClose = true)
+  test "Test auto close enabled":
+    let
+      dbOpts = defaultDbOptions()
+      cache = cacheCreateLRU(1000, autoClose = true)
 
-  #   dbOpts.rowCache = cache
+    dbOpts.rowCache = cache
 
-  #   check:
-  #     dbOpts.isClosed() == false
-  #     cache.isClosed() == false
+    check:
+      dbOpts.isClosed() == false
+      cache.isClosed() == false
 
-  #   dbOpts.close()
+    dbOpts.close()
 
-  #   check:
-  #     dbOpts.isClosed() == true
-  #     cache.isClosed() == true
+    check:
+      dbOpts.isClosed() == true
+      cache.isClosed() == true
