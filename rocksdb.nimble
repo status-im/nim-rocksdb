@@ -41,4 +41,4 @@ before install:
   when defined(macosx):
     exec "scripts/build_shared_deps_osx.sh"
   when defined(windows):
-    exec "scripts/build_dlls_windows.bat"
+    exec ".\\scripts\\build_dlls_windows.bat"
