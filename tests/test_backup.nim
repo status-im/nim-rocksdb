@@ -28,6 +28,7 @@ suite "BackupEngineRef Tests":
     db.close()
     removeDir($dbPath)
     removeDir($dbBackupPath)
+    removeDir($dbRestorePath)
 
   test "Test backup":
     var engine = initBackupEngine(dbBackupPath)
@@ -62,7 +63,7 @@ suite "BackupEngineRef Tests":
 
   test "Test auto close enabled":
     let
-      backupOpts = defaultBackupEngineOptions(autoClose = true)
+      backupOpts = defaultBackupEngineOptions(dbPath, autoClose = true)
       backupEngine = openBackupEngine(dbPath, backupOpts).get()
 
     check:
@@ -77,7 +78,7 @@ suite "BackupEngineRef Tests":
 
   test "Test auto close disabled":
     let
-      backupOpts = defaultBackupEngineOptions(autoClose = false)
+      backupOpts = defaultBackupEngineOptions(dbPath, autoClose = false)
       backupEngine = openBackupEngine(dbPath, backupOpts).get()
 
     check:

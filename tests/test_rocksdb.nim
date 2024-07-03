@@ -407,3 +407,25 @@ suite "RocksDbRef Tests":
       writeOpts.isClosed() == false
       columnFamilies[0].isClosed() == false
       db.isClosed() == true
+
+  test "Test compression libraries linked":
+    let
+      dbPath = mkdtemp() / "compression"
+      cfOpts = defaultColFamilyOptions(autoClose = false)
+      cfDescriptor = initColFamilyDescriptor(CF_DEFAULT, cfOpts)
+
+    cfOpts.compression = lz4Compression
+    check cfOpts.compression == lz4Compression
+    let cfDescriptor = initColFamilyDescriptor(CF_DEFAULT, cfOpts)
+    let db1 = openRocksDb(dbPath, columnFamilies = @[cfDescriptor]).get()
+    check db1.put(key, val).isOk()
+    db1.close()
+
+    cfOpts.compression = zstdCompression
+    check cfOpts.compression == zstdCompression
+    let db2 = openRocksDb(dbPath, columnFamilies = @[cfDescriptor]).get()
+    check db2.put(key, val).isOk()
+    db2.close()
+
+    cfOpts.close()
+    removeDir($dbPath)

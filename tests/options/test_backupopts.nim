@@ -13,21 +13,21 @@ import unittest2, ../../rocksdb/options/backupopts
 
 suite "BackupEngineOptionsRef Tests":
   test "Test newBackupEngineOptions":
-    var backupOpts = createBackupEngineOptions()
+    let backupOpts = createBackupEngineOptions(".")
 
     check not backupOpts.cPtr.isNil()
 
     backupOpts.close()
 
   test "Test defaultBackupEngineOptions":
-    var backupOpts = defaultBackupEngineOptions()
+    let backupOpts = defaultBackupEngineOptions()
 
     check not backupOpts.cPtr.isNil()
 
     backupOpts.close()
 
   test "Test close":
-    var backupOpts = defaultBackupEngineOptions()
+    let backupOpts = defaultBackupEngineOptions()
 
     check not backupOpts.isClosed()
     backupOpts.close()
