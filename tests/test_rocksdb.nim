@@ -416,7 +416,6 @@ suite "RocksDbRef Tests":
 
     cfOpts.compression = lz4Compression
     check cfOpts.compression == lz4Compression
-    let cfDescriptor = initColFamilyDescriptor(CF_DEFAULT, cfOpts)
     let db1 = openRocksDb(dbPath, columnFamilies = @[cfDescriptor]).get()
     check db1.put(key, val).isOk()
     db1.close()

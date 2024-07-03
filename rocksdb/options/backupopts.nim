@@ -32,16 +32,24 @@ proc cPtr*(backupOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
   doAssert not backupOpts.isClosed()
   backupOpts.cPtr
 
-# template opt(nname, ntyp, ctyp: untyped) =
-#   proc `nname=`*(backupOpts: BackupEngineOptionsRef, value: ntyp) =
-#     doAssert not backupOpts.isClosed()
-#     `rocksdb_options_set nname`(backupOpts.cPtr, value.ctyp)
+template opt(nname, ntyp, ctyp: untyped) =
+  proc `nname=`*(backupOpts: BackupEngineOptionsRef, value: ntyp) =
+    doAssert not backupOpts.isClosed()
+    `rocksdb_backup_engine_options_set nname`(backupOpts.cPtr, value.ctyp)
 
-#   proc `nname`*(backupOpts: BackupEngineOptionsRef): ntyp =
-#     doAssert not backupOpts.isClosed()
-#     ntyp `rocksdb_options_get nname`(backupOpts.cPtr)
+  proc `nname`*(backupOpts: BackupEngineOptionsRef): ntyp =
+    doAssert not backupOpts.isClosed()
+    ntyp `rocksdb_backup_engine_options_get nname`(backupOpts.cPtr)
 
-# opt shareTableFiles, bool, uint8
+opt shareTableFiles, bool, uint8
+opt sync, bool, uint8
+opt destroyOldData, bool, uint8
+opt backupLogFiles, bool, uint8
+opt backupRateLimit, int, uint64
+opt restoreRateLimit, int, uint64
+opt shareFilesWithChecksumNaming, bool, cint
+opt maxBackgroundOperations, int, cint
+opt callbackTriggerIntervalSize, int, uint64
 
 proc defaultBackupEngineOptions*(
     backupDir: string, autoClose = false

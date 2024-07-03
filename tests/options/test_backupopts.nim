@@ -20,14 +20,14 @@ suite "BackupEngineOptionsRef Tests":
     backupOpts.close()
 
   test "Test defaultBackupEngineOptions":
-    let backupOpts = defaultBackupEngineOptions()
+    let backupOpts = defaultBackupEngineOptions(".")
 
     check not backupOpts.cPtr.isNil()
 
     backupOpts.close()
 
   test "Test close":
-    let backupOpts = defaultBackupEngineOptions()
+    let backupOpts = defaultBackupEngineOptions(".")
 
     check not backupOpts.isClosed()
     backupOpts.close()
