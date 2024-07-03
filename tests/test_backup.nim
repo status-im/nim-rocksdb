@@ -21,8 +21,7 @@ suite "BackupEngineRef Tests":
       dbPath = mkdtemp() / "data"
       dbBackupPath = mkdtemp() / "backup"
       dbRestorePath = mkdtemp() / "restore"
-
-    var db = initReadWriteDb(dbPath)
+      db = initReadWriteDb(dbPath)
 
   teardown:
     db.close()
@@ -31,7 +30,7 @@ suite "BackupEngineRef Tests":
     removeDir($dbRestorePath)
 
   test "Test backup":
-    var engine = initBackupEngine(dbBackupPath)
+    let engine = initBackupEngine(dbBackupPath)
 
     check:
       db.put(key, val).isOk()
@@ -47,13 +46,12 @@ suite "BackupEngineRef Tests":
 
     let db2 = initReadWriteDb(dbRestorePath)
     check db2.keyExists(key).value()
+    db2.close()
 
     engine.close()
 
   test "Test close":
-    let res = openBackupEngine(dbPath)
-    doAssert res.isOk()
-    var engine = res.get()
+    let engine = openBackupEngine(dbPath).get()
 
     check not engine.isClosed()
     engine.close()

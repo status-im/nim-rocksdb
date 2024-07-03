@@ -43,8 +43,10 @@ setOpt maxWriteBatchSize, int, csize_t
 setOpt skipPrepare, bool, uint8
 
 proc defaultTransactionOptions*(autoClose = false): TransactionOptionsRef {.inline.} =
-  createTransactionOptions(autoClose)
+  let txOpts = createTransactionOptions(autoClose)
+
   # TODO: set prefered defaults
+  txOpts
 
 proc close*(txOpts: TransactionOptionsRef) =
   if not txOpts.isClosed():
