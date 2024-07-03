@@ -76,28 +76,6 @@ jobs:
             git
             mingw-w64-x86_64-toolchain
 
-      # - name: Install DLL dependencies (Windows)
-      #   if: >
-      #     runner.os == 'Windows'
-      #   run: |
-      #     if [[ '${{ matrix.target.cpu }}' == 'amd64' ]]; then
-      #       ROCKSDBSUB=x64
-      #     else
-      #       ROCKSDBSUB=x86
-      #     fi
-      #     DLLPATH="external/dlls-${{ matrix.target.cpu }}"
-      #     mkdir -p ${DLLPATH}
-
-      #     # ROCKSDB
-      #     ./scripts/build_dlls_windows.sh
-      #     cp ./build/librocksdb.dll "${DLLPATH}/librocksdb.dll"
-
-      # - name: Path to cached dependencies (Windows)
-      #   if: >
-      #     runner.os == 'Windows'
-      #   run: |
-      #     echo '${{ github.workspace }}'"/external/dlls-${{ matrix.target.cpu }}" >> $GITHUB_PATH
-
       - name: Derive environment variables
         run: |
           if [[ '${{ matrix.target.cpu }}' == 'amd64' ]]; then
