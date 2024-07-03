@@ -28,11 +28,34 @@ proc cPtr*(readOpts: ReadOptionsRef): ReadOptionsPtr =
   doAssert not readOpts.isClosed()
   readOpts.cPtr
 
-# TODO: Add setters and getters for read options properties.
+template opt(nname, ntyp, ctyp: untyped) =
+  proc `nname=`*(readOpts: ReadOptionsRef, value: ntyp) =
+    doAssert not readOpts.isClosed()
+    `rocksdb_readoptions_set nname`(readOpts.cPtr, value.ctyp)
+
+  proc `nname`*(readOpts: ReadOptionsRef): ntyp =
+    doAssert not readOpts.isClosed()
+    ntyp `rocksdb_readoptions_get nname`(readOpts.cPtr)
+
+opt verifyChecksums, bool, uint8
+opt fillCache, bool, uint8
+opt readTier, int, cint
+opt tailing, bool, uint8
+opt totalOrderSeek, bool, uint8
+opt prefixSameAsStart, bool, uint8
+opt pinData, bool, uint8
+opt backgroundPurgeOnIteratorCleanup, bool, uint8
+opt readaheadSize, int, csize_t
+opt maxSkippableInternalKeys, int, csize_t
+opt ignoreRangeDeletions, bool, uint8
+opt deadline, int, uint64
+opt ioTimeout, int, uint64
 
 proc defaultReadOptions*(autoClose = false): ReadOptionsRef {.inline.} =
-  createReadOptions(autoClose)
+  let readOpts = createReadOptions(autoClose)
+
   # TODO: set prefered defaults
+  readOpts
 
 proc close*(readOpts: ReadOptionsRef) =
   if not readOpts.isClosed():

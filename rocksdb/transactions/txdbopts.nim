@@ -30,13 +30,23 @@ proc cPtr*(txDbOpts: TransactionDbOptionsRef): TransactionDbOptionsPtr =
   doAssert not txDbOpts.isClosed()
   txDbOpts.cPtr
 
-# TODO: Add setters and getters for backup options properties.
+template setOpt(nname, ntyp, ctyp: untyped) =
+  proc `nname=`*(txDbOpts: TransactionDbOptionsRef, value: ntyp) =
+    doAssert not txDbOpts.isClosed()
+    `rocksdb_transactiondb_options_set nname`(txDbOpts.cPtr, value.ctyp)
+
+setOpt maxNumLocks, int, int64
+setOpt numStripes, int, csize_t
+setOpt transactionLockTimeout, int, int64
+setOpt defaultLockTimeout, int, int64
 
 proc defaultTransactionDbOptions*(
     autoClose = false
 ): TransactionDbOptionsRef {.inline.} =
-  createTransactionDbOptions(autoClose)
+  let txDbOpts = createTransactionDbOptions(autoClose)
+
   # TODO: set prefered defaults
+  txDbOpts
 
 proc close*(txDbOpts: TransactionDbOptionsRef) =
   if not txDbOpts.isClosed():

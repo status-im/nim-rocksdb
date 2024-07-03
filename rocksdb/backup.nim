@@ -18,14 +18,16 @@ export backupopts, rocksdb, rocksresult
 
 type
   BackupEnginePtr* = ptr rocksdb_backup_engine_t
+  EnvPtr = ptr rocksdb_env_t
 
   BackupEngineRef* = ref object
     cPtr: BackupEnginePtr
+    env: EnvPtr
     path: string
     backupOpts: BackupEngineOptionsRef
 
 proc openBackupEngine*(
-    path: string, backupOpts = defaultBackupEngineOptions(autoClose = true)
+    path: string, backupOpts = defaultBackupEngineOptions(path, autoClose = true)
 ): RocksDBResult[BackupEngineRef] =
   ## Create a new backup engine. The `path` parameter is the path of the backup
   ## directory. Note that the same directory should not be used for both backups
@@ -35,12 +37,14 @@ proc openBackupEngine*(
   ## default backup options will be closed when the backup engine is closed.
   ## If `backupOpts` are provided, they will need to be closed manually.
 
+  let env = rocksdb_create_default_env()
   var errors: cstring
-  let backupEnginePtr = rocksdb_backup_engine_open(
-    backupOpts.cPtr, path.cstring, cast[cstringArray](errors.addr)
+  let backupEnginePtr = rocksdb_backup_engine_open_opts(
+    backupOpts.cPtr, env, cast[cstringArray](errors.addr)
   )
   bailOnErrorsWithCleanup(errors):
     autoCloseNonNil(backupOpts)
+    rocksdb_env_destroy(env)
 
   let engine =
     BackupEngineRef(cPtr: backupEnginePtr, path: path, backupOpts: backupOpts)
@@ -93,5 +97,9 @@ proc close*(backupEngine: BackupEngineRef) =
   if not backupEngine.isClosed():
     rocksdb_backup_engine_close(backupEngine.cPtr)
     backupEngine.cPtr = nil
+
+    if not backupEngine.env.isNil():
+      rocksdb_env_destroy(backupEngine.env)
+      backupEngine.env = nil
 
     autoCloseNonNil(backupEngine.backupOpts)

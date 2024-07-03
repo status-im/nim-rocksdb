@@ -12,32 +12,54 @@
 import ../lib/librocksdb
 
 type
-  BackupEngineOptionsPtr* = ptr rocksdb_options_t
+  BackupEngineOptionsPtr* = ptr rocksdb_backup_engine_options_t
 
   BackupEngineOptionsRef* = ref object
     cPtr: BackupEngineOptionsPtr
     autoClose*: bool # if true then close will be called when the backup engine is closed
 
-proc createBackupEngineOptions*(autoClose = false): BackupEngineOptionsRef =
-  BackupEngineOptionsRef(cPtr: rocksdb_options_create(), autoClose: autoClose)
+proc createBackupEngineOptions*(
+    backupDir: string, autoClose = false
+): BackupEngineOptionsRef =
+  BackupEngineOptionsRef(
+    cPtr: rocksdb_backup_engine_options_create(backupDir.cstring), autoClose: autoClose
+  )
 
-proc isClosed*(engineOpts: BackupEngineOptionsRef): bool {.inline.} =
-  engineOpts.cPtr.isNil()
+proc isClosed*(backupOpts: BackupEngineOptionsRef): bool {.inline.} =
+  backupOpts.cPtr.isNil()
 
-proc cPtr*(engineOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
-  doAssert not engineOpts.isClosed()
-  engineOpts.cPtr
+proc cPtr*(backupOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
+  doAssert not backupOpts.isClosed()
+  backupOpts.cPtr
 
-# TODO: Add setters and getters for backup options properties.
+template opt(nname, ntyp, ctyp: untyped) =
+  proc `nname=`*(backupOpts: BackupEngineOptionsRef, value: ntyp) =
+    doAssert not backupOpts.isClosed()
+    `rocksdb_backup_engine_options_set nname`(backupOpts.cPtr, value.ctyp)
 
-proc defaultBackupEngineOptions*(autoClose = false): BackupEngineOptionsRef {.inline.} =
-  let opts = createBackupEngineOptions(autoClose)
+  proc `nname`*(backupOpts: BackupEngineOptionsRef): ntyp =
+    doAssert not backupOpts.isClosed()
+    ntyp `rocksdb_backup_engine_options_get nname`(backupOpts.cPtr)
+
+opt shareTableFiles, bool, uint8
+opt sync, bool, uint8
+opt destroyOldData, bool, uint8
+opt backupLogFiles, bool, uint8
+opt backupRateLimit, int, uint64
+opt restoreRateLimit, int, uint64
+opt shareFilesWithChecksumNaming, bool, cint
+opt maxBackgroundOperations, int, cint
+opt callbackTriggerIntervalSize, int, uint64
+
+proc defaultBackupEngineOptions*(
+    backupDir: string, autoClose = false
+): BackupEngineOptionsRef {.inline.} =
+  let backupOpts = createBackupEngineOptions(backupDir, autoClose)
 
   # TODO: set defaults here
+  backupOpts
 
-  opts
-
-proc close*(engineOpts: BackupEngineOptionsRef) =
-  if not engineOpts.isClosed():
-    rocksdb_options_destroy(engineOpts.cPtr)
-    engineOpts.cPtr = nil
+proc close*(backupOpts: BackupEngineOptionsRef) =
+  if not backupOpts.isClosed():
+    rocksdb_backup_engine_options_destroy(backupOpts.cPtr)
+    backupOpts.cPtr = nil

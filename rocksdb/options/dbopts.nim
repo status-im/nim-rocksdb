@@ -40,11 +40,11 @@ proc increaseParallelism*(dbOpts: DbOptionsRef, totalThreads: int) =
 
 template opt(nname, ntyp, ctyp: untyped) =
   proc `nname=`*(dbOpts: DbOptionsRef, value: ntyp) =
-    doAssert not dbOpts.isClosed
+    doAssert not dbOpts.isClosed()
     `rocksdb_options_set nname`(dbOpts.cPtr, value.ctyp)
 
   proc `nname`*(dbOpts: DbOptionsRef): ntyp =
-    doAssert not dbOpts.isClosed
+    doAssert not dbOpts.isClosed()
     ntyp `rocksdb_options_get nname`(dbOpts.cPtr)
 
 opt createIfMissing, bool, uint8
@@ -102,22 +102,22 @@ proc `rowCache=`*(dbOpts: DbOptionsRef, cache: CacheRef) =
   dbOpts.cache = cache
 
 proc defaultDbOptions*(autoClose = false): DbOptionsRef =
-  let opts: DbOptionsRef = createDbOptions(autoClose)
+  let dbOpts: DbOptionsRef = createDbOptions(autoClose)
 
   # Optimize RocksDB. This is the easiest way to get RocksDB to perform well:
-  opts.increaseParallelism(countProcessors())
-  opts.createIfMissing = true
+  dbOpts.increaseParallelism(countProcessors())
+  dbOpts.createIfMissing = true
 
   # Enable creating column families if they do not exist
-  opts.createMissingColumnFamilies = true
+  dbOpts.createMissingColumnFamilies = true
 
   # Options recommended by rocksdb devs themselves, for new databases
   # https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning#other-general-options
 
-  opts.maxBackgroundJobs = 6
-  opts.bytesPerSync = 1048576
+  dbOpts.maxBackgroundJobs = 6
+  dbOpts.bytesPerSync = 1048576
 
-  opts
+  dbOpts
 
 proc close*(dbOpts: DbOptionsRef) =
   if not dbOpts.isClosed():

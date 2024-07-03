@@ -16,8 +16,8 @@ import
   ./options/test_backupopts,
   ./options/test_dbopts,
   ./options/test_readopts,
-  ./options/test_writeopts,
   ./options/test_tableopts,
+  ./options/test_writeopts,
   ./transactions/test_txdbopts,
   ./transactions/test_txopts,
   ./test_backup,
@@ -25,5 +25,5 @@ import
   ./test_rocksdb,
   ./test_rocksiterator,
   ./test_sstfilewriter,
-  ./test_writebatch,
-  ./test_transactiondb
+  ./test_transactiondb,
+  ./test_writebatch
