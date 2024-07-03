@@ -22,9 +22,26 @@ task clean, "Remove temporary files":
   exec "make -C vendor/rocksdb clean"
 
 task test, "Run tests":
-  exec "nim c -r --threads:on tests/test_all.nim"
+  let runTests = "nim c -r --threads:on tests/test_all.nim"
+  when defined(linux):
+    exec "export LD_LIBRARY_PATH=build; " & runTests
+  when defined(macosx):
+    exec "export DYLD_LIBRARY_PATH=build; " & runTests
+  when defined(windows):
+    exec runTests
 
 task test_static, "Run tests after static linking dependencies":
-  when not defined(windows):
-    exec "scripts/build_static_deps.sh"
+  when defined(windows):
+    echo "Static linking is not supported on windows"
+    quit(1)
+
+  exec "scripts/build_static_deps.sh"
   exec "nim c -d:rocksdb_static_linking -r --threads:on tests/test_all.nim"
+
+before install:
+  when defined(linux):
+    exec "scripts/build_shared_deps_linux.sh"
+  when defined(macosx):
+    exec "scripts/build_shared_deps_osx.sh"
+  when defined(windows):
+    exec ".\\scripts\\build_dlls_windows.bat"
