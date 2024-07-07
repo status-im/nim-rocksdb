@@ -7,7 +7,7 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-## A `TransactionDbRef` can be used to open a connection to the RocksDB database
+## A `OptimisticTxDbRef` can be used to open a connection to the RocksDB database
 ## with support for transactional operations against multiple column families.
 ## To create a new transaction call `beginTransaction` which will return a
 ## `TransactionRef`. To commit or rollback the transaction call `commit` or
@@ -19,34 +19,31 @@ import
   std/[sequtils, locks],
   ./lib/librocksdb,
   ./options/[dbopts, readopts, writeopts],
-  ./transactions/[transaction, txdbopts, txopts],
+  ./transactions/[transaction, otxopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
   ./internal/[cftable, utils],
   ./rocksresult
 
-export
-  dbopts, txdbopts, cfdescriptor, readopts, writeopts, txopts, transaction, rocksresult
+export dbopts, cfdescriptor, readopts, writeopts, otxopts, transaction, rocksresult
 
 type
-  TransactionDbPtr* = ptr rocksdb_transactiondb_t
+  OptimisticTxDbPtr* = ptr rocksdb_optimistictransactiondb_t
 
-  TransactionDbRef* = ref object
+  OptimisticTxDbRef* = ref object
     lock: Lock
-    cPtr: TransactionDbPtr
+    cPtr: OptimisticTxDbPtr
     path: string
     dbOpts: DbOptionsRef
-    txDbOpts: TransactionDbOptionsRef
     cfDescriptors: seq[ColFamilyDescriptor]
     defaultCfHandle: ColFamilyHandleRef
     cfTable: ColFamilyTableRef
 
-proc openTransactionDb*(
+proc openOptimisticTxDb*(
     path: string,
     dbOpts = defaultDbOptions(autoClose = true),
-    txDbOpts = defaultTransactionDbOptions(autoClose = true),
     columnFamilies: openArray[ColFamilyDescriptor] = [],
-): RocksDBResult[TransactionDbRef] =
-  ## Open a `TransactionDbRef` with the given options and column families.
+): RocksDBResult[OptimisticTxDbRef] =
+  ## Open a `OptimisticTxDbRef` with the given options and column families.
   ## If no column families are provided the default column family will be used.
   ## If no options are provided the default options will be used.
   ## These default options will be closed when the database is closed.
@@ -62,9 +59,8 @@ proc openTransactionDb*(
     cfHandles = newSeq[ColFamilyHandlePtr](cfs.len)
     errors: cstring
 
-  let txDbPtr = rocksdb_transactiondb_open_column_families(
+  let txDbPtr = rocksdb_optimistictransactiondb_open_column_families(
     dbOpts.cPtr,
-    txDbOpts.cPtr,
     path.cstring,
     cfNames.len().cint,
     cast[cstringArray](cfNames[0].addr),
@@ -74,17 +70,15 @@ proc openTransactionDb*(
   )
   bailOnErrorsWithCleanup(errors):
     autoCloseNonNil(dbOpts)
-    autoCloseNonNil(txDbOpts)
     autoCloseAll(cfs)
 
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
-    db = TransactionDbRef(
+    db = OptimisticTxDbRef(
       lock: createLock(),
       cPtr: txDbPtr,
       path: path,
       dbOpts: dbOpts,
-      txDbOpts: txDbOpts,
       cfDescriptors: cfs,
       defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
       cfTable: cfTable,
@@ -92,7 +86,7 @@ proc openTransactionDb*(
   ok(db)
 
 proc getColFamilyHandle*(
-    db: TransactionDbRef, name: string
+    db: OptimisticTxDbRef, name: string
 ): RocksDBResult[ColFamilyHandleRef] =
   let cfHandle = db.cfTable.get(name)
   if cfHandle.isNil():
@@ -100,15 +94,15 @@ proc getColFamilyHandle*(
   else:
     ok(cfHandle)
 
-proc isClosed*(db: TransactionDbRef): bool {.inline.} =
-  ## Returns `true` if the `TransactionDbRef` has been closed.
+proc isClosed*(db: OptimisticTxDbRef): bool {.inline.} =
+  ## Returns `true` if the `OptimisticTxDbRef` has been closed.
   db.cPtr.isNil()
 
 proc beginTransaction*(
-    db: TransactionDbRef,
+    db: OptimisticTxDbRef,
     readOpts = defaultReadOptions(autoClose = true),
     writeOpts = defaultWriteOptions(autoClose = true),
-    txOpts = defaultTransactionOptions(autoClose = true),
+    otxOpts = defaultOptimisticTxOptions(autoClose = true),
     cfHandle = db.defaultCfHandle,
 ): TransactionRef =
   ## Begin a new transaction against the database. The transaction will default
@@ -116,22 +110,22 @@ proc beginTransaction*(
   ## then the default column family will be used.
   doAssert not db.isClosed()
 
-  let txPtr = rocksdb_transaction_begin(db.cPtr, writeOpts.cPtr, txOpts.cPtr, nil)
+  let txPtr =
+    rocksdb_optimistictransaction_begin(db.cPtr, writeOpts.cPtr, otxOpts.cPtr, nil)
 
-  newTransaction(txPtr, readOpts, writeOpts, txOpts, nil, cfHandle)
+  newTransaction(txPtr, readOpts, writeOpts, nil, otxOpts, cfHandle)
 
-proc close*(db: TransactionDbRef) =
-  ## Close the `TransactionDbRef`.
+proc close*(db: OptimisticTxDbRef) =
+  ## Close the `OptimisticTxDbRef`.
 
   withLock(db.lock):
     if not db.isClosed():
       # the column families should be closed before the database
       db.cfTable.close()
 
-      rocksdb_transactiondb_close(db.cPtr)
+      rocksdb_optimistictransactiondb_close(db.cPtr)
       db.cPtr = nil
 
       # opts should be closed after the database is closed
       autoCloseNonNil(db.dbOpts)
-      autoCloseNonNil(db.txDbOpts)
       autoCloseAll(db.cfDescriptors)

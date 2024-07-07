@@ -9,7 +9,7 @@
 
 {.used.}
 
-import std/sequtils, ../rocksdb/backup, ../rocksdb/rocksdb, ../rocksdb/transactiondb
+import std/sequtils, ../rocksdb/[backup, rocksdb, transactiondb, optimistictxdb]
 
 proc initReadWriteDb*(
     path: string, columnFamilyNames: openArray[string] = @[]
@@ -48,6 +48,20 @@ proc initTransactionDb*(
     path: string, columnFamilyNames: openArray[string] = @[]
 ): TransactionDbRef =
   let res = openTransactionDb(
+    path,
+    columnFamilies = columnFamilyNames.mapIt(
+      initColFamilyDescriptor(it, defaultColFamilyOptions(autoClose = true))
+    ),
+  )
+  if res.isErr():
+    echo res.error()
+  doAssert res.isOk()
+  res.value()
+
+proc initOptimisticTxDb*(
+    path: string, columnFamilyNames: openArray[string] = @[]
+): OptimisticTxDbRef =
+  let res = openOptimisticTxDb(
     path,
     columnFamilies = columnFamilyNames.mapIt(
       initColFamilyDescriptor(it, defaultColFamilyOptions(autoClose = true))

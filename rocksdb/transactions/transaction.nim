@@ -24,7 +24,7 @@ import
   ../options/[readopts, writeopts],
   ../internal/[cftable, utils],
   ../rocksresult,
-  ./txopts
+  ./[txopts, otxopts]
 
 export rocksresult
 
@@ -36,6 +36,7 @@ type
     readOpts: ReadOptionsRef
     writeOpts: WriteOptionsRef
     txOpts: TransactionOptionsRef
+    otxOpts: OptimisticTxOptionsRef
     defaultCfHandle: ColFamilyHandleRef
 
 proc newTransaction*(
@@ -43,6 +44,7 @@ proc newTransaction*(
     readOpts: ReadOptionsRef,
     writeOpts: WriteOptionsRef,
     txOpts: TransactionOptionsRef,
+    otxOpts: OptimisticTxOptionsRef,
     defaultCfHandle: ColFamilyHandleRef,
 ): TransactionRef =
   TransactionRef(
@@ -50,6 +52,7 @@ proc newTransaction*(
     readOpts: readOpts,
     writeOpts: writeOpts,
     txOpts: txOpts,
+    otxOpts: otxOpts,
     defaultCfHandle: defaultCfHandle,
   )
 
@@ -182,3 +185,4 @@ proc close*(tx: TransactionRef) =
     autoCloseNonNil(tx.readOpts)
     autoCloseNonNil(tx.writeOpts)
     autoCloseNonNil(tx.txOpts)
+    autoCloseNonNil(tx.otxOpts)
