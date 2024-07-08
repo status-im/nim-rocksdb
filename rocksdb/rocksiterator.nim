@@ -46,7 +46,7 @@ proc seekToKey*(iter: RocksIteratorRef, key: openArray[byte]) =
   ##    invalid.
   ##
   doAssert not iter.isClosed()
-  rocksdb_iter_seek(iter.cPtr, cast[cstring](unsafeAddr key[0]), csize_t(key.len))
+  rocksdb_iter_seek(iter.cPtr, cast[cstring](key.unsafeAddrOrNil()), csize_t(key.len))
 
 proc seekToFirst*(iter: RocksIteratorRef) =
   ## Seeks to the first entry in the column family.

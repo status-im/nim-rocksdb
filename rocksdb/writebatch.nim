@@ -8,10 +8,12 @@
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
 ## A `WriteBatchRef` holds a collection of updates to apply atomically to the database.
+## It depends on resources from an instance of `RocksDbRef' and therefore should be used
+## and closed before the `RocksDbRef` is closed.
 
 {.push raises: [].}
 
-import ./lib/librocksdb, ./internal/cftable, ./rocksresult
+import ./lib/librocksdb, ./internal/[cftable, utils], ./rocksresult
 
 export rocksresult
 
@@ -49,19 +51,12 @@ proc put*(
 ): RocksDBResult[void] =
   ## Add a put operation to the write batch.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   rocksdb_writebatch_put_cf(
     batch.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
-    cast[cstring](if val.len > 0:
-      unsafeAddr val[0]
-    else:
-      nil
-    ),
+    cast[cstring](val.unsafeAddrOrNil()),
     csize_t(val.len),
   )
 
@@ -72,11 +67,8 @@ proc delete*(
 ): RocksDBResult[void] =
   ## Add a delete operation to the write batch.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   rocksdb_writebatch_delete_cf(
-    batch.cPtr, cfHandle.cPtr, cast[cstring](unsafeAddr key[0]), csize_t(key.len)
+    batch.cPtr, cfHandle.cPtr, cast[cstring](key.unsafeAddrOrNil()), csize_t(key.len)
   )
 
   ok()

@@ -13,21 +13,21 @@ import unittest2, ../../rocksdb/transactions/txdbopts
 
 suite "TransactionDbOptionsRef Tests":
   test "Test newTransactionDbOptions":
-    var txDbOpts = createTransactionDbOptions()
+    let txDbOpts = createTransactionDbOptions()
 
     check not txDbOpts.cPtr.isNil()
 
     txDbOpts.close()
 
   test "Test defaultTransactionDbOptions":
-    var txDbOpts = defaultTransactionDbOptions()
+    let txDbOpts = defaultTransactionDbOptions()
 
     check not txDbOpts.cPtr.isNil()
 
     txDbOpts.close()
 
   test "Test close":
-    var txDbOpts = defaultTransactionDbOptions()
+    let txDbOpts = defaultTransactionDbOptions()
 
     check not txDbOpts.isClosed()
     txDbOpts.close()

@@ -61,9 +61,9 @@ proc put*(
   var errors: cstring
   rocksdb_sstfilewriter_put(
     writer.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
-    cast[cstring](unsafeAddr val[0]),
+    cast[cstring](val.unsafeAddrOrNil()),
     csize_t(val.len),
     cast[cstringArray](errors.addr),
   )
@@ -77,7 +77,7 @@ proc delete*(writer: SstFileWriterRef, key: openArray[byte]): RocksDBResult[void
   var errors: cstring
   rocksdb_sstfilewriter_delete(
     writer.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
     cast[cstringArray](errors.addr),
   )

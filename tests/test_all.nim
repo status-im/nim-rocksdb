@@ -18,12 +18,15 @@ import
   ./options/test_readopts,
   ./options/test_tableopts,
   ./options/test_writeopts,
+  ./transactions/test_otxopts,
   ./transactions/test_txdbopts,
   ./transactions/test_txopts,
   ./test_backup,
   ./test_columnfamily,
+  ./test_optimistictxdb,
   ./test_rocksdb,
   ./test_rocksiterator,
   ./test_sstfilewriter,
   ./test_transactiondb,
-  ./test_writebatch
+  ./test_writebatch,
+  ./test_writebatchwi

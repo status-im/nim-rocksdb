@@ -38,3 +38,9 @@ template bailOnErrors*(errors: cstring): auto =
     let res = err($(errors))
     rocksdb_free(errors)
     return res
+
+template unsafeAddrOrNil*(s: openArray[byte]): auto =
+  if s.len > 0:
+    unsafeAddr s[0]
+  else:
+    nil

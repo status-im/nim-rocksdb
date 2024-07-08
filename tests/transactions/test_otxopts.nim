@@ -9,25 +9,25 @@
 
 {.used.}
 
-import unittest2, ../../rocksdb/transactions/txopts
+import unittest2, ../../rocksdb/transactions/otxopts
 
-suite "TransactionOptionsRef Tests":
-  test "Test newTransactionOptions":
-    let txOpts = createTransactionOptions()
+suite "OptimisticTxOptionsRef Tests":
+  test "Test createOptimisticTxOptions":
+    let txOpts = createOptimisticTxOptions()
 
     check not txOpts.cPtr.isNil()
 
     txOpts.close()
 
   test "Test defaultTransactionOptions":
-    let txOpts = defaultTransactionOptions()
+    let txOpts = defaultOptimisticTxOptions()
 
     check not txOpts.cPtr.isNil()
 
     txOpts.close()
 
   test "Test close":
-    let txOpts = defaultTransactionOptions()
+    let txOpts = defaultOptimisticTxOptions()
 
     check not txOpts.isClosed()
     txOpts.close()

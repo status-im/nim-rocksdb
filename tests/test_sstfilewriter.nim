@@ -76,6 +76,19 @@ suite "SstFileWriterRef Tests":
       db.get(key2, otherCfHandle).get() == val2
       db.get(key3, otherCfHandle).get() == val3
 
+  test "Put, get and delete empty key":
+    let writer = openSstFileWriter(sstFilePath).get()
+    defer:
+      writer.close()
+
+    let empty: seq[byte] = @[]
+    check:
+      writer.put(empty, val1).isOk()
+      writer.finish().isOk()
+      db.ingestExternalFile(sstFilePath).isOk()
+      db.keyExists(empty).get() == true
+      db.get(empty).get() == val1
+
   test "Test close":
     let res = openSstFileWriter(sstFilePath)
     check res.isOk()

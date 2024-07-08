@@ -324,6 +324,38 @@ suite "RocksDbRef Tests":
         v.len() == 0
         db.get(key5).isErr()
 
+  test "Test keyMayExist":
+    let
+      key1 = @[byte(1)] # exists with non empty value
+      val1 = @[byte(1)]
+      key2 = @[byte(2)] # exists with empty seq value
+      val2: seq[byte] = @[]
+      key3 = @[byte(3)] # exists with empty array value
+      val3: array[0, byte] = []
+      key4 = @[byte(4)] # deleted key
+      key5 = @[byte(5)] # key not created
+
+    check:
+      db.put(key1, val1).isOk()
+      db.put(key2, val2).isOk()
+      db.put(key3, val3).isOk()
+      db.delete(key4).isOk()
+
+      db.keyMayExist(key1).isOk()
+      db.keyMayExist(key2).isOk()
+      db.keyMayExist(key3).isOk()
+      db.keyMayExist(key4).get() == false
+      db.keyMayExist(key5).get() == false
+
+  test "Put, get and delete empty key":
+    let empty: seq[byte] = @[]
+
+    check:
+      db.put(empty, val).isOk()
+      db.get(empty).get() == val
+      db.delete(empty).isOk()
+      db.get(empty).isErr()
+
   test "List column familes":
     let cfRes1 = listColumnFamilies(dbPath)
     check:

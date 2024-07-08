@@ -24,7 +24,7 @@ import
   ../options/[readopts, writeopts],
   ../internal/[cftable, utils],
   ../rocksresult,
-  ./txopts
+  ./[txopts, otxopts]
 
 export rocksresult
 
@@ -36,6 +36,7 @@ type
     readOpts: ReadOptionsRef
     writeOpts: WriteOptionsRef
     txOpts: TransactionOptionsRef
+    otxOpts: OptimisticTxOptionsRef
     defaultCfHandle: ColFamilyHandleRef
 
 proc newTransaction*(
@@ -43,6 +44,7 @@ proc newTransaction*(
     readOpts: ReadOptionsRef,
     writeOpts: WriteOptionsRef,
     txOpts: TransactionOptionsRef,
+    otxOpts: OptimisticTxOptionsRef,
     defaultCfHandle: ColFamilyHandleRef,
 ): TransactionRef =
   TransactionRef(
@@ -50,6 +52,7 @@ proc newTransaction*(
     readOpts: readOpts,
     writeOpts: writeOpts,
     txOpts: txOpts,
+    otxOpts: otxOpts,
     defaultCfHandle: defaultCfHandle,
   )
 
@@ -66,9 +69,6 @@ proc get*(
   ## Get the value for a given key from the transaction using the provided
   ## `onData` callback.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   var
     len: csize_t
     errors: cstring
@@ -76,7 +76,7 @@ proc get*(
     tx.cPtr,
     tx.readOpts.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
     len.addr,
     cast[cstringArray](errors.addr),
@@ -111,20 +111,13 @@ proc put*(
 ): RocksDBResult[void] =
   ## Put the value for the given key into the transaction.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   var errors: cstring
   rocksdb_transaction_put_cf(
     tx.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
-    cast[cstring](if val.len > 0:
-      unsafeAddr val[0]
-    else:
-      nil
-    ),
+    cast[cstring](val.unsafeAddrOrNil()),
     csize_t(val.len),
     cast[cstringArray](errors.addr),
   )
@@ -137,14 +130,11 @@ proc delete*(
 ): RocksDBResult[void] =
   ## Delete the value for the given key from the transaction.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   var errors: cstring
   rocksdb_transaction_delete_cf(
     tx.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
     cast[cstringArray](errors.addr),
   )
@@ -182,3 +172,4 @@ proc close*(tx: TransactionRef) =
     autoCloseNonNil(tx.readOpts)
     autoCloseNonNil(tx.writeOpts)
     autoCloseNonNil(tx.txOpts)
+    autoCloseNonNil(tx.otxOpts)

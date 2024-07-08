@@ -9,9 +9,9 @@
 
 {.used.}
 
-import std/os, tempfile, unittest2, ../rocksdb/[transactiondb], ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/optimistictxdb, ./test_helper
 
-suite "TransactionDbRef Tests":
+suite "OptimisticTxDbRef Tests":
   const
     CF_DEFAULT = "default"
     CF_OTHER = "other"
@@ -27,7 +27,7 @@ suite "TransactionDbRef Tests":
   setup:
     let
       dbPath = mkdtemp() / "data"
-      db = initTransactionDb(dbPath, columnFamilyNames = @[CF_OTHER])
+      db = initOptimisticTxDb(dbPath, columnFamilyNames = @[CF_OTHER])
       defaultCfHandle = db.getColFamilyHandle(CF_DEFAULT).get()
       otherCfHandle = db.getColFamilyHandle(CF_OTHER).get()
 
@@ -169,18 +169,6 @@ suite "TransactionDbRef Tests":
         tx2.get(key2, otherCfHandle).error() == ""
         tx2.get(key3, otherCfHandle).get() == val3
 
-  test "Put, get and delete empty key":
-    let tx = db.beginTransaction()
-    defer:
-      tx.close()
-
-    let empty: seq[byte] = @[]
-    check:
-      tx.put(empty, val1).isOk()
-      tx.get(empty).get() == val1
-      tx.delete(empty).isOk()
-      tx.get(empty).isErr()
-
   test "Test close":
     var tx = db.beginTransaction()
 
@@ -218,16 +206,14 @@ suite "TransactionDbRef Tests":
     let
       dbPath = mkdtemp() / "autoclose-enabled"
       dbOpts = defaultDbOptions(autoClose = true)
-      txDbOpts = defaultTransactionDbOptions(autoClose = true)
       columnFamilies =
         @[
           initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = true))
         ]
-      db = openTransactionDb(dbPath, dbOpts, txDbOpts, columnFamilies).get()
+      db = openOptimisticTxDb(dbPath, dbOpts, columnFamilies).get()
 
     check:
       dbOpts.isClosed() == false
-      txDbOpts.isClosed() == false
       columnFamilies[0].isClosed() == false
       db.isClosed() == false
 
@@ -235,26 +221,23 @@ suite "TransactionDbRef Tests":
 
     check:
       dbOpts.isClosed() == true
-      txDbOpts.isClosed() == true
       columnFamilies[0].isClosed() == true
       db.isClosed() == true
 
-  test "Test auto close disabled":
+  test "Test auto close enabled":
     let
       dbPath = mkdtemp() / "autoclose-disabled"
       dbOpts = defaultDbOptions(autoClose = false)
-      txDbOpts = defaultTransactionDbOptions(autoClose = false)
       columnFamilies =
         @[
           initColFamilyDescriptor(
             CF_DEFAULT, defaultColFamilyOptions(autoClose = false)
           )
         ]
-      db = openTransactionDb(dbPath, dbOpts, txDbOpts, columnFamilies).get()
+      db = openOptimisticTxDb(dbPath, dbOpts, columnFamilies).get()
 
     check:
       dbOpts.isClosed() == false
-      txDbOpts.isClosed() == false
       columnFamilies[0].isClosed() == false
       db.isClosed() == false
 
@@ -262,7 +245,6 @@ suite "TransactionDbRef Tests":
 
     check:
       dbOpts.isClosed() == false
-      txDbOpts.isClosed() == false
       columnFamilies[0].isClosed() == false
       db.isClosed() == true
 
@@ -270,13 +252,13 @@ suite "TransactionDbRef Tests":
     let
       readOpts = defaultReadOptions(autoClose = true)
       writeOpts = defaultWriteOptions(autoClose = true)
-      txOpts = defaultTransactionOptions(autoClose = true)
-      tx = db.beginTransaction(readOpts, writeOpts, txOpts)
+      otxOpts = defaultOptimisticTxOptions(autoClose = true)
+      tx = db.beginTransaction(readOpts, writeOpts, otxOpts)
 
     check:
       readOpts.isClosed() == false
       writeOpts.isClosed() == false
-      txOpts.isClosed() == false
+      otxOpts.isClosed() == false
       tx.isClosed() == false
 
     tx.close()
@@ -284,20 +266,20 @@ suite "TransactionDbRef Tests":
     check:
       readOpts.isClosed() == true
       writeOpts.isClosed() == true
-      txOpts.isClosed() == true
+      otxOpts.isClosed() == true
       tx.isClosed() == true
 
   test "Test auto close tx disabled":
     let
       readOpts = defaultReadOptions(autoClose = false)
       writeOpts = defaultWriteOptions(autoClose = false)
-      txOpts = defaultTransactionOptions(autoClose = false)
-      tx = db.beginTransaction(readOpts, writeOpts, txOpts)
+      otxOpts = defaultOptimisticTxOptions(autoClose = false)
+      tx = db.beginTransaction(readOpts, writeOpts, otxOpts)
 
     check:
       readOpts.isClosed() == false
       writeOpts.isClosed() == false
-      txOpts.isClosed() == false
+      otxOpts.isClosed() == false
       tx.isClosed() == false
 
     tx.close()
@@ -305,5 +287,5 @@ suite "TransactionDbRef Tests":
     check:
       readOpts.isClosed() == false
       writeOpts.isClosed() == false
-      txOpts.isClosed() == false
+      otxOpts.isClosed() == false
       tx.isClosed() == true

@@ -9,9 +9,9 @@
 
 {.used.}
 
-import std/os, tempfile, unittest2, ../rocksdb/[rocksdb, writebatch], ./test_helper
+import std/os, tempfile, unittest2, ../rocksdb/[rocksdb, writebatchwi], ./test_helper
 
-suite "WriteBatchRef Tests":
+suite "WriteBatchWIRef Tests":
   const
     CF_DEFAULT = "default"
     CF_OTHER = "other"
@@ -36,7 +36,7 @@ suite "WriteBatchRef Tests":
     removeDir($dbPath)
 
   test "Test writing batch to the default column family":
-    let batch = db.openWriteBatch()
+    let batch = db.openWriteBatchWithIndex()
     defer:
       batch.close()
     check not batch.isClosed()
@@ -51,6 +51,10 @@ suite "WriteBatchRef Tests":
       batch.count() == 4
       not batch.isClosed()
 
+      batch.get(key1).get() == val1
+      batch.get(key2).isErr()
+      batch.get(key3).get() == val3
+
     let res = db.write(batch)
     check:
       res.isOk()
@@ -59,13 +63,17 @@ suite "WriteBatchRef Tests":
       db.keyExists(key2).get() == false
       db.get(key3).get() == val3
 
+      batch.get(key1).get() == val1
+      batch.get(key2).isErr()
+      batch.get(key3).get() == val3
+
     batch.clear()
     check:
       batch.count() == 0
       not batch.isClosed()
 
   test "Test writing batch to column family":
-    let batch = db.openWriteBatch()
+    let batch = db.openWriteBatchWithIndex()
     defer:
       batch.close()
     check not batch.isClosed()
@@ -80,6 +88,10 @@ suite "WriteBatchRef Tests":
       batch.count() == 4
       not batch.isClosed()
 
+      batch.get(key1, otherCfHandle).get() == val1
+      batch.get(key2, otherCfHandle).isErr()
+      batch.get(key3, otherCfHandle).get() == val3
+
     let res = db.write(batch)
     check:
       res.isOk()
@@ -87,13 +99,17 @@ suite "WriteBatchRef Tests":
       db.keyExists(key2, otherCfHandle).get() == false
       db.get(key3, otherCfHandle).get() == val3
 
+      batch.get(key1, otherCfHandle).get() == val1
+      batch.get(key2, otherCfHandle).isErr()
+      batch.get(key3, otherCfHandle).get() == val3
+
     batch.clear()
     check:
       batch.count() == 0
       not batch.isClosed()
 
   test "Test writing to multiple column families in single batch":
-    let batch = db.openWriteBatch()
+    let batch = db.openWriteBatchWithIndex()
     defer:
       batch.close()
     check not batch.isClosed()
@@ -124,8 +140,8 @@ suite "WriteBatchRef Tests":
 
   test "Test writing to multiple column families in multiple batches":
     let
-      batch1 = db.openWriteBatch()
-      batch2 = db.openWriteBatch()
+      batch1 = db.openWriteBatchWithIndex()
+      batch2 = db.openWriteBatchWithIndex()
     defer:
       batch1.close()
       batch2.close()
@@ -160,22 +176,8 @@ suite "WriteBatchRef Tests":
       not batch1.isClosed()
       not batch2.isClosed()
 
-  test "Put, get and delete empty key":
-    let batch = db.openWriteBatch()
-    defer:
-      batch.close()
-
-    let empty: seq[byte] = @[]
-    check:
-      batch.put(empty, val1).isOk()
-      db.write(batch).isOk()
-      db.get(empty).get() == val1
-      batch.delete(empty).isOk()
-      db.write(batch).isOk()
-      db.get(empty).isErr()
-
   test "Test write empty batch":
-    let batch = db.openWriteBatch()
+    let batch = db.openWriteBatchWithIndex()
     defer:
       batch.close()
     check not batch.isClosed()
@@ -187,8 +189,44 @@ suite "WriteBatchRef Tests":
       batch.count() == 0
       not batch.isClosed()
 
+  test "Test multiple writes to same key":
+    let
+      batch1 = db.openWriteBatchWithIndex(overwriteKey = false)
+      batch2 = db.openWriteBatchWithIndex(overwriteKey = true)
+    defer:
+      batch1.close()
+      batch2.close()
+    check:
+      not batch1.isClosed()
+      not batch2.isClosed()
+
+    check:
+      batch1.put(key1, val1).isOk()
+      batch1.delete(key1).isOk()
+      batch1.put(key1, val3).isOk()
+      batch1.count() == 3
+      batch1.get(key1).get() == val3
+
+      batch2.put(key1, val3).isOk()
+      batch2.put(key1, val2).isOk()
+      batch2.put(key1, val1).isOk()
+      batch2.count() == 3
+      batch2.get(key1).get() == val1
+
+  test "Put, get and delete empty key":
+    let batch = db.openWriteBatchWithIndex()
+    defer:
+      batch.close()
+
+    let empty: seq[byte] = @[]
+    check:
+      batch.put(empty, val1).isOk()
+      batch.get(empty).get() == val1
+      batch.delete(empty).isOk()
+      batch.get(empty).isErr()
+
   test "Test close":
-    let batch = db.openWriteBatch()
+    let batch = db.openWriteBatchWithIndex()
 
     check not batch.isClosed()
     batch.close()
