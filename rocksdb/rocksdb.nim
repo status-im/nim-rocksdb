@@ -236,9 +236,6 @@ proc get*(
   ## The `onData` callback reduces the number of copies and therefore should be
   ## preferred if performance is required.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   var
     len: csize_t
     errors: cstring
@@ -282,9 +279,6 @@ proc put*(
     db: RocksDbReadWriteRef, key, val: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[void] =
   ## Put the value for the given key into the specified column family.
-
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
 
   var errors: cstring
   rocksdb_put_cf(
@@ -350,9 +344,6 @@ proc delete*(
   ## Delete the value for the given key from the specified column family.
   ## If the value does not exist, the delete will be a no-op.
   ## To check if the value exists before or after a delete, use `keyExists`.
-
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
 
   var errors: cstring
   rocksdb_delete_cf(

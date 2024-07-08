@@ -65,9 +65,6 @@ proc put*(
 ): RocksDBResult[void] =
   ## Add a put operation to the write batch.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   rocksdb_writebatch_wi_put_cf(
     batch.cPtr,
     cfHandle.cPtr,
@@ -88,9 +85,6 @@ proc delete*(
 ): RocksDBResult[void] =
   ## Add a delete operation to the write batch.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   rocksdb_writebatch_wi_delete_cf(
     batch.cPtr, cfHandle.cPtr, cast[cstring](unsafeAddr key[0]), csize_t(key.len)
   )
@@ -105,9 +99,6 @@ proc get*(
 ): RocksDBResult[bool] =
   ## Get the value for a given key from the batch using the provided
   ## `onData` callback.
-
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
 
   var
     len: csize_t

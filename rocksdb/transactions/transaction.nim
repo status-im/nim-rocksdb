@@ -69,9 +69,6 @@ proc get*(
   ## Get the value for a given key from the transaction using the provided
   ## `onData` callback.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   var
     len: csize_t
     errors: cstring
@@ -114,9 +111,6 @@ proc put*(
 ): RocksDBResult[void] =
   ## Put the value for the given key into the transaction.
 
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
-
   var errors: cstring
   rocksdb_transaction_put_cf(
     tx.cPtr,
@@ -139,9 +133,6 @@ proc delete*(
     tx: TransactionRef, key: openArray[byte], cfHandle = tx.defaultCfHandle
 ): RocksDBResult[void] =
   ## Delete the value for the given key from the transaction.
-
-  if key.len() == 0:
-    return err("rocksdb: key is empty")
 
   var errors: cstring
   rocksdb_transaction_delete_cf(
