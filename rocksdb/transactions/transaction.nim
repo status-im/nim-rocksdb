@@ -76,7 +76,7 @@ proc get*(
     tx.cPtr,
     tx.readOpts.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
     len.addr,
     cast[cstringArray](errors.addr),
@@ -115,13 +115,9 @@ proc put*(
   rocksdb_transaction_put_cf(
     tx.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
-    cast[cstring](if val.len > 0:
-      unsafeAddr val[0]
-    else:
-      nil
-    ),
+    cast[cstring](val.unsafeAddrOrNil()),
     csize_t(val.len),
     cast[cstringArray](errors.addr),
   )
@@ -138,7 +134,7 @@ proc delete*(
   rocksdb_transaction_delete_cf(
     tx.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
     cast[cstringArray](errors.addr),
   )

@@ -68,13 +68,9 @@ proc put*(
   rocksdb_writebatch_wi_put_cf(
     batch.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
-    cast[cstring](if val.len > 0:
-      unsafeAddr val[0]
-    else:
-      nil
-    ),
+    cast[cstring](val.unsafeAddrOrNil()),
     csize_t(val.len),
   )
 
@@ -86,7 +82,7 @@ proc delete*(
   ## Add a delete operation to the write batch.
 
   rocksdb_writebatch_wi_delete_cf(
-    batch.cPtr, cfHandle.cPtr, cast[cstring](unsafeAddr key[0]), csize_t(key.len)
+    batch.cPtr, cfHandle.cPtr, cast[cstring](key.unsafeAddrOrNil()), csize_t(key.len)
   )
 
   ok()
@@ -107,7 +103,7 @@ proc get*(
     batch.cPtr,
     batch.dbOpts.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
     len.addr,
     cast[cstringArray](errors.addr),

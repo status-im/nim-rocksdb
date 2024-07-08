@@ -160,6 +160,20 @@ suite "WriteBatchRef Tests":
       not batch1.isClosed()
       not batch2.isClosed()
 
+  test "Put, get and delete empty key":
+    let batch = db.openWriteBatch()
+    defer:
+      batch.close()
+
+    let empty: seq[byte] = @[]
+    check:
+      batch.put(empty, val1).isOk()
+      db.write(batch).isOk()
+      db.get(empty).get() == val1
+      batch.delete(empty).isOk()
+      db.write(batch).isOk()
+      db.get(empty).isErr()
+
   test "Test write empty batch":
     let batch = db.openWriteBatch()
     defer:

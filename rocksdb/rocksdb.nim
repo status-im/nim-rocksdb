@@ -243,7 +243,7 @@ proc get*(
     db.cPtr,
     db.readOpts.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
     len.addr,
     cast[cstringArray](errors.addr),
@@ -285,13 +285,9 @@ proc put*(
     db.cPtr,
     db.writeOpts.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
-    cast[cstring](if val.len > 0:
-      unsafeAddr val[0]
-    else:
-      nil
-    ),
+    cast[cstring](val.unsafeAddrOrNil()),
     csize_t(val.len),
     cast[cstringArray](errors.addr),
   )
@@ -312,7 +308,7 @@ proc keyMayExist*(
     db.cPtr,
     db.readOpts.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
     nil,
     nil,
@@ -350,7 +346,7 @@ proc delete*(
     db.cPtr,
     db.writeOpts.cPtr,
     cfHandle.cPtr,
-    cast[cstring](unsafeAddr key[0]),
+    cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
     cast[cstringArray](errors.addr),
   )

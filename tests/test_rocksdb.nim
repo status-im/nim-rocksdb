@@ -347,6 +347,15 @@ suite "RocksDbRef Tests":
       db.keyMayExist(key4).get() == false
       db.keyMayExist(key5).get() == false
 
+  test "Put, get and delete empty key":
+    let empty: seq[byte] = @[]
+
+    check:
+      db.put(empty, val).isOk()
+      db.get(empty).get() == val
+      db.delete(empty).isOk()
+      db.get(empty).isErr()
+
   test "List column familes":
     let cfRes1 = listColumnFamilies(dbPath)
     check:

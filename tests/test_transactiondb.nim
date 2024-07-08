@@ -169,6 +169,18 @@ suite "TransactionDbRef Tests":
         tx2.get(key2, otherCfHandle).error() == ""
         tx2.get(key3, otherCfHandle).get() == val3
 
+  test "Put, get and delete empty key":
+    let tx = db.beginTransaction()
+    defer:
+      tx.close()
+
+    let empty: seq[byte] = @[]
+    check:
+      tx.put(empty, val1).isOk()
+      tx.get(empty).get() == val1
+      tx.delete(empty).isOk()
+      tx.get(empty).isErr()
+
   test "Test close":
     var tx = db.beginTransaction()
 
@@ -227,7 +239,7 @@ suite "TransactionDbRef Tests":
       columnFamilies[0].isClosed() == true
       db.isClosed() == true
 
-  test "Test auto close enabled":
+  test "Test auto close disabled":
     let
       dbPath = mkdtemp() / "autoclose-disabled"
       dbOpts = defaultDbOptions(autoClose = false)

@@ -213,6 +213,18 @@ suite "WriteBatchWIRef Tests":
       batch2.count() == 3
       batch2.get(key1).get() == val1
 
+  test "Put, get and delete empty key":
+    let batch = db.openWriteBatchWithIndex()
+    defer:
+      batch.close()
+
+    let empty: seq[byte] = @[]
+    check:
+      batch.put(empty, val1).isOk()
+      batch.get(empty).get() == val1
+      batch.delete(empty).isOk()
+      batch.get(empty).isErr()
+
   test "Test close":
     let batch = db.openWriteBatchWithIndex()
 
