@@ -8,6 +8,8 @@
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
 ## A `WriteBatchRef` holds a collection of updates to apply atomically to the database.
+## It depends on resources from an instance of `RocksDbRef' and therefore should be used
+## and closed before the `RocksDbRef` is closed.
 
 {.push raises: [].}
 

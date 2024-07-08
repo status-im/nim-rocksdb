@@ -9,9 +9,10 @@
 
 import
   ./rocksdb/[
-    backup, columnfamily, rocksdb, rocksiterator, sstfilewriter, transactiondb,
-    writebatch,
+    backup, columnfamily, optimistictxdb, rocksdb, rocksiterator, sstfilewriter,
+    transactiondb, writebatch, writebatchwi,
   ]
 
 export
-  backup, columnfamily, rocksdb, rocksiterator, sstfilewriter, transactiondb, writebatch
+  backup, columnfamily, optimistictxdb, rocksdb, rocksiterator, sstfilewriter,
+  transactiondb, writebatch, writebatchwi

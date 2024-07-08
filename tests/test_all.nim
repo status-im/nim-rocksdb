@@ -28,4 +28,5 @@ import
   ./test_rocksiterator,
   ./test_sstfilewriter,
   ./test_transactiondb,
-  ./test_writebatch
+  ./test_writebatch,
+  ./test_writebatchwi

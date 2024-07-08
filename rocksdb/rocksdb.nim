@@ -31,11 +31,11 @@ import
   ./options/[dbopts, readopts, writeopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
   ./internal/[cftable, utils],
-  ./rocksiterator,
-  ./rocksresult,
-  ./writebatch
+  ./[rocksiterator, rocksresult, writebatch, writebatchwi]
 
-export rocksresult, dbopts, readopts, writeopts, cfdescriptor, rocksiterator, writebatch
+export
+  rocksresult, dbopts, readopts, writeopts, cfdescriptor, cfhandle, rocksiterator,
+  writebatch, writebatchwi
 
 type
   RocksDbPtr* = ptr rocksdb_t
@@ -371,6 +371,7 @@ proc openIterator*(
     db: RocksDbRef, cfHandle = db.defaultCfHandle
 ): RocksDBResult[RocksIteratorRef] =
   ## Opens an `RocksIteratorRef` for the specified column family.
+  ## The iterator should be closed using the `close` method after usage.
   doAssert not db.isClosed()
 
   let rocksIterPtr =
@@ -382,9 +383,30 @@ proc openWriteBatch*(
     db: RocksDbReadWriteRef, cfHandle = db.defaultCfHandle
 ): WriteBatchRef =
   ## Opens a `WriteBatchRef` which defaults to using the specified column family.
+  ## The write batch should be closed using the `close` method after usage.
   doAssert not db.isClosed()
 
   createWriteBatch(cfHandle)
+
+proc openWriteBatchWithIndex*(
+    db: RocksDbReadWriteRef,
+    reservedBytes = 0,
+    overwriteKey = false,
+    cfHandle = db.defaultCfHandle,
+): WriteBatchWIRef =
+  ## Opens a `WriteBatchWIRef` which defaults to using the specified column family.
+  ## The write batch should be closed using the `close` method after usage.
+  ## `WriteBatchWIRef` is similar to `WriteBatchRef` but with a binary searchable
+  ## index built for all the keys inserted which allows reading the data which has
+  ## been writen to the batch.
+  ##
+  ## Optionally set the number of bytes to be reserved for the batch by setting
+  ## `reservedBytes`. Set `overwriteKey` to true to overwrite the key in the index
+  ## when inserting a duplicate key, in this way an iterator will never show two
+  ## entries with the same key.
+  doAssert not db.isClosed()
+
+  createWriteBatch(reservedBytes, overwriteKey, db.dbOpts, cfHandle)
 
 proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void] =
   ## Apply the updates in the `WriteBatchRef` to the database.
@@ -392,6 +414,18 @@ proc write*(db: RocksDbReadWriteRef, updates: WriteBatchRef): RocksDBResult[void
 
   var errors: cstring
   rocksdb_write(
+    db.cPtr, db.writeOpts.cPtr, updates.cPtr, cast[cstringArray](errors.addr)
+  )
+  bailOnErrors(errors)
+
+  ok()
+
+proc write*(db: RocksDbReadWriteRef, updates: WriteBatchWIRef): RocksDBResult[void] =
+  ## Apply the updates in the `WriteBatchWIRef` to the database.
+  doAssert not db.isClosed()
+
+  var errors: cstring
+  rocksdb_write_writebatch_wi(
     db.cPtr, db.writeOpts.cPtr, updates.cPtr, cast[cstringArray](errors.addr)
   )
   bailOnErrors(errors)
