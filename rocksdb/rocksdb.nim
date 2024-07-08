@@ -305,15 +305,36 @@ proc put*(
 
   ok()
 
+proc keyMayExist*(
+    db: RocksDbRef, key: openArray[byte], cfHandle = db.defaultCfHandle
+): RocksDBResult[bool] =
+  ## If the key definitely does not exist in the database, then this method
+  ## returns false, otherwise it returns true if the key might exist. That is
+  ## to say that this method is probabilistic and may return false positives,
+  ## but never a false negative. This check is potentially lighter-weight than
+  ## invoking keyExists.
+
+  let keyMayExist = rocksdb_key_may_exist_cf(
+    db.cPtr,
+    db.readOpts.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](unsafeAddr key[0]),
+    csize_t(key.len),
+    nil,
+    nil,
+    nil,
+    0,
+    nil,
+  ).bool
+
+  ok(keyMayExist)
+
 proc keyExists*(
     db: RocksDbRef, key: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[bool] =
   ## Check if the key exists in the specified column family.
   ## Returns a result containing `true` if the key exists or a result
   ## containing `false` otherwise.
-
-  # TODO: Call rocksdb_key_may_exist_cf to improve performance for the case
-  # when the key does not exist
 
   db.get(
     key,
