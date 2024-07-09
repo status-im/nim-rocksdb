@@ -22,10 +22,12 @@ import
   ./transactions/[transaction, txdbopts, txopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
   ./internal/[cftable, utils],
-  ./rocksresult
+  ./[rocksiterator, rocksresult, snapshot]
 
 export
-  dbopts, txdbopts, cfdescriptor, readopts, writeopts, txopts, transaction, rocksresult
+  dbopts, txdbopts, cfdescriptor, readopts, writeopts, txopts, transaction,
+  rocksiterator, rocksresult, snapshot.SnapshotRef, snapshot.isClosed,
+  snapshot.getSequenceNumber
 
 type
   TransactionDbPtr* = ptr rocksdb_transactiondb_t
@@ -119,6 +121,42 @@ proc beginTransaction*(
   let txPtr = rocksdb_transaction_begin(db.cPtr, writeOpts.cPtr, txOpts.cPtr, nil)
 
   newTransaction(txPtr, readOpts, writeOpts, txOpts, nil, cfHandle)
+
+proc openIterator*(
+    db: TransactionDbRef,
+    readOpts = defaultReadOptions(autoClose = true),
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[RocksIteratorRef] =
+  ## Opens an `RocksIteratorRef` for the specified column family.
+  ## The iterator should be closed using the `close` method after usage.
+  doAssert not db.isClosed()
+
+  let rocksIterPtr =
+    rocksdb_transactiondb_create_iterator_cf(db.cPtr, readOpts.cPtr, cfHandle.cPtr)
+
+  ok(newRocksIterator(rocksIterPtr, readOpts))
+
+proc getSnapshot*(db: TransactionDbRef): RocksDBResult[SnapshotRef] =
+  ## Return a handle to the current DB state. Iterators created with this handle
+  ## will all observe a stable snapshot of the current DB state. The caller must
+  ## call ReleaseSnapshot(result) when the snapshot is no longer needed.
+  doAssert not db.isClosed()
+
+  let sHandle = rocksdb_transactiondb_create_snapshot(db.cPtr)
+  if sHandle.isNil():
+    err("rocksdb: failed to create snapshot")
+  else:
+    ok(newSnapshot(sHandle, SnapshotType.transactiondb))
+
+proc releaseSnapshot*(db: TransactionDbRef, snapshot: SnapshotRef) =
+  ## Release a previously acquired snapshot. The caller must not use "snapshot"
+  ## after this call.
+  doAssert not db.isClosed()
+  doAssert snapshot.kind == SnapshotType.transactiondb
+
+  if not snapshot.isClosed():
+    rocksdb_transactiondb_release_snapshot(db.cPtr, snapshot.cPtr)
+    snapshot.setClosed()
 
 proc close*(db: TransactionDbRef) =
   ## Close the `TransactionDbRef`.

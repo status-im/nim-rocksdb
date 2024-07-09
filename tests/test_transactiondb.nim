@@ -307,3 +307,38 @@ suite "TransactionDbRef Tests":
       writeOpts.isClosed() == false
       txOpts.isClosed() == false
       tx.isClosed() == true
+
+  test "Create and restore snapshot":
+    let tx1 = db.beginTransaction()
+    check:
+      tx1.put(key1, val1).isOk()
+      tx1.commit().isOk()
+
+    let snapshot = db.getSnapshot().get()
+    check:
+      snapshot.getSequenceNumber() > 0
+      not snapshot.isClosed()
+
+    let tx2 = db.beginTransaction()
+    check:
+      tx2.delete(key1).isOk()
+      tx2.put(key2, val2).isOk()
+      tx2.commit().isOk()
+
+    let readOpts = defaultReadOptions(autoClose = true)
+    readOpts.setSnapshot(snapshot)
+    let iter = db.openIterator(readOpts = readOpts).get()
+    defer:
+      iter.close()
+
+    iter.seekToKey(key1)
+    check:
+      iter.isValid() == true
+      iter.key() == key1
+      iter.value() == val1
+    iter.seekToKey(key2)
+    check:
+      iter.isValid() == false
+
+    db.releaseSnapshot(snapshot)
+    check snapshot.isClosed()

@@ -46,7 +46,7 @@ proc isClosed*(batch: WriteBatchWIRef): bool {.inline.} =
   batch.cPtr.isNil()
 
 proc cPtr*(batch: WriteBatchWIRef): WriteBatchWIPtr =
-  ## Get the underlying database pointer.
+  ## Get the underlying write batch pointer.
   doAssert not batch.isClosed()
   batch.cPtr
 

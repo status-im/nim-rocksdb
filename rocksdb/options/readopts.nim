@@ -9,7 +9,9 @@
 
 {.push raises: [].}
 
-import ../lib/librocksdb
+import ../lib/librocksdb, ../snapshot
+
+export snapshot.SnapshotRef, snapshot.isClosed, snapshot.getSequenceNumber
 
 type
   ReadOptionsPtr* = ptr rocksdb_readoptions_t
@@ -50,6 +52,10 @@ opt maxSkippableInternalKeys, int, csize_t
 opt ignoreRangeDeletions, bool, uint8
 opt deadline, int, uint64
 opt ioTimeout, int, uint64
+
+proc setSnapshot*(readOpts: ReadOptionsRef, snapshot: SnapshotRef) =
+  doAssert not readOpts.isClosed()
+  rocksdb_readoptions_set_snapshot(readOpts.cPtr, snapshot.cPtr)
 
 proc defaultReadOptions*(autoClose = false): ReadOptionsRef {.inline.} =
   let readOpts = createReadOptions(autoClose)
