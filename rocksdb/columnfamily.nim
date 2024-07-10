@@ -99,17 +99,24 @@ proc delete*(
   cf.db.delete(key, cf.handle)
 
 proc openIterator*(
-    cf: ColFamilyReadOnly | ColFamilyReadWrite
+    cf: ColFamilyReadOnly | ColFamilyReadWrite,
+    readOpts = defaultReadOptions(autoClose = true),
 ): RocksDBResult[RocksIteratorRef] {.inline.} =
   ## Opens an `RocksIteratorRef` for the given column family.
-  cf.db.openIterator(cf.handle)
+  cf.db.openIterator(readOpts, cf.handle)
 
 proc openWriteBatch*(cf: ColFamilyReadWrite): WriteBatchRef {.inline.} =
   ## Opens a `WriteBatchRef` for the given column family.
   cf.db.openWriteBatch(cf.handle)
 
+proc openWriteBatchWithIndex*(
+    cf: ColFamilyReadWrite, reservedBytes = 0, overwriteKey = false
+): WriteBatchWIRef {.inline.} =
+  ## Opens a `WriteBatchRef` for the given column family.
+  cf.db.openWriteBatchWithIndex(reservedBytes, overwriteKey, cf.handle)
+
 proc write*(
-    cf: ColFamilyReadWrite, updates: WriteBatchRef
+    cf: ColFamilyReadWrite, updates: WriteBatchRef | WriteBatchWIRef
 ): RocksDBResult[void] {.inline.} =
   ## Writes the updates in the `WriteBatchRef` to the column family.
   cf.db.write(updates)
