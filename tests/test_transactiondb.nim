@@ -308,8 +308,46 @@ suite "TransactionDbRef Tests":
       txOpts.isClosed() == false
       tx.isClosed() == true
 
+  test "Test iterator":
+    let tx1 = db.beginTransaction()
+    defer:
+      tx1.close()
+    check:
+      tx1.put(key1, val1).isOk()
+      tx1.commit().isOk()
+
+    block:
+      # test the db iterator
+      let iter = db.openIterator().get()
+      defer:
+        iter.close()
+
+      iter.seekToKey(key1)
+      check:
+        iter.isValid() == true
+        iter.key() == key1
+        iter.value() == val1
+      iter.seekToKey(key2)
+      check iter.isValid() == false
+
+    block:
+      # test the tx iterator
+      let iter = tx1.openIterator().get()
+      defer:
+        iter.close()
+
+      iter.seekToKey(key1)
+      check:
+        iter.isValid() == true
+        iter.key() == key1
+        iter.value() == val1
+      iter.seekToKey(key2)
+      check iter.isValid() == false
+
   test "Create and restore snapshot":
     let tx1 = db.beginTransaction()
+    defer:
+      tx1.close()
     check:
       tx1.put(key1, val1).isOk()
       tx1.commit().isOk()
@@ -319,7 +357,10 @@ suite "TransactionDbRef Tests":
       snapshot.getSequenceNumber() > 0
       not snapshot.isClosed()
 
+    # after taking snapshot, update the db
     let tx2 = db.beginTransaction()
+    defer:
+      tx2.close()
     check:
       tx2.delete(key1).isOk()
       tx2.put(key2, val2).isOk()
@@ -327,18 +368,26 @@ suite "TransactionDbRef Tests":
 
     let readOpts = defaultReadOptions(autoClose = true)
     readOpts.setSnapshot(snapshot)
+
+    # read from the snapshot using an iterator
     let iter = db.openIterator(readOpts = readOpts).get()
     defer:
       iter.close()
-
     iter.seekToKey(key1)
     check:
       iter.isValid() == true
       iter.key() == key1
       iter.value() == val1
     iter.seekToKey(key2)
+    check iter.isValid() == false
+
+    # read from the snapshot using a transaction
+    let tx3 = db.beginTransaction(readOpts = readOpts)
+    defer:
+      tx3.close()
     check:
-      iter.isValid() == false
+      tx3.get(key1).get() == val1
+      tx3.get(key2).isErr()
 
     db.releaseSnapshot(snapshot)
     check snapshot.isClosed()

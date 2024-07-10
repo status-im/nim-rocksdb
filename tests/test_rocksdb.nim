@@ -461,6 +461,21 @@ suite "RocksDbRef Tests":
     cfOpts.close()
     removeDir($dbPath)
 
+  test "Test iterator":
+    check db.put(key, val).isOk()
+
+    let iter = db.openIterator().get()
+    defer:
+      iter.close()
+
+    iter.seekToKey(key)
+    check:
+      iter.isValid() == true
+      iter.key() == key
+      iter.value() == val
+    iter.seekToKey(otherKey)
+    check iter.isValid() == false
+
   test "Create and restore snapshot":
     check:
       db.put(key, val).isOk()
@@ -472,6 +487,7 @@ suite "RocksDbRef Tests":
       snapshot.getSequenceNumber() > 0
       not snapshot.isClosed()
 
+    # after taking snapshot, update the db
     check:
       db.delete(key).isOk()
       db.put(otherKey, val).isOk()
@@ -480,10 +496,11 @@ suite "RocksDbRef Tests":
 
     let readOpts = defaultReadOptions(autoClose = true)
     readOpts.setSnapshot(snapshot)
+
+    # read from the snapshot using an iterator
     let iter = db.openIterator(readOpts = readOpts).get()
     defer:
       iter.close()
-
     iter.seekToKey(key)
     check:
       iter.isValid() == true

@@ -51,9 +51,9 @@ suite "WriteBatchWIRef Tests":
       batch.count() == 4
       not batch.isClosed()
 
-      batch.get(key1).get() == val1
-      batch.get(key2).isErr()
-      batch.get(key3).get() == val3
+      batch.getFromBatch(key1).get() == val1
+      batch.getFromBatch(key2).isErr()
+      batch.getFromBatch(key3).get() == val3
 
     let res = db.write(batch)
     check:
@@ -63,9 +63,9 @@ suite "WriteBatchWIRef Tests":
       db.keyExists(key2).get() == false
       db.get(key3).get() == val3
 
-      batch.get(key1).get() == val1
-      batch.get(key2).isErr()
-      batch.get(key3).get() == val3
+      batch.getFromBatch(key1).get() == val1
+      batch.getFromBatch(key2).isErr()
+      batch.getFromBatch(key3).get() == val3
 
     batch.clear()
     check:
@@ -88,9 +88,9 @@ suite "WriteBatchWIRef Tests":
       batch.count() == 4
       not batch.isClosed()
 
-      batch.get(key1, otherCfHandle).get() == val1
-      batch.get(key2, otherCfHandle).isErr()
-      batch.get(key3, otherCfHandle).get() == val3
+      batch.getFromBatch(key1, otherCfHandle).get() == val1
+      batch.getFromBatch(key2, otherCfHandle).isErr()
+      batch.getFromBatch(key3, otherCfHandle).get() == val3
 
     let res = db.write(batch)
     check:
@@ -99,9 +99,9 @@ suite "WriteBatchWIRef Tests":
       db.keyExists(key2, otherCfHandle).get() == false
       db.get(key3, otherCfHandle).get() == val3
 
-      batch.get(key1, otherCfHandle).get() == val1
-      batch.get(key2, otherCfHandle).isErr()
-      batch.get(key3, otherCfHandle).get() == val3
+      batch.getFromBatch(key1, otherCfHandle).get() == val1
+      batch.getFromBatch(key2, otherCfHandle).isErr()
+      batch.getFromBatch(key3, otherCfHandle).get() == val3
 
     batch.clear()
     check:
@@ -205,13 +205,13 @@ suite "WriteBatchWIRef Tests":
       batch1.delete(key1).isOk()
       batch1.put(key1, val3).isOk()
       batch1.count() == 3
-      batch1.get(key1).get() == val3
+      batch1.getFromBatch(key1).get() == val3
 
       batch2.put(key1, val3).isOk()
       batch2.put(key1, val2).isOk()
       batch2.put(key1, val1).isOk()
       batch2.count() == 3
-      batch2.get(key1).get() == val1
+      batch2.getFromBatch(key1).get() == val1
 
   test "Put, get and delete empty key":
     let batch = db.openWriteBatchWithIndex()
@@ -221,9 +221,9 @@ suite "WriteBatchWIRef Tests":
     let empty: seq[byte] = @[]
     check:
       batch.put(empty, val1).isOk()
-      batch.get(empty).get() == val1
+      batch.getFromBatch(empty).get() == val1
       batch.delete(empty).isOk()
-      batch.get(empty).isErr()
+      batch.getFromBatch(empty).isErr()
 
   test "Test close":
     let batch = db.openWriteBatchWithIndex()
