@@ -46,7 +46,7 @@ proc isClosed*(batch: WriteBatchWIRef): bool {.inline.} =
   batch.cPtr.isNil()
 
 proc cPtr*(batch: WriteBatchWIRef): WriteBatchWIPtr =
-  ## Get the underlying database pointer.
+  ## Get the underlying write batch pointer.
   doAssert not batch.isClosed()
   batch.cPtr
 
@@ -87,7 +87,7 @@ proc delete*(
 
   ok()
 
-proc get*(
+proc getFromBatch*(
     batch: WriteBatchWIRef,
     key: openArray[byte],
     onData: DataProc,
@@ -118,7 +118,7 @@ proc get*(
     rocksdb_free(data)
     ok(true)
 
-proc get*(
+proc getFromBatch*(
     batch: WriteBatchWIRef, key: openArray[byte], cfHandle = batch.defaultCfHandle
 ): RocksDBResult[seq[byte]] =
   ## Get the value for a given key from the batch.
@@ -127,7 +127,7 @@ proc get*(
   proc onData(data: openArray[byte]) =
     dataRes.ok(@data)
 
-  let res = batch.get(key, onData, cfHandle)
+  let res = batch.getFromBatch(key, onData, cfHandle)
   if res.isOk():
     return dataRes
 

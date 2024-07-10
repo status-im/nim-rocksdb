@@ -12,7 +12,7 @@
 
 {.push raises: [].}
 
-import ./lib/librocksdb, ./internal/utils, ./rocksresult
+import ./lib/librocksdb, ./internal/utils, ./options/readopts, ./rocksresult
 
 export rocksresult
 
@@ -21,10 +21,13 @@ type
 
   RocksIteratorRef* = ref object
     cPtr: RocksIteratorPtr
+    readOpts: ReadOptionsRef
 
-proc newRocksIterator*(cPtr: RocksIteratorPtr): RocksIteratorRef =
+proc newRocksIterator*(
+    cPtr: RocksIteratorPtr, readOpts: ReadOptionsRef
+): RocksIteratorRef =
   doAssert not cPtr.isNil()
-  RocksIteratorRef(cPtr: cPtr)
+  RocksIteratorRef(cPtr: cPtr, readOpts: readOpts)
 
 proc isClosed*(iter: RocksIteratorRef): bool {.inline.} =
   ## Returns `true` if the iterator is closed and `false` otherwise.
@@ -127,6 +130,8 @@ proc close*(iter: RocksIteratorRef) =
   if not iter.isClosed():
     rocksdb_iter_destroy(iter.cPtr)
     iter.cPtr = nil
+
+    autoCloseNonNil(iter.readOpts)
 
 iterator pairs*(iter: RocksIteratorRef): tuple[key: seq[byte], value: seq[byte]] =
   ## Iterates over the key value pairs in the column family yielding them in

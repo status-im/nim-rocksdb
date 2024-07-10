@@ -31,11 +31,12 @@ import
   ./options/[dbopts, readopts, writeopts],
   ./columnfamily/[cfopts, cfdescriptor, cfhandle],
   ./internal/[cftable, utils],
-  ./[rocksiterator, rocksresult, writebatch, writebatchwi]
+  ./[rocksiterator, rocksresult, writebatch, writebatchwi, snapshot]
 
 export
   rocksresult, dbopts, readopts, writeopts, cfdescriptor, cfhandle, rocksiterator,
-  writebatch, writebatchwi
+  writebatch, writebatchwi, snapshot.SnapshotRef, snapshot.isClosed,
+  snapshot.getSequenceNumber
 
 type
   RocksDbPtr* = ptr rocksdb_t
@@ -355,16 +356,17 @@ proc delete*(
   ok()
 
 proc openIterator*(
-    db: RocksDbRef, cfHandle = db.defaultCfHandle
+    db: RocksDbRef,
+    readOpts = defaultReadOptions(autoClose = true),
+    cfHandle = db.defaultCfHandle,
 ): RocksDBResult[RocksIteratorRef] =
   ## Opens an `RocksIteratorRef` for the specified column family.
   ## The iterator should be closed using the `close` method after usage.
   doAssert not db.isClosed()
 
-  let rocksIterPtr =
-    rocksdb_create_iterator_cf(db.cPtr, db.readOpts.cPtr, cfHandle.cPtr)
+  let rocksIterPtr = rocksdb_create_iterator_cf(db.cPtr, readOpts.cPtr, cfHandle.cPtr)
 
-  ok(newRocksIterator(rocksIterPtr))
+  ok(newRocksIterator(rocksIterPtr, readOpts))
 
 proc openWriteBatch*(
     db: RocksDbReadWriteRef, cfHandle = db.defaultCfHandle
@@ -441,6 +443,28 @@ proc ingestExternalFile*(
   bailOnErrors(errors)
 
   ok()
+
+proc getSnapshot*(db: RocksDbRef): RocksDBResult[SnapshotRef] =
+  ## Return a handle to the current DB state. Iterators created with this handle
+  ## will all observe a stable snapshot of the current DB state. The caller must
+  ## call ReleaseSnapshot(result) when the snapshot is no longer needed.
+  doAssert not db.isClosed()
+
+  let sHandle = rocksdb_create_snapshot(db.cPtr)
+  if sHandle.isNil():
+    err("rocksdb: failed to create snapshot")
+  else:
+    ok(newSnapshot(sHandle, SnapshotType.rocksdb))
+
+proc releaseSnapshot*(db: RocksDbRef, snapshot: SnapshotRef) =
+  ## Release a previously acquired snapshot. The caller must not use "snapshot"
+  ## after this call.
+  doAssert not db.isClosed()
+  doAssert snapshot.kind == SnapshotType.rocksdb
+
+  if not snapshot.isClosed():
+    rocksdb_release_snapshot(db.cPtr, snapshot.cPtr)
+    snapshot.setClosed()
 
 proc close*(db: RocksDbRef) =
   ## Close the `RocksDbRef` which will release the connection to the database

@@ -87,3 +87,19 @@ suite "ColFamily Tests":
 
       readOnlyCf.db.close()
       check readOnlyCf.db.isClosed()
+
+  test "Test iterator":
+    let cf = db.getColFamily(CF_OTHER).get()
+    check cf.put(key, val).isOk()
+
+    let iter = cf.openIterator().get()
+    defer:
+      iter.close()
+
+    iter.seekToKey(key)
+    check:
+      iter.isValid() == true
+      iter.key() == key
+      iter.value() == val
+    iter.seekToKey(otherKey)
+    check iter.isValid() == false

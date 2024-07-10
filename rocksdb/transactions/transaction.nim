@@ -23,10 +23,10 @@ import
   ../lib/librocksdb,
   ../options/[readopts, writeopts],
   ../internal/[cftable, utils],
-  ../rocksresult,
+  ../[rocksiterator, rocksresult],
   ./[txopts, otxopts]
 
-export rocksresult
+export rocksiterator, rocksresult
 
 type
   TransactionPtr* = ptr rocksdb_transaction_t
@@ -161,6 +161,20 @@ proc rollback*(tx: TransactionRef): RocksDBResult[void] =
   bailOnErrors(errors)
 
   ok()
+
+proc openIterator*(
+    db: TransactionRef,
+    readOpts = defaultReadOptions(autoClose = true),
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[RocksIteratorRef] =
+  ## Opens an `RocksIteratorRef` for the specified column family.
+  ## The iterator should be closed using the `close` method after usage.
+  doAssert not db.isClosed()
+
+  let rocksIterPtr =
+    rocksdb_transaction_create_iterator_cf(db.cPtr, readOpts.cPtr, cfHandle.cPtr)
+
+  ok(newRocksIterator(rocksIterPtr, readOpts))
 
 proc close*(tx: TransactionRef) =
   ## Close the `TransactionRef`.
