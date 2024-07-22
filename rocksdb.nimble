@@ -14,7 +14,7 @@ requires "nim >= 1.6", "results", "tempfile", "unittest2"
 task format, "Format nim code using nph":
   # Using the latest nph commit for now because the latest tagged version
   # doesn't work with the latest nim 2 version
-  exec "nimble install nph@#head"
+  exec "nimble install nph@0.6.0"
   exec "nph ."
 
 task clean, "Remove temporary files":
