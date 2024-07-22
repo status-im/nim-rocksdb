@@ -41,14 +41,12 @@ suite "ColFamily Tests":
     check cf.get(
       key,
       proc(data: openArray[byte]) =
-        bytes = @data
-      ,
+        bytes = @data,
     )[]
     check not cf.get(
       otherKey,
       proc(data: openArray[byte]) =
-        bytes = @data
-      ,
+        bytes = @data,
     )[]
 
     var r1 = cf.get(key)

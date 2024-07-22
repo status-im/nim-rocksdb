@@ -330,8 +330,7 @@ proc keyExists*(
   db.get(
     key,
     proc(data: openArray[byte]) =
-      discard
-    ,
+      discard,
     cfHandle,
   )
 

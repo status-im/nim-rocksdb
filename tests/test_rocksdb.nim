@@ -40,14 +40,12 @@ suite "RocksDbRef Tests":
     check db.get(
       key,
       proc(data: openArray[byte]) =
-        bytes = @data
-      ,
+        bytes = @data,
     )[]
     check not db.get(
       otherKey,
       proc(data: openArray[byte]) =
-        bytes = @data
-      ,
+        bytes = @data,
     )[]
 
     var r1 = db.get(key)
@@ -97,15 +95,13 @@ suite "RocksDbRef Tests":
     check db.get(
       key,
       proc(data: openArray[byte]) =
-        bytes = @data
-      ,
+        bytes = @data,
       defaultCfHandle,
     )[]
     check not db.get(
       otherKey,
       proc(data: openArray[byte]) =
-        bytes = @data
-      ,
+        bytes = @data,
       defaultCfHandle,
     )[]
 
@@ -159,15 +155,13 @@ suite "RocksDbRef Tests":
     check db.get(
       key,
       proc(data: openArray[byte]) =
-        bytes = @data
-      ,
+        bytes = @data,
       defaultCfHandle,
     )[]
     check not db.get(
       otherKey,
       proc(data: openArray[byte]) =
-        bytes = @data
-      ,
+        bytes = @data,
       defaultCfHandle,
     )[]
 
@@ -175,15 +169,13 @@ suite "RocksDbRef Tests":
     check db.get(
       otherKey,
       proc(data: openArray[byte]) =
-        bytes2 = @data
-      ,
+        bytes2 = @data,
       otherCfHandle,
     )[]
     check not db.get(
       key,
       proc(data: openArray[byte]) =
-        bytes2 = @data
-      ,
+        bytes2 = @data,
       otherCfHandle,
     )[]
 
@@ -259,8 +251,7 @@ suite "RocksDbRef Tests":
       let r = db.get(
         key1,
         proc(data: openArray[byte]) =
-          v = @data
-        ,
+          v = @data,
       )
       check:
         r.isOk()
@@ -273,8 +264,7 @@ suite "RocksDbRef Tests":
       let r = db.get(
         key2,
         proc(data: openArray[byte]) =
-          v = @data
-        ,
+          v = @data,
       )
       check:
         r.isOk()
@@ -287,8 +277,7 @@ suite "RocksDbRef Tests":
       let r = db.get(
         key3,
         proc(data: openArray[byte]) =
-          v = @data
-        ,
+          v = @data,
       )
       check:
         r.isOk()
@@ -301,8 +290,7 @@ suite "RocksDbRef Tests":
       let r = db.get(
         key4,
         proc(data: openArray[byte]) =
-          v = @data
-        ,
+          v = @data,
       )
       check:
         r.isOk()
@@ -315,8 +303,7 @@ suite "RocksDbRef Tests":
       let r = db.get(
         key5,
         proc(data: openArray[byte]) =
-          v = @data
-        ,
+          v = @data,
       )
       check:
         r.isOk()
