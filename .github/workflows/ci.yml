@@ -121,7 +121,7 @@ jobs:
 
           nim --version
           nimble --version
-          nimble install -y
+          # nimble install -y
           # nimble test
 
           # static linking is not supported on windows
