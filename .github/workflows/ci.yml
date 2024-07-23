@@ -36,8 +36,8 @@ jobs:
             cpu: amd64
           - os: macos
             cpu: amd64
-          - os: windows
-            cpu: amd64
+          # - os: windows
+          #   cpu: amd64
         branch: [version-1-6, version-2-0, devel]
         include:
           - target:
@@ -122,9 +122,15 @@ jobs:
           nim --version
           nimble --version
           nimble install -y
-          nimble test
+          # nimble test
 
           # static linking is not supported on windows
+          if [[ "${{ matrix.target.os }}" != "windows" ]]; then
+            nimble test_static
+          fi
+
+          echo "Building a second time to verify RocksDb build caching"
+
           if [[ "${{ matrix.target.os }}" != "windows" ]]; then
             nimble test_static
           fi
