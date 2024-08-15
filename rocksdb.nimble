@@ -22,7 +22,7 @@ task clean, "Remove temporary files":
   exec "make -C vendor/rocksdb clean"
 
 task test, "Run tests":
-  let runTests = "nim c -r --threads:on tests/test_all.nim"
+  let runTests = "nim c -d:nimDebugDlOpen -r --threads:on tests/test_all.nim"
   when defined(linux):
     exec "export LD_LIBRARY_PATH=build; " & runTests
   when defined(macosx):
