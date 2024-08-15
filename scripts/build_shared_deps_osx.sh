@@ -28,6 +28,7 @@ mkdir -p "${BUILD_DEST}"
 ls "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib"
 mv "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib/librocksdb.9.2.1.dylib" "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib/librocksdb.dylib"
 
+cp "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib/libz.dylib" "${BUILD_DEST}/"
 cp "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib/liblz4.dylib" "${BUILD_DEST}/"
 cp "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib/libzstd.dylib" "${BUILD_DEST}/"
 cp "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib/librocksdb.dylib" "${BUILD_DEST}/"
