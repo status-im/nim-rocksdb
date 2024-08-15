@@ -25,6 +25,4 @@ ${REPO_DIR}/vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-osx-rocksdb --recur
 
 mkdir -p "${BUILD_DEST}"
 
-cp "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib/liblz4.dylib" "${BUILD_DEST}/"
-cp "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib/libzstd.dylib" "${BUILD_DEST}/"
 cp "${REPO_DIR}/vendor/vcpkg/installed/x64-osx-rocksdb/lib/librocksdb.dylib" "${BUILD_DEST}/"
