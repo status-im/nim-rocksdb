@@ -579,6 +579,12 @@ proc rocksdb_drop_column_family*(
   db: ptr rocksdb_t, handle: ptr rocksdb_column_family_handle_t, errptr: cstringArray
 ) {.cdecl, importc: "rocksdb_drop_column_family", dynlib: librocksdb.}
 
+proc rocksdb_get_default_column_family_handle*(
+  db: ptr rocksdb_t
+): ptr rocksdb_column_family_handle_t {.
+  cdecl, importc: "rocksdb_get_default_column_family_handle", dynlib: librocksdb
+.}
+
 proc rocksdb_column_family_handle_destroy*(
   a1: ptr rocksdb_column_family_handle_t
 ) {.cdecl, importc: "rocksdb_column_family_handle_destroy", dynlib: librocksdb.}
@@ -718,6 +724,15 @@ proc rocksdb_get_cf_with_ts*(
   tslen: ptr csize_t,
   errptr: cstringArray,
 ): cstring {.cdecl, importc: "rocksdb_get_cf_with_ts", dynlib: librocksdb.}
+
+##
+##  Returns a malloc() buffer with the DB identity, assigning the length to
+##  *id_len. Returns NULL if an error occurred.
+##
+
+proc rocksdb_get_db_identity*(
+  db: ptr rocksdb_t, id_len: ptr csize_t
+): cstring {.cdecl, importc: "rocksdb_get_db_identity", dynlib: librocksdb.}
 
 ##  if values_list[i] == NULL and errs[i] == NULL,
 ##  then we got status.IsNotFound(), which we will not return.
@@ -948,6 +963,24 @@ proc rocksdb_approximate_sizes_cf*(
   errptr: cstringArray,
 ) {.cdecl, importc: "rocksdb_approximate_sizes_cf", dynlib: librocksdb.}
 
+const
+  rocksdb_size_approximation_flags_none* = 0
+  rocksdb_size_approximation_flags_include_memtable* = 1 shl 0
+  rocksdb_size_approximation_flags_include_files* = 1 shl 1
+
+proc rocksdb_approximate_sizes_cf_with_flags*(
+  db: ptr rocksdb_t,
+  column_family: ptr rocksdb_column_family_handle_t,
+  num_ranges: cint,
+  range_start_key: cstringArray,
+  range_start_key_len: ptr csize_t,
+  range_limit_key: cstringArray,
+  range_limit_key_len: ptr csize_t,
+  include_flags: uint8,
+  sizes: ptr uint64,
+  errptr: cstringArray,
+) {.cdecl, importc: "rocksdb_approximate_sizes_cf_with_flags", dynlib: librocksdb.}
+
 proc rocksdb_compact_range*(
   db: ptr rocksdb_t,
   start_key: cstring,
@@ -1102,6 +1135,10 @@ proc rocksdb_iter_get_error*(
   a1: ptr rocksdb_iterator_t, errptr: cstringArray
 ) {.cdecl, importc: "rocksdb_iter_get_error", dynlib: librocksdb.}
 
+proc rocksdb_iter_refresh*(
+  iter: ptr rocksdb_iterator_t, errptr: cstringArray
+) {.cdecl, importc: "rocksdb_iter_refresh", dynlib: librocksdb.}
+
 proc rocksdb_wal_iter_next*(
   iter: ptr rocksdb_wal_iterator_t
 ) {.cdecl, importc: "rocksdb_wal_iter_next", dynlib: librocksdb.}
@@ -1138,6 +1175,15 @@ proc rocksdb_writebatch_create_from*(
   rep: cstring, size: csize_t
 ): ptr rocksdb_writebatch_t {.
   cdecl, importc: "rocksdb_writebatch_create_from", dynlib: librocksdb
+.}
+
+proc rocksdb_writebatch_create_with_params*(
+  reserved_bytes: csize_t,
+  max_bytes: csize_t,
+  protection_bytes_per_key: csize_t,
+  default_cf_ts_sz: csize_t,
+): ptr rocksdb_writebatch_t {.
+  cdecl, importc: "rocksdb_writebatch_create_with_params", dynlib: librocksdb
 .}
 
 proc rocksdb_writebatch_destroy*(
@@ -1333,6 +1379,18 @@ proc rocksdb_writebatch_iterate*(
   deleted: proc(a1: pointer, k: cstring, klen: csize_t) {.cdecl.},
 ) {.cdecl, importc: "rocksdb_writebatch_iterate", dynlib: librocksdb.}
 
+proc rocksdb_writebatch_iterate_cf*(
+  a1: ptr rocksdb_writebatch_t,
+  state: pointer,
+  put_cf: proc(
+    a1: pointer, cfid: uint32, k: cstring, klen: csize_t, v: cstring, vlen: csize_t
+  ) {.cdecl.},
+  deleted_cf: proc(a1: pointer, cfid: uint32, k: cstring, klen: csize_t) {.cdecl.},
+  merge_cf: proc(
+    a1: pointer, cfid: uint32, k: cstring, klen: csize_t, v: cstring, vlen: csize_t
+  ) {.cdecl.},
+) {.cdecl, importc: "rocksdb_writebatch_iterate_cf", dynlib: librocksdb.}
+
 proc rocksdb_writebatch_data*(
   a1: ptr rocksdb_writebatch_t, size: ptr csize_t
 ): cstring {.cdecl, importc: "rocksdb_writebatch_data", dynlib: librocksdb.}
@@ -1349,6 +1407,15 @@ proc rocksdb_writebatch_pop_save_point*(
   a1: ptr rocksdb_writebatch_t, errptr: cstringArray
 ) {.cdecl, importc: "rocksdb_writebatch_pop_save_point", dynlib: librocksdb.}
 
+proc rocksdb_writebatch_update_timestamps*(
+  wb: ptr rocksdb_writebatch_t,
+  ts: cstring,
+  tslen: csize_t,
+  state: pointer,
+  get_ts_size: proc(a1: pointer, a2: uint32): csize_t {.cdecl.},
+  errptr: cstringArray,
+) {.cdecl, importc: "rocksdb_writebatch_update_timestamps", dynlib: librocksdb.}
+
 ##  Write batch with index
 
 proc rocksdb_writebatch_wi_create*(
@@ -1361,6 +1428,16 @@ proc rocksdb_writebatch_wi_create_from*(
   rep: cstring, size: csize_t
 ): ptr rocksdb_writebatch_wi_t {.
   cdecl, importc: "rocksdb_writebatch_wi_create_from", dynlib: librocksdb
+.}
+
+proc rocksdb_writebatch_wi_create_with_params*(
+  backup_index_comparator: ptr rocksdb_comparator_t,
+  reserved_bytes: csize_t,
+  overwrite_key: uint8,
+  max_bytes: csize_t,
+  protection_bytes_per_key: csize_t,
+): ptr rocksdb_writebatch_wi_t {.
+  cdecl, importc: "rocksdb_writebatch_wi_create_with_params", dynlib: librocksdb
 .}
 
 proc rocksdb_writebatch_wi_destroy*(
@@ -1626,6 +1703,15 @@ proc rocksdb_writebatch_wi_create_iterator_with_base_cf*(
   dynlib: librocksdb
 .}
 
+proc rocksdb_writebatch_wi_update_timestamps*(
+  wbwi: ptr rocksdb_writebatch_wi_t,
+  ts: cstring,
+  tslen: csize_t,
+  state: pointer,
+  get_ts_size: proc(a1: pointer, a2: uint32): csize_t {.cdecl.},
+  errptr: cstringArray,
+) {.cdecl, importc: "rocksdb_writebatch_wi_update_timestamps", dynlib: librocksdb.}
+
 ##  Options utils
 ##  Load the latest rocksdb options from the specified db_path.
 ##
@@ -1836,6 +1922,36 @@ proc rocksdb_options_set_block_based_table_factory*(
   opt: ptr rocksdb_options_t, table_options: ptr rocksdb_block_based_table_options_t
 ) {.
   cdecl, importc: "rocksdb_options_set_block_based_table_factory", dynlib: librocksdb
+.}
+
+const
+  rocksdb_block_based_k_fallback_pinning_tier* = 0
+  rocksdb_block_based_k_none_pinning_tier* = 1
+  rocksdb_block_based_k_flush_and_similar_pinning_tier* = 2
+  rocksdb_block_based_k_all_pinning_tier* = 3
+
+proc rocksdb_block_based_options_set_top_level_index_pinning_tier*(
+  a1: ptr rocksdb_block_based_table_options_t, a2: cint
+) {.
+  cdecl,
+  importc: "rocksdb_block_based_options_set_top_level_index_pinning_tier",
+  dynlib: librocksdb
+.}
+
+proc rocksdb_block_based_options_set_partition_pinning_tier*(
+  a1: ptr rocksdb_block_based_table_options_t, a2: cint
+) {.
+  cdecl,
+  importc: "rocksdb_block_based_options_set_partition_pinning_tier",
+  dynlib: librocksdb
+.}
+
+proc rocksdb_block_based_options_set_unpartitioned_pinning_tier*(
+  a1: ptr rocksdb_block_based_table_options_t, a2: cint
+) {.
+  cdecl,
+  importc: "rocksdb_block_based_options_set_unpartitioned_pinning_tier",
+  dynlib: librocksdb
 .}
 
 proc rocksdb_options_set_write_buffer_manager*(
@@ -2055,6 +2171,14 @@ proc rocksdb_logger_create_stderr_logger*(
   log_level: cint, prefix: cstring
 ): ptr rocksdb_logger_t {.
   cdecl, importc: "rocksdb_logger_create_stderr_logger", dynlib: librocksdb
+.}
+
+proc rocksdb_logger_create_callback_logger*(
+  log_level: cint,
+  a2: proc(priv: pointer, lev: cuint, msg: cstring, len: csize_t) {.cdecl.},
+  priv: pointer,
+): ptr rocksdb_logger_t {.
+  cdecl, importc: "rocksdb_logger_create_callback_logger", dynlib: librocksdb
 .}
 
 proc rocksdb_logger_destroy*(
@@ -3074,6 +3198,32 @@ proc rocksdb_options_set_plain_table_factory*(
   a9: uint8,
 ) {.cdecl, importc: "rocksdb_options_set_plain_table_factory", dynlib: librocksdb.}
 
+proc rocksdb_options_get_write_dbid_to_manifest*(
+  a1: ptr rocksdb_options_t
+): uint8 {.
+  cdecl, importc: "rocksdb_options_get_write_dbid_to_manifest", dynlib: librocksdb
+.}
+
+proc rocksdb_options_set_write_dbid_to_manifest*(
+  a1: ptr rocksdb_options_t, a2: uint8
+) {.cdecl, importc: "rocksdb_options_set_write_dbid_to_manifest", dynlib: librocksdb.}
+
+proc rocksdb_options_get_track_and_verify_wals_in_manifest*(
+  a1: ptr rocksdb_options_t
+): uint8 {.
+  cdecl,
+  importc: "rocksdb_options_get_track_and_verify_wals_in_manifest",
+  dynlib: librocksdb
+.}
+
+proc rocksdb_options_set_track_and_verify_wals_in_manifest*(
+  a1: ptr rocksdb_options_t, a2: uint8
+) {.
+  cdecl,
+  importc: "rocksdb_options_set_track_and_verify_wals_in_manifest",
+  dynlib: librocksdb
+.}
+
 proc rocksdb_options_set_min_level_to_compress*(
   opt: ptr rocksdb_options_t, level: cint
 ) {.cdecl, importc: "rocksdb_options_set_min_level_to_compress", dynlib: librocksdb.}
@@ -3283,6 +3433,21 @@ proc rocksdb_options_set_wal_compression*(
 proc rocksdb_options_get_wal_compression*(
   opt: ptr rocksdb_options_t
 ): cint {.cdecl, importc: "rocksdb_options_get_wal_compression", dynlib: librocksdb.}
+
+const
+  rocksdb_k_by_compensated_size_compaction_pri* = 0
+  rocksdb_k_oldest_largest_seq_first_compaction_pri* = 1
+  rocksdb_k_oldest_smallest_seq_first_compaction_pri* = 2
+  rocksdb_k_min_overlapping_ratio_compaction_pri* = 3
+  rocksdb_k_round_robin_compaction_pri* = 4
+
+proc rocksdb_options_set_compaction_pri*(
+  a1: ptr rocksdb_options_t, a2: cint
+) {.cdecl, importc: "rocksdb_options_set_compaction_pri", dynlib: librocksdb.}
+
+proc rocksdb_options_get_compaction_pri*(
+  a1: ptr rocksdb_options_t
+): cint {.cdecl, importc: "rocksdb_options_get_compaction_pri", dynlib: librocksdb.}
 
 ##  RateLimiter
 
