@@ -38,7 +38,7 @@ jobs:
             cpu: amd64
           - os: windows
             cpu: amd64
-        branch: [version-1-6, version-2-0, devel]
+        branch: [version-2-0, version-2-2, devel]
         include:
           - target:
               os: linux
@@ -46,7 +46,7 @@ jobs:
             shell: bash
           - target:
               os: macos
-            builder: macos-12
+            builder: macos-13
             shell: bash
           - target:
               os: windows
