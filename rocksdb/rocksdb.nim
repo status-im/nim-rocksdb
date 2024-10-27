@@ -465,6 +465,22 @@ proc releaseSnapshot*(db: RocksDbRef, snapshot: SnapshotRef) =
     rocksdb_release_snapshot(db.cPtr, snapshot.cPtr)
     snapshot.setClosed()
 
+proc flush*(db: RocksDbRef, cfs: openArray[ColFamilyHandleRef]): RocksDBResult[void] =
+  withLock(db.lock):
+    if not db.isClosed():
+      var cfs = cfs.mapIt(it.cPtr)
+      var errors: cstring
+      var opts = rocksdb_flushoptions_create()
+      defer:
+        rocksdb_flushoptions_destroy(opts)
+      rocksdb_flushoptions_set_wait(opts, 1)
+      rocksdb_flush_cfs(
+        db.cPtr, opts, addr cfs[0], cint(cfs.len), cast[cstringArray](errors.addr)
+      )
+      bailOnErrors(errors)
+
+  ok()
+
 proc close*(db: RocksDbRef) =
   ## Close the `RocksDbRef` which will release the connection to the database
   ## and free the memory associated with it. `close` is idempotent and can
