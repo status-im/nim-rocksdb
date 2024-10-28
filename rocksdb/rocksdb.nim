@@ -41,6 +41,7 @@ export
 type
   RocksDbPtr* = ptr rocksdb_t
   IngestExternalFilesOptionsPtr = ptr rocksdb_ingestexternalfileoptions_t
+  FlushOptionsPtr = ptr rocksdb_flushoptions_t
 
   RocksDbRef* = ref object of RootObj
     lock: Lock
@@ -57,6 +58,7 @@ type
   RocksDbReadWriteRef* = ref object of RocksDbRef
     writeOpts: WriteOptionsRef
     ingestOptsPtr: IngestExternalFilesOptionsPtr
+    flushOptsPtr: FlushOptionsPtr
 
 proc listColumnFamilies*(path: string): RocksDBResult[seq[string]] =
   ## List exisiting column families on disk. This might be used to find out
@@ -135,6 +137,9 @@ proc openRocksDb*(
     autoCloseNonNil(writeOpts)
     autoCloseAll(cfs)
 
+  let flushOptsPtr = rocksdb_flushoptions_create()
+  rocksdb_flushoptions_set_wait(flushOptsPtr, 1)
+
   let
     cfTable = newColFamilyTable(cfNames.mapIt($it), cfHandles)
     db = RocksDbReadWriteRef(
@@ -144,6 +149,7 @@ proc openRocksDb*(
       dbOpts: dbOpts,
       readOpts: readOpts,
       writeOpts: writeOpts,
+      flushOptsPtr: flushOptsPtr,
       cfDescriptors: cfs,
       ingestOptsPtr: rocksdb_ingestexternalfileoptions_create(),
       defaultCfHandle: cfTable.get(DEFAULT_COLUMN_FAMILY_NAME),
@@ -465,19 +471,37 @@ proc releaseSnapshot*(db: RocksDbRef, snapshot: SnapshotRef) =
     rocksdb_release_snapshot(db.cPtr, snapshot.cPtr)
     snapshot.setClosed()
 
-proc flush*(db: RocksDbRef, cfs: openArray[ColFamilyHandleRef]): RocksDBResult[void] =
-  withLock(db.lock):
-    if not db.isClosed():
-      var cfs = cfs.mapIt(it.cPtr)
-      var errors: cstring
-      var opts = rocksdb_flushoptions_create()
-      defer:
-        rocksdb_flushoptions_destroy(opts)
-      rocksdb_flushoptions_set_wait(opts, 1)
-      rocksdb_flush_cfs(
-        db.cPtr, opts, addr cfs[0], cint(cfs.len), cast[cstringArray](errors.addr)
-      )
-      bailOnErrors(errors)
+proc flush*(
+    db: RocksDbReadWriteRef, cfHandle = db.defaultCfHandle
+): RocksDBResult[void] =
+  ## Flush all memory table data for the given column family.
+  doAssert not db.isClosed()
+
+  var errors: cstring
+  rocksdb_flush_cf(
+    db.cPtr, db.flushOptsPtr, cfHandle.cPtr, cast[cstringArray](errors.addr)
+  )
+  bailOnErrors(errors)
+
+  ok()
+
+proc flush*(
+    db: RocksDbReadWriteRef, cfHandles: openArray[ColFamilyHandleRef]
+): RocksDBResult[void] =
+  ## Flush all memory table data for the given column families.
+  doAssert not db.isClosed()
+
+  var
+    cfs = cfHandles.mapIt(it.cPtr)
+    errors: cstring
+  rocksdb_flush_cfs(
+    db.cPtr,
+    db.flushOptsPtr,
+    addr cfs[0],
+    cint(cfs.len),
+    cast[cstringArray](errors.addr),
+  )
+  bailOnErrors(errors)
 
   ok()
 
@@ -506,3 +530,6 @@ proc close*(db: RocksDbRef) =
 
         rocksdb_ingestexternalfileoptions_destroy(db.ingestOptsPtr)
         db.ingestOptsPtr = nil
+
+        rocksdb_flushoptions_destroy(db.flushOptsPtr)
+        db.flushOptsPtr = nil
