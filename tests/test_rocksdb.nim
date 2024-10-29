@@ -499,3 +499,18 @@ suite "RocksDbRef Tests":
 
     db.releaseSnapshot(snapshot)
     check snapshot.isClosed()
+
+  test "Test flush":
+    check:
+      db.put(key, val).isOk()
+      db.flush().isOk()
+
+    check:
+      db.put(otherKey, val, otherCfHandle).isOk()
+      db.flush(otherCfHandle).isOk()
+
+    let cfHandles = [defaultCfHandle, otherCfHandle]
+    check:
+      db.put(otherKey, val, defaultCfHandle).isOk()
+      db.put(key, val, otherCfHandle).isOk()
+      db.flush(cfHandles).isOk()
