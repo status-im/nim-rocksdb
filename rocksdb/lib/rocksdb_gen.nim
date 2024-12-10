@@ -3208,6 +3208,16 @@ proc rocksdb_options_set_write_dbid_to_manifest*(
   a1: ptr rocksdb_options_t, a2: uint8
 ) {.cdecl, importc: "rocksdb_options_set_write_dbid_to_manifest", dynlib: librocksdb.}
 
+proc rocksdb_options_get_write_identity_file*(
+  a1: ptr rocksdb_options_t
+): uint8 {.
+  cdecl, importc: "rocksdb_options_get_write_identity_file", dynlib: librocksdb
+.}
+
+proc rocksdb_options_set_write_identity_file*(
+  a1: ptr rocksdb_options_t, a2: uint8
+) {.cdecl, importc: "rocksdb_options_set_write_identity_file", dynlib: librocksdb.}
+
 proc rocksdb_options_get_track_and_verify_wals_in_manifest*(
   a1: ptr rocksdb_options_t
 ): uint8 {.
