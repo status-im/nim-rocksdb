@@ -111,6 +111,19 @@ jobs:
             bash build_nim.sh nim csources dist/nimble NimBinaries
           echo '${{ github.workspace }}/nim/bin' >> $GITHUB_PATH
 
+      - name: Run nimble install
+        run: |
+          export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+          if [[ "${{ matrix.target.os }}" == "windows" ]]; then
+            # https://github.com/status-im/nimbus-eth2/issues/3121
+            export NIMFLAGS="-d:nimRawSetjmp"
+          fi
+
+          nim --version
+          nimble --version
+          nimble install -l rocksdb
+
+
       - name: Run tests
         run: |
           export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
