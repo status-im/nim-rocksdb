@@ -12,23 +12,19 @@
 set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"/..
-echo "${BASH_SOURCE[0]}"
 
 REPO_DIR="${PWD}"
-echo "REPO_DIR"
-echo "$REPO_DIR"
 
 BUILD_DEST="${REPO_DIR}/build/"
 
+git submodule update --init
 
-# git submodule update --init
+${REPO_DIR}/vendor/vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
-# ${REPO_DIR}/vendor/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+${REPO_DIR}/vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-linux-rocksdb --recurse --overlay-triplets=${REPO_DIR}/triplets
 
-# ${REPO_DIR}/vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-linux-rocksdb --recurse --overlay-triplets=${REPO_DIR}/triplets
+mkdir -p "${BUILD_DEST}"
 
-# mkdir -p "${BUILD_DEST}"
-
-# cp "${REPO_DIR}/vendor/vcpkg/installed/x64-linux-rocksdb/lib/liblz4.so" "${BUILD_DEST}/"
-# cp "${REPO_DIR}/vendor/vcpkg/installed/x64-linux-rocksdb/lib/libzstd.so" "${BUILD_DEST}/"
-# cp "${REPO_DIR}/vendor/vcpkg/installed/x64-linux-rocksdb/lib/librocksdb.so" "${BUILD_DEST}/"
+cp "${REPO_DIR}/vendor/vcpkg/installed/x64-linux-rocksdb/lib/liblz4.so" "${BUILD_DEST}/"
+cp "${REPO_DIR}/vendor/vcpkg/installed/x64-linux-rocksdb/lib/libzstd.so" "${BUILD_DEST}/"
+cp "${REPO_DIR}/vendor/vcpkg/installed/x64-linux-rocksdb/lib/librocksdb.so" "${BUILD_DEST}/"
