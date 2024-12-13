@@ -22,7 +22,4 @@ ${REPO_DIR}/vendor/vcpkg/bootstrap-vcpkg.sh -disableMetrics
 ${REPO_DIR}/vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-windows-rocksdb --recurse --overlay-triplets=${REPO_DIR}/triplets
 
 mkdir -p ${REPO_DIR}/build
-
-cp ${REPO_DIR}/vendor/vcpkg/installed/x64-windows-rocksdb/bin/lz4-shared.dll ./build/liblz4.dll
-cp ${REPO_DIR}/vendor/vcpkg/installed/x64-windows-rocksdb/bin/zstd-shared.dll ./build/libzstd.dll
 cp ${REPO_DIR}/vendor/vcpkg/installed/x64-windows-rocksdb/bin/rocksdb-shared.dll ./build/librocksdb.dll
