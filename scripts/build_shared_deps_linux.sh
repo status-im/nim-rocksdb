@@ -14,8 +14,8 @@ set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"/..
 
 REPO_DIR="${PWD}"
-
 BUILD_DEST="${REPO_DIR}/build/"
+
 
 git submodule update --init
 
@@ -25,6 +25,4 @@ ${REPO_DIR}/vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-linux-rocksdb --rec
 
 mkdir -p "${BUILD_DEST}"
 
-cp "${REPO_DIR}/vendor/vcpkg/installed/x64-linux-rocksdb/lib/liblz4.so" "${BUILD_DEST}/"
-cp "${REPO_DIR}/vendor/vcpkg/installed/x64-linux-rocksdb/lib/libzstd.so" "${BUILD_DEST}/"
 cp "${REPO_DIR}/vendor/vcpkg/installed/x64-linux-rocksdb/lib/librocksdb.so" "${BUILD_DEST}/"
