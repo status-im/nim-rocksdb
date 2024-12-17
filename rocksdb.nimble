@@ -6,6 +6,7 @@ description =
 license = "Apache License 2.0 or GPLv2"
 skipDirs = @["examples", "tests"]
 mode = ScriptMode.Verbose
+installDirs = @["build"]
 
 ### Dependencies
 requires "nim >= 2.0", "results", "tempfile", "unittest2"

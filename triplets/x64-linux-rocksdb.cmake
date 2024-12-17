@@ -4,7 +4,7 @@ set(VCPKG_CMAKE_SYSTEM_NAME Linux)
 set(VCPKG_FIXUP_ELF_RPATH ON)
 
 if(${PORT} MATCHES "snappy|zlib|lz4|zstd")
-  set(VCPKG_CRT_LINKAGE static)
+  set(VCPKG_CRT_LINKAGE dynamic)
   set(VCPKG_LIBRARY_LINKAGE static)
 else()
   set(VCPKG_CRT_LINKAGE dynamic)
