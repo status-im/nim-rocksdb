@@ -16,7 +16,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")"/..
 REPO_DIR="${PWD}"
 BUILD_DEST="${REPO_DIR}/build/"
 
-
 git submodule update --init
 
 ${REPO_DIR}/vendor/vcpkg/bootstrap-vcpkg.sh -disableMetrics
