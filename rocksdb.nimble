@@ -38,8 +38,8 @@ task test_static, "Run tests after static linking dependencies":
 
 before install:
   when defined(linux):
-    exec "scripts/build_shared_deps_linux.sh"
+    exec "scripts/build_static_deps.sh"
   when defined(macosx):
-    exec "scripts/build_shared_deps_osx.sh"
+    exec "scripts/build_static_deps.sh"
   when defined(windows):
     exec ".\\scripts\\build_dlls_windows.bat"
