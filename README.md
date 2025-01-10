@@ -44,11 +44,14 @@ See the config.nims file which contains the static linking configuration which i
 
 See [simple_example](examples/simple_example.nim)
 
-
 ### Contribution
 
 Any contribution intentionally submitted for inclusion in the work by you shall be dual licensed as above, without any
 additional terms or conditions.
+
+## Versioning
+
+The library generally follows the upstream RocksDb version number, adding one more number for tracking changes to the Nim wrapper itself.
 
 ## License
 
