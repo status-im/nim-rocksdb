@@ -90,6 +90,7 @@ type
 ##  DB operations
 
 when defined(windows):
+  const librocksdb = "librocksdb.dll"
   {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
 else:
   {.pragma: importrocks, importc, cdecl.}
@@ -108,7 +109,7 @@ else:
   #   {.passl: "-lshlwapi -lrpcrt4".}
 
 if defined(windows):
-  {.push importc, dynlib: "librocksdb.so".}
+  {.push importc, dynlib: librocksdb.}
 
 # Do I need importc for static lib?
 include ./rocksdb_gen.nim
