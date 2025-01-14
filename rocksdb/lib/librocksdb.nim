@@ -108,7 +108,7 @@ else:
   #   {.passl: "-lshlwapi -lrpcrt4".}
 
 if defined(windows):
-  {.push importc, dynlib: "librocksdb.so" .}
+  {.push importc, dynlib: "librocksdb.so".}
 
 # Do I need importc for static lib?
 include ./rocksdb_gen.nim

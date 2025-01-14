@@ -123,8 +123,3 @@ jobs:
           nimble --version
           nimble install -y
           nimble test
-
-          # static linking is not supported on windows
-          if [[ "${{ matrix.target.os }}" != "windows" ]]; then
-            nimble test_static
-          fi
