@@ -1,4 +1,4 @@
-# Copyright 2018-2024 Status Research & Development GmbH
+# Copyright 2018-2025 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -21,6 +21,8 @@
 # found in the LevelDB LICENSE file. See the AUTHORS file for names of contributors.
 
 ## This file exposes the low-level C API of RocksDB
+
+import std/[os, strutils]
 
 {.push raises: [].}
 
@@ -87,29 +89,27 @@ type
   rocksdb_memory_consumers_t* = object
   rocksdb_wait_for_compact_options_t* = object
 
-##  DB operations
-
 when defined(windows):
   const librocksdb = "librocksdb.dll"
-  {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
+elif defined(macosx):
+  const librocksdb = "librocksdb.dylib"
 else:
-  {.pragma: importrocks, importc, cdecl.}
+  const librocksdb = "librocksdb.so"
 
-  import std/[os, strutils]
+when defined(rocksdb_dynamic_linking) or defined(windows):
+  {.push importc, cdecl, dynlib: librocksdb.}
+else:
   const
     topLevelPath = currentSourcePath.parentDir().parentDir().parentDir()
-    libsDir = topLevelPath.replace('\\', '/') & "/build/lib"
+    libsDir = topLevelPath.replace('\\', '/') & "/build/lib/"
 
   {.passl: libsDir & "/librocksdb.a".}
   {.passl: libsDir & "/liblz4.a".}
   {.passl: libsDir & "/libzstd.a".}
 
-  # This is require for static linking on windows
-  # when defined(windows):
-  #   {.passl: "-lshlwapi -lrpcrt4".}
+  when defined(windows):
+    {.passl: "-lshlwapi -lrpcrt4".}
 
-if defined(windows):
-  {.push importc, dynlib: librocksdb.}
+  {.push importc, cdecl.}
 
-# Do I need importc for static lib?
 include ./rocksdb_gen.nim
