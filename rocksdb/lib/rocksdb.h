@@ -46,15 +46,7 @@
 
 #ifdef C2NIM
 #  def ROCKSDB_LIBRARY_API
-#  dynlib librocksdb
 #  cdecl
-#  if defined(windows)
-#    define librocksdb "librocksdb.dll"
-#  elif defined(macosx)
-#    define librocksdb "librocksdb.dylib"
-#  else
-#    define librocksdb "librocksdb.so"
-#  endif
 #  mangle uint32_t uint32
 #  mangle uint16_t uint16
 #  mangle uint8_t  uint8

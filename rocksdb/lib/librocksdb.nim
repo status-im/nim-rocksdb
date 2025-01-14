@@ -89,7 +89,9 @@ type
 
 ##  DB operations
 
-when defined(rocksdb_static_linking):
+when defined(windows):
+  {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
+else:
   {.pragma: importrocks, importc, cdecl.}
 
   import std/[os, strutils]
@@ -101,9 +103,12 @@ when defined(rocksdb_static_linking):
   {.passl: libsDir & "/liblz4.a".}
   {.passl: libsDir & "/libzstd.a".}
 
-  when defined(windows):
-    {.passl: "-lshlwapi -lrpcrt4".}
-else:
-  {.pragma: importrocks, importc, cdecl, dynlib: librocksdb.}
+  # This is require for static linking on windows
+  # when defined(windows):
+  #   {.passl: "-lshlwapi -lrpcrt4".}
 
+if defined(windows):
+  {.push importc, dynlib: "librocksdb.so" .}
+
+# Do I need importc for static lib?
 include ./rocksdb_gen.nim

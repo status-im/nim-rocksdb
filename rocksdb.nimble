@@ -11,6 +11,12 @@ installDirs = @["build"]
 ### Dependencies
 requires "nim >= 2.0", "results", "tempfile", "unittest2"
 
+before install:
+  when defined(windows):
+    exec ".\\scripts\\build_dlls_windows.bat"
+  else:
+    exec "scripts/build_static_deps.sh"
+
 task format, "Format nim code using nph":
   exec "nimble install nph@0.6.0"
   exec "nph ."
@@ -20,26 +26,7 @@ task clean, "Remove temporary files":
   exec "make -C vendor/rocksdb clean"
 
 task test, "Run tests":
-  let runTests = "nim c -d:nimDebugDlOpen -r --threads:on tests/test_all.nim"
-  when defined(linux):
-    exec "export LD_LIBRARY_PATH=build; " & runTests
-  when defined(macosx):
-    exec "export DYLD_LIBRARY_PATH=build; " & runTests
   when defined(windows):
-    exec runTests
-
-task test_static, "Run tests after static linking dependencies":
-  when defined(windows):
-    echo "Static linking is not supported on windows"
-    quit(1)
-
-  exec "scripts/build_static_deps.sh"
-  exec "nim c -d:rocksdb_static_linking -r --threads:on tests/test_all.nim"
-
-before install:
-  when defined(linux):
-    exec "scripts/build_static_deps.sh"
-  when defined(macosx):
-    exec "scripts/build_static_deps.sh"
-  when defined(windows):
-    exec ".\\scripts\\build_dlls_windows.bat"
+    exec "nim c -d:nimDebugDlOpen -r --threads:on tests/test_all.nim"
+  else:
+    exec "nim c -r --threads:on tests/test_all.nim"
