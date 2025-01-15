@@ -1,4 +1,4 @@
-# Nim-RocksDB
+# Nim-RocksDb
 
 [![Build Status (Travis)](https://img.shields.io/travis/status-im/nim-rocksdb/master.svg?label=Linux%20/%20macOS "Linux/macOS build status (Travis)")](https://travis-ci.org/status-im/nim-rocksdb)
 [![Windows build status (Appveyor)](https://img.shields.io/appveyor/ci/nimbus/nim-rocksdb/master.svg?label=Windows "Windows build status (Appveyor)")](https://ci.appveyor.com/project/nimbus/nim-rocksdb)
@@ -10,35 +10,53 @@ A Nim wrapper for [Facebook's RocksDB](https://github.com/facebook/rocksdb), a p
 
 ## Current status
 
-Nim-RocksDB provides a wrapper for the low-level functions in the librocksdb c library.
+Nim-RocksDb provides a wrapper for the low-level functions in the librocksdb c
+library.
 
 ## Installation
 
-Nim-RocksDB requires Nim and the Nimble package manager. For Windows you will need Visual Studio 2015 Update 3 or greater with the English language pack.
+Nim-RocksDb requires Nim and the Nimble package manager. For Windows you will
+need Visual Studio 2015 Update 3 or greater with the English language pack.
 
 To get started run:
 ```
-nimble install
+nimble install rocksdb
 ```
 
-This will download and install the RocksDB dynamic libraries for your platform and copy them into the `build/` directory of the project. When including this library in your application you may want to copy these libraries into another location or set the LD_LIBRARY_PATH environment variable (DYLD_LIBRARY_PATH on MacOS, PATH on Windows) to include the `build/` directory so that your application can find them on startup.
+This will download and install the RocksDB libraries for your platform and copy
+them into the `build/` directory of the project. On Linux and MacOS only static
+linking to the RocksDb libraries is supported and on Windows only dynamic linking
+is supported.
 
-Alternatively you can use the `rocksdb_static_linking` flag to statically link the library into your application.
+On Windows you may want to copy the dll into another location or set your PATH
+to include the `build/` directory so that your application can find the dll on
+startup.
+
+### Compression libraries
+
+RocksDb supports using a number of compression libraries. This library builds
+and only supports the following compression libraries:
+- lz4
+- zstd
+
+On Linux and MacOS these libraries are staticly linked into the final binary
+along with the RocksDb static library. On Windows they are staticly linked into
+the RocksDb dll.
+
 
 ### Static linking
 
-To build the RocksDB static libraries run:
-```
-./scripts/build_static_deps.sh
-```
-
-To statically link RocksDB, you would do something like:
+On Linux and MacOS your Nim program will need to use the C++ linker profile
+because RocksDb is a C++ library. For example:
 
 ```
-nim c -d:rocksdb_static_linking --threads:on your_program.nim
+  when defined(macosx):
+    switch("clang.linkerexe", "clang++")
+  when defined(linux):
+    switch("gcc.linkerexe", "g++")
 ```
 
-See the config.nims file which contains the static linking configuration which is switched on with the `rocksdb_static_linking` flag. Note that static linking is currently not supported on windows.
+Note that static linking is currently not supported on windows.
 
 ## Usage
 
@@ -46,12 +64,13 @@ See [simple_example](examples/simple_example.nim)
 
 ### Contribution
 
-Any contribution intentionally submitted for inclusion in the work by you shall be dual licensed as above, without any
-additional terms or conditions.
+Any contribution intentionally submitted for inclusion in the work by you shall
+be dual licensed as above, without any additional terms or conditions.
 
 ## Versioning
 
-The library generally follows the upstream RocksDb version number, adding one more number for tracking changes to the Nim wrapper itself.
+The library generally follows the upstream RocksDb version number, adding one
+more number for tracking changes to the Nim wrapper itself.
 
 ## License
 
@@ -65,7 +84,8 @@ or
 
 * Apache License, Version 2.0, ([LICENSE-APACHEv2](LICENSE-APACHEv2) or http://www.apache.org/licenses/LICENSE-2.0)
 
-at your option. This file may not be copied, modified, or distributed except according to those terms.
+at your option. This file may not be copied, modified, or distributed except
+according to those terms.
 
 ### Dependency License
 
