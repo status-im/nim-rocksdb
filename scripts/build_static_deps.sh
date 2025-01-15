@@ -15,7 +15,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"/..
 
 REPO_DIR="${PWD}"
 ROCKSDB_LIB_DIR="${REPO_DIR}/vendor/rocksdb"
-BUILD_DEST="${REPO_DIR}/build/lib"
+BUILD_DEST="${REPO_DIR}/build"
 
 : "${MAKE:=make}"
 

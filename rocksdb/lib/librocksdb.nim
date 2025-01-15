@@ -101,7 +101,7 @@ when defined(rocksdb_dynamic_linking) or defined(windows):
 else:
   const
     topLevelPath = currentSourcePath.parentDir().parentDir().parentDir()
-    libsDir = topLevelPath.replace('\\', '/') & "/build/lib/"
+    libsDir = topLevelPath.replace('\\', '/') & "/build/"
 
   {.passl: libsDir & "/librocksdb.a".}
   {.passl: libsDir & "/liblz4.a".}
