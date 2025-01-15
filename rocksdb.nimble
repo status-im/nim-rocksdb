@@ -11,11 +11,14 @@ installDirs = @["build"]
 ### Dependencies
 requires "nim >= 2.0", "results", "tempfile", "unittest2"
 
-before install:
+template build() =
   when defined(windows):
     exec ".\\scripts\\build_dlls_windows.bat"
   else:
     exec "scripts/build_static_deps.sh"
+
+before install:
+  build()
 
 task format, "Format nim code using nph":
   exec "nimble install nph@0.6.0"
@@ -26,6 +29,7 @@ task clean, "Remove temporary files":
   exec "make -C vendor/rocksdb clean"
 
 task test, "Run tests":
+  build()
   when defined(windows):
     exec "nim c -d:nimDebugDlOpen -r --threads:on tests/test_all.nim"
   else:
