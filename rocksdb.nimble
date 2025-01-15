@@ -24,10 +24,6 @@ task format, "Format nim code using nph":
   exec "nimble install nph@0.6.0"
   exec "nph ."
 
-task clean, "Remove temporary files":
-  exec "rm -rf build"
-  exec "make -C vendor/rocksdb clean"
-
 task test, "Run tests":
   build()
   when defined(windows):
