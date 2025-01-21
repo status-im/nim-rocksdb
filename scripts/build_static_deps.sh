@@ -15,7 +15,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"/..
 
 REPO_DIR="${PWD}"
 ROCKSDB_LIB_DIR="${REPO_DIR}/vendor/rocksdb"
-BUILD_DEST="${REPO_DIR}/build/lib"
+BUILD_DEST="${REPO_DIR}/build"
 
 : "${MAKE:=make}"
 
@@ -34,6 +34,13 @@ export DEBUG_LEVEL=0
 
 if ${MAKE} -C "${ROCKSDB_LIB_DIR}" -q unity.a; then
   echo "RocksDb static libraries already built. Skipping build."
+
+  # Copy the built libraries in case the build directory has been removed
+  mkdir -p "${BUILD_DEST}"
+  cp "${ROCKSDB_LIB_DIR}/liblz4.a" "${BUILD_DEST}/"
+  cp "${ROCKSDB_LIB_DIR}/libzstd.a" "${BUILD_DEST}/"
+  cp "${ROCKSDB_LIB_DIR}/unity.a" "${BUILD_DEST}/librocksdb.a"
+
   exit 0
 else
   ${REPO_DIR}/scripts/clean_build_artifacts.sh
