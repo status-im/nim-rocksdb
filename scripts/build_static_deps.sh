@@ -21,16 +21,30 @@ BUILD_DEST="${REPO_DIR}/build"
 
 [[ -z "$NPROC" ]] && NPROC=2 # number of CPU cores available
 
+cd ${REPO_DIR}/vendor/rocksdb
+ROCKSDB_VERSION_BEFORE=$(${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full)
+cd ${REPO_DIR}
+
 git submodule update --init
 
-export DISABLE_WARNING_AS_ERROR=1
+cd ${REPO_DIR}/vendor/rocksdb
+ROCKSDB_VERSION_AFTER=$(${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full)
+cd ${REPO_DIR}
 
+export DISABLE_WARNING_AS_ERROR=1
 export ROCKSDB_DISABLE_SNAPPY=1
 export ROCKSDB_DISABLE_ZLIB=1
 export ROCKSDB_DISABLE_BZIP=1
-
 export PORTABLE=1
 export DEBUG_LEVEL=0
+
+if [ -f "${BUILD_DEST}/librocksdb.a" ] && \
+   [ -f "${BUILD_DEST}/liblz4.a" ] && \
+   [ -f "${BUILD_DEST}/libzstd.a" ] && \
+   [[ ${ROCKSDB_VERSION_BEFORE} == ${ROCKSDB_VERSION_AFTER} ]]; then
+  echo "RocksDb static libraries already built. Skipping build."
+  exit 0
+fi
 
 if ${MAKE} -C "${ROCKSDB_LIB_DIR}" -q unity.a; then
   echo "RocksDb static libraries already built. Skipping build."
