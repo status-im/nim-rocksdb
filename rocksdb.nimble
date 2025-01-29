@@ -1,5 +1,5 @@
 packageName = "rocksdb"
-version = "9.8.4.0"
+version = "9.10.0.0"
 author = "Status Research & Development GmbH"
 description =
   "A wrapper for Facebook's RocksDB, an embeddable, persistent key-value store for fast storage"
@@ -21,7 +21,7 @@ before install:
   build()
 
 task format, "Format nim code using nph":
-  exec "nimble install nph@0.6.0"
+  exec "nimble install nph"
   exec "nph ."
 
 task test, "Run tests":
