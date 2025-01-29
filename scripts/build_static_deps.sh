@@ -24,13 +24,28 @@ BUILD_DEST="${REPO_DIR}/build"
 git submodule update --init
 
 export DISABLE_WARNING_AS_ERROR=1
-
 export ROCKSDB_DISABLE_SNAPPY=1
 export ROCKSDB_DISABLE_ZLIB=1
 export ROCKSDB_DISABLE_BZIP=1
-
 export PORTABLE=1
 export DEBUG_LEVEL=0
+
+if [ -f "${BUILD_DEST}/librocksdb.a" ] && \
+   [ -f "${BUILD_DEST}/liblz4.a" ] && \
+   [ -f "${BUILD_DEST}/libzstd.a" ] && \
+   [ -f "${BUILD_DEST}/version.txt" ]; then
+
+  ROCKSDB_VERSION_BEFORE=$(cat "${BUILD_DEST}/version.txt")
+
+  cd ${REPO_DIR}/vendor/rocksdb
+  ROCKSDB_VERSION_AFTER=$(${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full)
+  cd ${REPO_DIR}
+
+  if [[ ${ROCKSDB_VERSION_BEFORE} == ${ROCKSDB_VERSION_AFTER} ]]; then
+    echo "RocksDb static libraries already built. Skipping build."
+    exit 0
+  fi
+fi
 
 if ${MAKE} -C "${ROCKSDB_LIB_DIR}" -q unity.a; then
   echo "RocksDb static libraries already built. Skipping build."
@@ -40,6 +55,10 @@ if ${MAKE} -C "${ROCKSDB_LIB_DIR}" -q unity.a; then
   cp "${ROCKSDB_LIB_DIR}/liblz4.a" "${BUILD_DEST}/"
   cp "${ROCKSDB_LIB_DIR}/libzstd.a" "${BUILD_DEST}/"
   cp "${ROCKSDB_LIB_DIR}/unity.a" "${BUILD_DEST}/librocksdb.a"
+
+  cd ${REPO_DIR}/vendor/rocksdb
+  ${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full > "${BUILD_DEST}/version.txt" 2>&1
+  cd ${REPO_DIR}
 
   exit 0
 else
@@ -61,3 +80,7 @@ mkdir -p "${BUILD_DEST}"
 cp "${ROCKSDB_LIB_DIR}/liblz4.a" "${BUILD_DEST}/"
 cp "${ROCKSDB_LIB_DIR}/libzstd.a" "${BUILD_DEST}/"
 cp "${ROCKSDB_LIB_DIR}/unity.a" "${BUILD_DEST}/librocksdb.a"
+
+cd ${REPO_DIR}/vendor/rocksdb
+${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full > "${BUILD_DEST}/version.txt" 2>&1
+cd ${REPO_DIR}
