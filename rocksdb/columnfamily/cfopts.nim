@@ -111,6 +111,8 @@ opt maxSuccessiveMerges, int, csize_t
 opt optimizeFiltersForHits, bool, cint
 opt paranoidChecks, bool, uint8
 opt reportBgIoStats, bool, cint
+opt ttl, int, uint64
+opt periodicCompactionSeconds, int, uint64
 opt enableBlobFiles, bool, uint8
 opt minBlobSize, int, uint64
 opt blobFileSize, int, uint64
