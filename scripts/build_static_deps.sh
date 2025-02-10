@@ -29,7 +29,7 @@ export ROCKSDB_DISABLE_ZLIB=1
 export ROCKSDB_DISABLE_BZIP=1
 export PORTABLE=1
 export DEBUG_LEVEL=0
-export USE_LTO=1
+#export USE_LTO=1
 
 if [ -f "${BUILD_DEST}/librocksdb.a" ] && \
    [ -f "${BUILD_DEST}/liblz4.a" ] && \
