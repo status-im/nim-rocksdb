@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Nim-RocksDB
-# Copyright 2024 Status Research & Development GmbH
+# Copyright 2024-2025 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -29,6 +29,7 @@ export ROCKSDB_DISABLE_ZLIB=1
 export ROCKSDB_DISABLE_BZIP=1
 export PORTABLE=1
 export DEBUG_LEVEL=0
+#export USE_LTO=1
 
 if [ -f "${BUILD_DEST}/librocksdb.a" ] && \
    [ -f "${BUILD_DEST}/liblz4.a" ] && \
@@ -66,12 +67,12 @@ else
   echo "Building RocksDb static libraries."
 fi
 
-${MAKE} -C "${ROCKSDB_LIB_DIR}" liblz4.a libzstd.a --no-print-directory > /dev/null
+${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" liblz4.a libzstd.a --no-print-directory > /dev/null 2>&1
 
 export EXTRA_CFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
 export EXTRA_CXXFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
 
-${MAKE} -C "${ROCKSDB_LIB_DIR}" unity.a --no-print-directory > /dev/null
+${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" unity.a --no-print-directory > /dev/null 2>&1
 
 #cat "${REPO_DIR}/vendor/rocksdb/make_config.mk"
 
