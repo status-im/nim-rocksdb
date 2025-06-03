@@ -7,26 +7,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
-    name: "nph Lint"
+  nph:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Check `nph` formatting
+        uses: arnetheduck/nph-action@v1
         with:
-          fetch-depth: 2  # In PR, has extra merge commit: ^1 = PR, ^2 = base
-
-      - name: Check nph formatting
-        # Pin nph to a specific version to avoid sudden style differences.
-        # Updating nph version should be accompanied with running the new
-        # version on the project directory.
-        run: |
-          VERSION="v0.6.1"
-          ARCHIVE="nph-linux_x64.tar.gz"
-          curl -L "https://github.com/arnetheduck/nph/releases/download/${VERSION}/${ARCHIVE}" -o ${ARCHIVE}
-          tar -xzf ${ARCHIVE}
-          ./nph .
-          git diff --exit-code
+          version: 0.6.1
   build:
     strategy:
       fail-fast: false

@@ -123,6 +123,11 @@ opt blobGCForceThreshold, float, cdouble
 opt blobCompactionReadaheadSize, int, uint64
 opt blobFileStartingLevel, int, cint
 
+opt compressionOptionsZstdMaxTrainBytes, int, cint
+opt compressionOptionsUseZstdDictTrainer, bool, uint8
+opt compressionOptionsParallelThreads, int, cint
+opt compressionOptionsMaxDictBufferBytes, int, uint64
+
 proc defaultColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
   createColFamilyOptions(autoClose)
 
@@ -173,3 +178,53 @@ proc setMemtableVectorRep*(cfOpts: ColFamilyOptionsRef) =
 proc `memtableWholeKeyFiltering=`*(dbOpts: ColFamilyOptionsRef, value: bool) =
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_memtable_whole_key_filtering(dbOpts.cPtr, value.uint8)
+
+proc setCompressionOptions*(
+    cfOpts: ColFamilyOptionsRef,
+    windowBits = -15,
+    level = 32767,
+    strategy: int = 0,
+    maxDictBytes: int = 0,
+) =
+  doAssert not cfOpts.isClosed()
+  rocksdb_options_set_compression_options(
+    cfOpts.cPtr, windowBits.cint, level.cint, strategy.cint, maxDictBytes.cint
+  )
+
+proc setBottommostCompressionOptions*(
+    cfOpts: ColFamilyOptionsRef,
+    windowBits = -15,
+    level = 32767,
+    strategy: int = 0,
+    maxDictBytes: int = 0,
+    enabled: bool = true,
+) =
+  doAssert not cfOpts.isClosed()
+  rocksdb_options_set_bottommost_compression_options(
+    cfOpts.cPtr, windowBits.cint, level.cint, strategy.cint, maxDictBytes.cint,
+    enabled.uint8,
+  )
+
+proc `bottommostCompressionOptionsZstdMaxTrainBytes=`*(
+    dbOpts: ColFamilyOptionsRef, value: int
+) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_bottommost_compression_options_zstd_max_train_bytes(
+    dbOpts.cPtr, value.cint, 1
+  )
+
+proc `bottommostCompressionOptionsUseZstdDictTrainer=`*(
+    dbOpts: ColFamilyOptionsRef, value: bool
+) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_bottommost_compression_options_use_zstd_dict_trainer(
+    dbOpts.cPtr, value.uint8, 1
+  )
+
+proc `bottommostCompressionOptionsMaxDictBufferBytes=`*(
+    dbOpts: ColFamilyOptionsRef, value: int
+) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_bottommost_compression_options_max_dict_buffer_bytes(
+    dbOpts.cPtr, value.uint64, 1
+  )
