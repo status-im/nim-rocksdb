@@ -112,9 +112,9 @@ proc defaultDbOptions*(autoClose = false): DbOptionsRef =
   dbOpts.createMissingColumnFamilies = true
 
   # Options recommended by rocksdb devs themselves, for new databases
+  # increaseParallelism already sets max_background_jobs
   # https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning#other-general-options
 
-  dbOpts.maxBackgroundJobs = 6
   dbOpts.bytesPerSync = 1048576
 
   dbOpts
