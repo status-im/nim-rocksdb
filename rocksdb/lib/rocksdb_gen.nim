@@ -887,7 +887,6 @@ proc rocksdb_compact_range_cf_opt*(
   limit_key_len: csize_t,
 ) {.cdecl.}
 
-proc rocksdb_delete_file*(db: ptr rocksdb_t, name: cstring) {.cdecl.}
 proc rocksdb_livefiles*(db: ptr rocksdb_t): ptr rocksdb_livefiles_t {.cdecl.}
 proc rocksdb_flush*(
   db: ptr rocksdb_t, options: ptr rocksdb_flushoptions_t, errptr: cstringArray
@@ -1962,6 +1961,14 @@ proc rocksdb_options_get_periodic_compaction_seconds*(
   a1: ptr rocksdb_options_t
 ): uint64 {.cdecl.}
 
+proc rocksdb_options_set_memtable_op_scan_flush_trigger*(
+  a1: ptr rocksdb_options_t, a2: uint32
+) {.cdecl.}
+
+proc rocksdb_options_get_memtable_op_scan_flush_trigger*(
+  a1: ptr rocksdb_options_t
+): uint32 {.cdecl.}
+
 const
   rocksdb_statistics_level_disable_all* = 0
   rocksdb_statistics_level_except_tickers* = rocksdb_statistics_level_disable_all
@@ -2099,14 +2106,6 @@ proc rocksdb_options_set_min_write_buffer_number_to_merge*(
 ) {.cdecl.}
 
 proc rocksdb_options_get_min_write_buffer_number_to_merge*(
-  a1: ptr rocksdb_options_t
-): cint {.cdecl.}
-
-proc rocksdb_options_set_max_write_buffer_number_to_maintain*(
-  a1: ptr rocksdb_options_t, a2: cint
-) {.cdecl.}
-
-proc rocksdb_options_get_max_write_buffer_number_to_maintain*(
   a1: ptr rocksdb_options_t
 ): cint {.cdecl.}
 
@@ -3052,6 +3051,30 @@ proc rocksdb_compactoptions_set_target_level*(
 ) {.cdecl.}
 
 proc rocksdb_compactoptions_get_target_level*(
+  a1: ptr rocksdb_compactoptions_t
+): cint {.cdecl.}
+
+proc rocksdb_compactoptions_set_target_path_id*(
+  a1: ptr rocksdb_compactoptions_t, a2: cint
+) {.cdecl.}
+
+proc rocksdb_compactoptions_get_target_path_id*(
+  a1: ptr rocksdb_compactoptions_t
+): cint {.cdecl.}
+
+proc rocksdb_compactoptions_set_allow_write_stall*(
+  a1: ptr rocksdb_compactoptions_t, a2: uint8
+) {.cdecl.}
+
+proc rocksdb_compactoptions_get_allow_write_stall*(
+  a1: ptr rocksdb_compactoptions_t
+): uint8 {.cdecl.}
+
+proc rocksdb_compactoptions_set_max_subcompactions*(
+  a1: ptr rocksdb_compactoptions_t, a2: cint
+) {.cdecl.}
+
+proc rocksdb_compactoptions_get_max_subcompactions*(
   a1: ptr rocksdb_compactoptions_t
 ): cint {.cdecl.}
 
