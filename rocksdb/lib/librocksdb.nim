@@ -28,11 +28,17 @@ import std/[os, strutils]
 
 type
   rocksdb_t* = object
+  rocksdb_status_ptr_t* = object
   rocksdb_backup_engine_t* = object
   rocksdb_backup_engine_info_t* = object
   rocksdb_backup_engine_options_t* = object
   rocksdb_restore_options_t* = object
+  rocksdb_memory_allocator_t* = object
+  rocksdb_lru_cache_options_t* = object
+  rocksdb_hyper_clock_cache_options_t* = object
   rocksdb_cache_t* = object
+  rocksdb_write_buffer_manager_t* = object
+  rocksdb_sst_file_manager_t* = object
   rocksdb_compactionfilter_t* = object
   rocksdb_compactionfiltercontext_t* = object
   rocksdb_compactionfilterfactory_t* = object
@@ -62,10 +68,14 @@ type
   rocksdb_universal_compaction_options_t* = object
   rocksdb_livefiles_t* = object
   rocksdb_column_family_handle_t* = object
+  rocksdb_column_family_metadata_t* = object
+  rocksdb_level_metadata_t* = object
+  rocksdb_sst_file_metadata_t* = object
   rocksdb_envoptions_t* = object
   rocksdb_ingestexternalfileoptions_t* = object
   rocksdb_sstfilewriter_t* = object
   rocksdb_ratelimiter_t* = object
+  rocksdb_perfcontext_t* = object
   rocksdb_pinnableslice_t* = object
   rocksdb_transactiondb_options_t* = object
   rocksdb_transactiondb_t* = object
@@ -74,20 +84,20 @@ type
   rocksdb_optimistictransaction_options_t* = object
   rocksdb_transaction_t* = object
   rocksdb_checkpoint_t* = object
-  rocksdb_wal_readoptions_t* = object
   rocksdb_wal_iterator_t* = object
-  rocksdb_write_buffer_manager_t* = object
-  rocksdb_statistics_histogram_data_t* = object
-  rocksdb_perfcontext_t* = object
-  rocksdb_memory_allocator_t* = object
-  rocksdb_lru_cache_options_t* = object
-  rocksdb_hyper_clock_cache_options_t* = object
-  rocksdb_level_metadata_t* = object
-  rocksdb_sst_file_metadata_t* = object
-  rocksdb_column_family_metadata_t* = object
-  rocksdb_memory_usage_t* = object
+  rocksdb_wal_readoptions_t* = object
   rocksdb_memory_consumers_t* = object
+  rocksdb_memory_usage_t* = object
+  rocksdb_statistics_histogram_data_t* = object
   rocksdb_wait_for_compact_options_t* = object
+  rocksdb_flushjobinfo_t* = object
+  rocksdb_compactionjobinfo_t* = object
+  rocksdb_subcompactionjobinfo_t* = object
+  rocksdb_externalfileingestioninfo_t* = object
+  rocksdb_eventlistener_t* = object
+  rocksdb_writestallinfo_t* = object
+  rocksdb_writestallcondition_t* = object
+  rocksdb_memtableinfo_t* = object
 
 when defined(windows):
   const librocksdb = "librocksdb.dll"
@@ -101,7 +111,7 @@ when defined(rocksdb_dynamic_linking) or defined(windows):
 else:
   const
     topLevelPath = currentSourcePath.parentDir().parentDir().parentDir()
-    libsDir = topLevelPath.replace('\\', '/') & "/build/"
+    libsDir = topLevelPath.replace('\\', '/') & "/build"
 
   {.passl: libsDir & "/librocksdb.a".}
   {.passl: libsDir & "/liblz4.a".}

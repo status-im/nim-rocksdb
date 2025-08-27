@@ -16,6 +16,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")"/..
 REPO_DIR="${PWD}"
 ROCKSDB_LIB_DIR="${REPO_DIR}/vendor/rocksdb"
 BUILD_DEST="${REPO_DIR}/build"
+LZ4_VERSION=1.10.0
+ZSTD_VERSION=1.5.7
 
 : "${MAKE:=make}"
 
@@ -69,8 +71,8 @@ fi
 
 ${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" liblz4.a libzstd.a --no-print-directory > /dev/null 2>&1
 
-export EXTRA_CFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
-export EXTRA_CXXFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-1.9.4/lib -I${ROCKSDB_LIB_DIR}/zstd-1.5.5/lib -DLZ4 -DZSTD"
+export EXTRA_CFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-${LZ4_VERSION}/lib -I${ROCKSDB_LIB_DIR}/zstd-${ZSTD_VERSION}/lib -DLZ4 -DZSTD"
+export EXTRA_CXXFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-${LZ4_VERSION}/lib -I${ROCKSDB_LIB_DIR}/zstd-${ZSTD_VERSION}/lib -DLZ4 -DZSTD"
 
 ${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" unity.a --no-print-directory > /dev/null 2>&1
 
