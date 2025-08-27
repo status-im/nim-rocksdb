@@ -1415,6 +1415,15 @@ proc rocksdb_writebatch_wi_get_from_batch_and_db*(
   errptr: cstringArray,
 ): cstring {.cdecl.}
 
+proc rocksdb_writebatch_wi_get_pinned_from_batch_and_db*(
+  wbwi: ptr rocksdb_writebatch_wi_t,
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  key: cstring,
+  keylen: csize_t,
+  errptr: cstringArray,
+): ptr rocksdb_pinnableslice_t {.cdecl.}
+
 proc rocksdb_writebatch_wi_get_from_batch_and_db_cf*(
   wbwi: ptr rocksdb_writebatch_wi_t,
   db: ptr rocksdb_t,
@@ -1425,6 +1434,16 @@ proc rocksdb_writebatch_wi_get_from_batch_and_db_cf*(
   vallen: ptr csize_t,
   errptr: cstringArray,
 ): cstring {.cdecl.}
+
+proc rocksdb_writebatch_wi_get_pinned_from_batch_and_db_cf*(
+  wbwi: ptr rocksdb_writebatch_wi_t,
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  column_family: ptr rocksdb_column_family_handle_t,
+  key: cstring,
+  keylen: csize_t,
+  errptr: cstringArray,
+): ptr rocksdb_pinnableslice_t {.cdecl.}
 
 proc rocksdb_write_writebatch_wi*(
   db: ptr rocksdb_t,
@@ -1437,10 +1456,23 @@ proc rocksdb_writebatch_wi_create_iterator_with_base*(
   wbwi: ptr rocksdb_writebatch_wi_t, base_iterator: ptr rocksdb_iterator_t
 ): ptr rocksdb_iterator_t {.cdecl.}
 
+proc rocksdb_writebatch_wi_create_iterator_with_base_readopts*(
+  wbwi: ptr rocksdb_writebatch_wi_t,
+  base_iterator: ptr rocksdb_iterator_t,
+  options: ptr rocksdb_readoptions_t,
+): ptr rocksdb_iterator_t {.cdecl.}
+
 proc rocksdb_writebatch_wi_create_iterator_with_base_cf*(
   wbwi: ptr rocksdb_writebatch_wi_t,
   base_iterator: ptr rocksdb_iterator_t,
   cf: ptr rocksdb_column_family_handle_t,
+): ptr rocksdb_iterator_t {.cdecl.}
+
+proc rocksdb_writebatch_wi_create_iterator_with_base_cf_readopts*(
+  wbwi: ptr rocksdb_writebatch_wi_t,
+  base_iterator: ptr rocksdb_iterator_t,
+  cf: ptr rocksdb_column_family_handle_t,
+  options: ptr rocksdb_readoptions_t,
 ): ptr rocksdb_iterator_t {.cdecl.}
 
 proc rocksdb_writebatch_wi_update_timestamps*(
@@ -1619,6 +1651,205 @@ proc rocksdb_block_based_options_set_unpartitioned_pinning_tier*(
 
 proc rocksdb_options_set_write_buffer_manager*(
   opt: ptr rocksdb_options_t, wbm: ptr rocksdb_write_buffer_manager_t
+) {.cdecl.}
+
+##  Flush job info
+
+proc rocksdb_flushjobinfo_cf_name*(
+  a1: ptr rocksdb_flushjobinfo_t, a2: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_flushjobinfo_file_path*(
+  a1: ptr rocksdb_flushjobinfo_t, a2: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_flushjobinfo_triggered_writes_slowdown*(
+  a1: ptr rocksdb_flushjobinfo_t
+): uint8 {.cdecl.}
+
+proc rocksdb_flushjobinfo_triggered_writes_stop*(
+  a1: ptr rocksdb_flushjobinfo_t
+): uint8 {.cdecl.}
+
+proc rocksdb_flushjobinfo_largest_seqno*(
+  a1: ptr rocksdb_flushjobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_flushjobinfo_smallest_seqno*(
+  a1: ptr rocksdb_flushjobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_reset_status*(status_ptr: ptr rocksdb_status_ptr_t) {.cdecl.}
+##  Compaction job info
+
+proc rocksdb_compactionjobinfo_status*(
+  info: ptr rocksdb_compactionjobinfo_t, errptr: cstringArray
+) {.cdecl.}
+
+proc rocksdb_compactionjobinfo_cf_name*(
+  a1: ptr rocksdb_compactionjobinfo_t, a2: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_compactionjobinfo_input_files_count*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): csize_t {.cdecl.}
+
+proc rocksdb_compactionjobinfo_input_file_at*(
+  a1: ptr rocksdb_compactionjobinfo_t, pos: csize_t, a3: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_compactionjobinfo_output_files_count*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): csize_t {.cdecl.}
+
+proc rocksdb_compactionjobinfo_output_file_at*(
+  a1: ptr rocksdb_compactionjobinfo_t, pos: csize_t, a3: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_compactionjobinfo_elapsed_micros*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_compactionjobinfo_num_corrupt_keys*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_compactionjobinfo_base_input_level*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): cint {.cdecl.}
+
+proc rocksdb_compactionjobinfo_output_level*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): cint {.cdecl.}
+
+proc rocksdb_compactionjobinfo_input_records*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_compactionjobinfo_output_records*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_compactionjobinfo_total_input_bytes*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_compactionjobinfo_total_output_bytes*(
+  a1: ptr rocksdb_compactionjobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_compactionjobinfo_compaction_reason*(
+  info: ptr rocksdb_compactionjobinfo_t
+): uint32 {.cdecl.}
+
+proc rocksdb_compactionjobinfo_num_input_files*(
+  info: ptr rocksdb_compactionjobinfo_t
+): csize_t {.cdecl.}
+
+proc rocksdb_compactionjobinfo_num_input_files_at_output_level*(
+  info: ptr rocksdb_compactionjobinfo_t
+): csize_t {.cdecl.}
+
+##  Subcompaction job info
+
+proc rocksdb_subcompactionjobinfo_status*(
+  a1: ptr rocksdb_subcompactionjobinfo_t, a2: cstringArray
+) {.cdecl.}
+
+proc rocksdb_subcompactionjobinfo_cf_name*(
+  a1: ptr rocksdb_subcompactionjobinfo_t, a2: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_subcompactionjobinfo_thread_id*(
+  a1: ptr rocksdb_subcompactionjobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_subcompactionjobinfo_base_input_level*(
+  a1: ptr rocksdb_subcompactionjobinfo_t
+): cint {.cdecl.}
+
+proc rocksdb_subcompactionjobinfo_output_level*(
+  a1: ptr rocksdb_subcompactionjobinfo_t
+): cint {.cdecl.}
+
+##  External file ingestion info
+
+proc rocksdb_externalfileingestioninfo_cf_name*(
+  a1: ptr rocksdb_externalfileingestioninfo_t, a2: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_externalfileingestioninfo_internal_file_path*(
+  a1: ptr rocksdb_externalfileingestioninfo_t, a2: ptr csize_t
+): cstring {.cdecl.}
+
+##  External write stall info
+
+proc rocksdb_writestallinfo_cf_name*(
+  a1: ptr rocksdb_writestallinfo_t, a2: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_writestallinfo_cur*(
+  a1: ptr rocksdb_writestallinfo_t
+): ptr rocksdb_writestallcondition_t {.cdecl.}
+
+proc rocksdb_writestallinfo_prev*(
+  a1: ptr rocksdb_writestallinfo_t
+): ptr rocksdb_writestallcondition_t {.cdecl.}
+
+proc rocksdb_memtableinfo_cf_name*(
+  a1: ptr rocksdb_memtableinfo_t, a2: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_memtableinfo_first_seqno*(a1: ptr rocksdb_memtableinfo_t): uint64 {.cdecl.}
+proc rocksdb_memtableinfo_earliest_seqno*(
+  a1: ptr rocksdb_memtableinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_memtableinfo_num_entries*(a1: ptr rocksdb_memtableinfo_t): uint64 {.cdecl.}
+proc rocksdb_memtableinfo_num_deletes*(a1: ptr rocksdb_memtableinfo_t): uint64 {.cdecl.}
+##  Event listener
+
+type
+  on_flush_begin_cb* =
+    proc(a1: pointer, a2: ptr rocksdb_t, a3: ptr rocksdb_flushjobinfo_t) {.cdecl.}
+  on_flush_completed_cb* =
+    proc(a1: pointer, a2: ptr rocksdb_t, a3: ptr rocksdb_flushjobinfo_t) {.cdecl.}
+  on_compaction_begin_cb* =
+    proc(a1: pointer, a2: ptr rocksdb_t, a3: ptr rocksdb_compactionjobinfo_t) {.cdecl.}
+  on_compaction_completed_cb* =
+    proc(a1: pointer, a2: ptr rocksdb_t, a3: ptr rocksdb_compactionjobinfo_t) {.cdecl.}
+  on_subcompaction_begin_cb* =
+    proc(a1: pointer, a2: ptr rocksdb_subcompactionjobinfo_t) {.cdecl.}
+  on_subcompaction_completed_cb* =
+    proc(a1: pointer, a2: ptr rocksdb_subcompactionjobinfo_t) {.cdecl.}
+  on_external_file_ingested_cb* = proc(
+    a1: pointer, a2: ptr rocksdb_t, a3: ptr rocksdb_externalfileingestioninfo_t
+  ) {.cdecl.}
+  on_background_error_cb* =
+    proc(a1: pointer, a2: uint32, a3: ptr rocksdb_status_ptr_t) {.cdecl.}
+  on_stall_conditions_changed_cb* =
+    proc(a1: pointer, a2: ptr rocksdb_writestallinfo_t) {.cdecl.}
+  rocksdb_logger_logv_cb* = proc(a1: pointer, log_level: uint32, a3: cstring) {.cdecl.}
+  on_memtable_sealed_cb* = proc(a1: pointer, a2: ptr rocksdb_memtableinfo_t) {.cdecl.}
+
+proc rocksdb_eventlistener_create*(
+  state: pointer,
+  destructor: proc(a1: pointer) {.cdecl.},
+  on_flush_begin: on_flush_begin_cb,
+  on_flush_completed: on_flush_completed_cb,
+  on_compaction_begin: on_compaction_begin_cb,
+  on_compaction_completed: on_compaction_completed_cb,
+  on_subcompaction_begin: on_subcompaction_begin_cb,
+  on_subcompaction_completed: on_subcompaction_completed_cb,
+  on_external_file_ingested: on_external_file_ingested_cb,
+  on_background_error: on_background_error_cb,
+  on_stall_conditions_changed: on_stall_conditions_changed_cb,
+  on_memtable_sealed: on_memtable_sealed_cb,
+): ptr rocksdb_eventlistener_t {.cdecl.}
+
+proc rocksdb_eventlistener_destroy*(a1: ptr rocksdb_eventlistener_t) {.cdecl.}
+proc rocksdb_options_add_eventlistener*(
+  a1: ptr rocksdb_options_t, a2: ptr rocksdb_eventlistener_t
 ) {.cdecl.}
 
 ##  Cuckoo table options
@@ -1966,6 +2197,14 @@ proc rocksdb_options_set_memtable_op_scan_flush_trigger*(
 ) {.cdecl.}
 
 proc rocksdb_options_get_memtable_op_scan_flush_trigger*(
+  a1: ptr rocksdb_options_t
+): uint32 {.cdecl.}
+
+proc rocksdb_options_set_memtable_avg_op_scan_flush_trigger*(
+  a1: ptr rocksdb_options_t, a2: uint32
+) {.cdecl.}
+
+proc rocksdb_options_get_memtable_avg_op_scan_flush_trigger*(
   a1: ptr rocksdb_options_t
 ): uint32 {.cdecl.}
 
@@ -2699,7 +2938,8 @@ const
   rocksdb_blob_decompress_time* = 74
   rocksdb_internal_range_del_reseek_count* = 75
   rocksdb_block_read_cpu_time* = 76
-  rocksdb_total_metric_count* = 79
+  rocksdb_internal_merge_point_lookup_count* = 77
+  rocksdb_total_metric_count* = 80
 
 proc rocksdb_set_perf_level*(a1: cint) {.cdecl.}
 proc rocksdb_perfcontext_create*(): ptr rocksdb_perfcontext_t {.cdecl.}
@@ -3179,6 +3419,53 @@ proc rocksdb_write_buffer_manager_set_buffer_size*(
 proc rocksdb_write_buffer_manager_set_allow_stall*(
   wbm: ptr rocksdb_write_buffer_manager_t, new_allow_stall: bool
 ) {.cdecl.}
+
+##  SstFileManager
+
+proc rocksdb_sst_file_manager_create*(
+  env: ptr rocksdb_env_t
+): ptr rocksdb_sst_file_manager_t {.cdecl.}
+
+proc rocksdb_sst_file_manager_destroy*(sfm: ptr rocksdb_sst_file_manager_t) {.cdecl.}
+proc rocksdb_sst_file_manager_set_max_allowed_space_usage*(
+  sfm: ptr rocksdb_sst_file_manager_t, max_allowed_space: uint64
+) {.cdecl.}
+
+proc rocksdb_sst_file_manager_set_compaction_buffer_size*(
+  sfm: ptr rocksdb_sst_file_manager_t, compaction_buffer_size: uint64
+) {.cdecl.}
+
+proc rocksdb_sst_file_manager_is_max_allowed_space_reached*(
+  sfm: ptr rocksdb_sst_file_manager_t
+): bool {.cdecl.}
+
+proc rocksdb_sst_file_manager_is_max_allowed_space_reached_including_compactions*(
+  sfm: ptr rocksdb_sst_file_manager_t
+): bool {.cdecl.}
+
+proc rocksdb_sst_file_manager_get_total_size*(
+  sfm: ptr rocksdb_sst_file_manager_t
+): uint64 {.cdecl.}
+
+proc rocksdb_sst_file_manager_get_delete_rate_bytes_per_second*(
+  sfm: ptr rocksdb_sst_file_manager_t
+): int64 {.cdecl.}
+
+proc rocksdb_sst_file_manager_set_delete_rate_bytes_per_second*(
+  sfm: ptr rocksdb_sst_file_manager_t, delete_rate: int64
+) {.cdecl.}
+
+proc rocksdb_sst_file_manager_get_max_trash_db_ratio*(
+  sfm: ptr rocksdb_sst_file_manager_t
+): cdouble {.cdecl.}
+
+proc rocksdb_sst_file_manager_set_max_trash_db_ratio*(
+  sfm: ptr rocksdb_sst_file_manager_t, ratio: cdouble
+) {.cdecl.}
+
+proc rocksdb_sst_file_manager_get_total_trash_size*(
+  sfm: ptr rocksdb_sst_file_manager_t
+): uint64 {.cdecl.}
 
 ##  HyperClockCache
 

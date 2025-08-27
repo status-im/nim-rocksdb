@@ -47,6 +47,8 @@ sed -i ':a;N;$!ba;s/#ifdef _WIN32\
 #  mangle int8_t   int8\
 #  mangle int64_t  int64\
 #  mangle cuchar   uint8\
+#  mangle state_   state\
+#  mangle destructor_ destructor\
 #else\
 #  ifdef _WIN32\
 #  ifdef ROCKSDB_DLL\
