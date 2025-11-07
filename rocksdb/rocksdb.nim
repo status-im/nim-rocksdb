@@ -361,7 +361,9 @@ proc delete*(
   ok()
 
 proc deleteRange*(
-    db: RocksDbReadWriteRef, startKey, endKey: openArray[byte], cfHandle = db.defaultCfHandle
+    db: RocksDbReadWriteRef,
+    startKey, endKey: openArray[byte],
+    cfHandle = db.defaultCfHandle,
 ): RocksDBResult[void] =
   ## Removes the database entries in the range [startKey, endKey), i.e. including
   ## startKey and excluding endKey. It is not an error if no keys exist in the

@@ -40,9 +40,7 @@ setOpt numStripes, int, csize_t
 setOpt transactionLockTimeout, int, int64
 setOpt defaultLockTimeout, int, int64
 
-proc defaultTransactionDbOptions*(
-    autoClose = false
-): TransactionDbOptionsRef =
+proc defaultTransactionDbOptions*(autoClose = false): TransactionDbOptionsRef =
   let txDbOpts = createTransactionDbOptions(autoClose)
 
   # TODO: set prefered defaults

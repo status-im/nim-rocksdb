@@ -61,9 +61,7 @@ template name*(cf: ColFamilyReadOnly | ColFamilyReadWrite): string =
   ## Returns the name of the column family.
   cf.name
 
-template handle*(
-    cf: ColFamilyReadOnly | ColFamilyReadWrite
-): ColFamilyHandleRef =
+template handle*(cf: ColFamilyReadOnly | ColFamilyReadWrite): ColFamilyHandleRef =
   ## Returns the name of the column family.
   cf.handle
 
@@ -80,9 +78,7 @@ template get*(
   ## Gets the value of the given key from the column family.
   cf.db.get(key, cf.handle)
 
-template put*(
-    cf: ColFamilyReadWrite, key, val: openArray[byte]
-): RocksDBResult[void] =
+template put*(cf: ColFamilyReadWrite, key, val: openArray[byte]): RocksDBResult[void] =
   ## Puts a value for the given key into the column family.
   cf.db.put(key, val, cf.handle)
 
@@ -92,9 +88,7 @@ template keyExists*(
   ## Checks if the given key exists in the column family.
   cf.db.keyExists(key, cf.handle)
 
-template delete*(
-    cf: ColFamilyReadWrite, key: openArray[byte]
-): RocksDBResult[void] =
+template delete*(cf: ColFamilyReadWrite, key: openArray[byte]): RocksDBResult[void] =
   ## Deletes the given key from the column family.
   cf.db.delete(key, cf.handle)
 
