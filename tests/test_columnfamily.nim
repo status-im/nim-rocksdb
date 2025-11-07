@@ -101,3 +101,25 @@ suite "ColFamily Tests":
       iter.value() == val
     iter.seekToKey(otherKey)
     check iter.isValid() == false
+
+  test "Test deleteRange":
+    let cf = db.getColFamily(CF_OTHER).get()
+
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+
+    check:
+      cf.put(keyValue1, keyValue1).isOk()
+      cf.put(keyValue2, keyValue2).isOk()
+      cf.put(keyValue3, keyValue3).isOk()
+      cf.keyExists(keyValue1).get() == true
+      cf.keyExists(keyValue2).get() == true
+      cf.keyExists(keyValue3).get() == true
+
+      cf.deleteRange(keyValue1, keyValue3).isOk()
+
+      cf.keyExists(keyValue1).get() == false
+      cf.keyExists(keyValue2).get() == false
+      cf.keyExists(keyValue3).get() == true

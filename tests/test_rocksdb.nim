@@ -514,3 +514,36 @@ suite "RocksDbRef Tests":
       db.put(otherKey, val, defaultCfHandle).isOk()
       db.put(key, val, otherCfHandle).isOk()
       db.flush(cfHandles).isOk()
+
+  test "Test deleteRange":
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+
+    check:
+      db.put(keyValue1, keyValue1).isOk()
+      db.put(keyValue2, keyValue2).isOk()
+      db.put(keyValue3, keyValue3).isOk()
+      db.keyExists(keyValue1).get() == true
+      db.keyExists(keyValue2).get() == true
+      db.keyExists(keyValue3).get() == true
+
+      db.deleteRange(keyValue1, keyValue3).isOk()
+
+      db.keyExists(keyValue1).get() == false
+      db.keyExists(keyValue2).get() == false
+      db.keyExists(keyValue3).get() == true
+
+    check:
+      db.put(keyValue1, keyValue1, otherCfHandle).isOk()
+      db.put(keyValue2, keyValue2, otherCfHandle).isOk()
+      db.keyExists(keyValue1, otherCfHandle).get() == true
+      db.keyExists(keyValue2, otherCfHandle).get() == true
+      db.keyExists(keyValue3, otherCfHandle).get() == false
+
+      db.deleteRange(keyValue1, keyValue2, otherCfHandle).isOk()
+
+      db.keyExists(keyValue1, otherCfHandle).get() == false
+      db.keyExists(keyValue2, otherCfHandle).get() == true
+      db.keyExists(keyValue3, otherCfHandle).get() == false

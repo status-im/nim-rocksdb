@@ -360,6 +360,28 @@ proc delete*(
 
   ok()
 
+proc deleteRange*(
+    db: RocksDbReadWriteRef, startKey, endKey: openArray[byte], cfHandle = db.defaultCfHandle
+): RocksDBResult[void] =
+  ## Removes the database entries in the range [startKey, endKey), i.e. including
+  ## startKey and excluding endKey. It is not an error if no keys exist in the
+  ## range ["beginKey", "endKey").
+
+  var errors: cstring
+  rocksdb_delete_range_cf(
+    db.cPtr,
+    db.writeOpts.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](startKey.unsafeAddrOrNil()),
+    csize_t(startKey.len),
+    cast[cstring](endKey.unsafeAddrOrNil()),
+    csize_t(endKey.len),
+    cast[cstringArray](errors.addr),
+  )
+  bailOnErrors(errors)
+
+  ok()
+
 proc openIterator*(
     db: RocksDbRef,
     readOpts = defaultReadOptions(autoClose = true),

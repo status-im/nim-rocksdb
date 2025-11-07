@@ -98,6 +98,13 @@ template delete*(
   ## Deletes the given key from the column family.
   cf.db.delete(key, cf.handle)
 
+template deleteRange*(
+    cf: ColFamilyReadWrite, startKey, endKey: openArray[byte]
+): RocksDBResult[void] =
+  ## Deletes the given key range from the column family including startKey and
+  ## excluding endKey.
+  cf.db.deleteRange(startKey, endKey, cf.handle)
+
 template openIterator*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite,
     readOpts = defaultReadOptions(autoClose = true),
