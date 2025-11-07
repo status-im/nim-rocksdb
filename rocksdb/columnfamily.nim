@@ -99,6 +99,18 @@ template deleteRange*(
   ## excluding endKey.
   cf.db.deleteRange(startKey, endKey, cf.handle)
 
+template compactRange*(
+    cf: ColFamilyReadWrite, startKey, endKey: openArray[byte]
+): RocksDBResult[void] =
+  ## Trigger range compaction for the given key range.
+  cf.db.compactRange(startKey, endKey, cf.handle)
+
+template suggestCompactRange*(
+    cf: ColFamilyReadWrite, startKey, endKey: openArray[byte]
+): RocksDBResult[void] =
+  ## Suggest the range to compact.
+  cf.db.suggestCompactRange(startKey, endKey, cf.handle)
+
 template openIterator*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite,
     readOpts = defaultReadOptions(autoClose = true),

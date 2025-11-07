@@ -118,7 +118,9 @@ suite "ColFamily Tests":
       cf.keyExists(keyValue2).get() == true
       cf.keyExists(keyValue3).get() == true
 
+      cf.suggestCompactRange(keyValue1, keyValue3).isOk()
       cf.deleteRange(keyValue1, keyValue3).isOk()
+      cf.compactRange(keyValue1, keyValue3).isOk()
 
       cf.keyExists(keyValue1).get() == false
       cf.keyExists(keyValue2).get() == false

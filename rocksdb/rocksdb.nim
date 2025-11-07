@@ -384,6 +384,45 @@ proc deleteRange*(
 
   ok()
 
+proc compactRange*(
+    db: RocksDbReadWriteRef,
+    startKey, endKey: openArray[byte],
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[void] =
+  ## Trigger range compaction for the given key range.
+
+  rocksdb_compact_range_cf(
+    db.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](startKey.unsafeAddrOrNil()),
+    csize_t(startKey.len),
+    cast[cstring](endKey.unsafeAddrOrNil()),
+    csize_t(endKey.len)
+  )
+
+  ok()
+
+proc suggestCompactRange*(
+    db: RocksDbReadWriteRef,
+    startKey, endKey: openArray[byte],
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[void] =
+  ## Suggest the range to compact.
+
+  var errors: cstring
+  rocksdb_suggest_compact_range_cf(
+    db.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](startKey.unsafeAddrOrNil()),
+    csize_t(startKey.len),
+    cast[cstring](endKey.unsafeAddrOrNil()),
+    csize_t(endKey.len),
+    cast[cstringArray](errors.addr),
+  )
+  bailOnErrors(errors)
+
+  ok()
+
 proc openIterator*(
     db: RocksDbRef,
     readOpts = defaultReadOptions(autoClose = true),

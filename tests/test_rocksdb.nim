@@ -530,6 +530,7 @@ suite "RocksDbRef Tests":
       db.keyExists(keyValue3).get() == true
 
       db.deleteRange(keyValue1, keyValue3).isOk()
+      db.compactRange(keyValue1, keyValue3).isOk()
 
       db.keyExists(keyValue1).get() == false
       db.keyExists(keyValue2).get() == false
@@ -543,6 +544,7 @@ suite "RocksDbRef Tests":
       db.keyExists(keyValue3, otherCfHandle).get() == false
 
       db.deleteRange(keyValue1, keyValue2, otherCfHandle).isOk()
+      db.suggestCompactRange(keyValue1, keyValue3, otherCfHandle).isOk()
 
       db.keyExists(keyValue1, otherCfHandle).get() == false
       db.keyExists(keyValue2, otherCfHandle).get() == true
