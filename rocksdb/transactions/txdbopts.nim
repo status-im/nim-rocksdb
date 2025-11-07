@@ -23,7 +23,7 @@ proc createTransactionDbOptions*(autoClose = false): TransactionDbOptionsRef =
     cPtr: rocksdb_transactiondb_options_create(), autoClose: autoClose
   )
 
-proc isClosed*(txDbOpts: TransactionDbOptionsRef): bool {.inline.} =
+template isClosed*(txDbOpts: TransactionDbOptionsRef): bool =
   txDbOpts.cPtr.isNil()
 
 proc cPtr*(txDbOpts: TransactionDbOptionsRef): TransactionDbOptionsPtr =
@@ -42,7 +42,7 @@ setOpt defaultLockTimeout, int, int64
 
 proc defaultTransactionDbOptions*(
     autoClose = false
-): TransactionDbOptionsRef {.inline.} =
+): TransactionDbOptionsRef =
   let txDbOpts = createTransactionDbOptions(autoClose)
 
   # TODO: set prefered defaults

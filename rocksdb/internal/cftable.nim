@@ -27,10 +27,10 @@ proc newColFamilyTable*(
 
   ColFamilyTableRef(columnFamilies: cfTable)
 
-proc isClosed*(table: ColFamilyTableRef): bool {.inline.} =
+template isClosed*(table: ColFamilyTableRef): bool =
   table.columnFamilies.isNil()
 
-proc get*(table: ColFamilyTableRef, name: string): ColFamilyHandleRef {.inline.} =
+template get*(table: ColFamilyTableRef, name: string): ColFamilyHandleRef =
   table.columnFamilies.getOrDefault(name)
 
 proc close*(table: ColFamilyTableRef) =

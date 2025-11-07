@@ -221,11 +221,11 @@ proc getColFamilyHandle*(
   else:
     ok(cfHandle)
 
-proc isClosed*(db: RocksDbRef): bool {.inline.} =
+template isClosed*(db: RocksDbRef): bool =
   ## Returns `true` if the database has been closed and `false` otherwise.
   db.cPtr.isNil()
 
-proc cPtr*(db: RocksDbRef): RocksDbPtr {.inline.} =
+proc cPtr*(db: RocksDbRef): RocksDbPtr =
   ## Get the underlying database pointer.
   doAssert not db.isClosed()
   db.cPtr

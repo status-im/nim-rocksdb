@@ -21,7 +21,7 @@ type
 proc createWriteOptions*(autoClose = false): WriteOptionsRef =
   WriteOptionsRef(cPtr: rocksdb_writeoptions_create(), autoClose: autoClose)
 
-proc isClosed*(writeOpts: WriteOptionsRef): bool {.inline.} =
+template isClosed*(writeOpts: WriteOptionsRef): bool =
   writeOpts.cPtr.isNil()
 
 proc cPtr*(writeOpts: WriteOptionsRef): WriteOptionsPtr =
@@ -51,7 +51,7 @@ proc disableWAL*(writeOpts: WriteOptionsRef): bool =
   doAssert not writeOpts.isClosed()
   rocksdb_writeoptions_get_disable_WAL(writeOpts.cPtr).bool
 
-proc defaultWriteOptions*(autoClose = false): WriteOptionsRef {.inline.} =
+proc defaultWriteOptions*(autoClose = false): WriteOptionsRef =
   let writeOpts = createWriteOptions(autoClose)
 
   # TODO: set prefered defaults

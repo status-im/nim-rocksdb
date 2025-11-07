@@ -53,70 +53,70 @@ proc getColFamily*(
 
   ok(ColFamilyReadWrite(db: db, name: name, handle: ?db.getColFamilyHandle(name)))
 
-proc db*(cf: ColFamilyReadOnly | ColFamilyReadWrite): auto {.inline.} =
+template db*(cf: ColFamilyReadOnly | ColFamilyReadWrite): auto =
   ## Returns the underlying `RocksDbReadOnlyRef` or `RocksDbReadWriteRef`.
   cf.db
 
-proc name*(cf: ColFamilyReadOnly | ColFamilyReadWrite): string {.inline.} =
+template name*(cf: ColFamilyReadOnly | ColFamilyReadWrite): string =
   ## Returns the name of the column family.
   cf.name
 
-proc handle*(
+template handle*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite
-): ColFamilyHandleRef {.inline.} =
+): ColFamilyHandleRef =
   ## Returns the name of the column family.
   cf.handle
 
-proc get*(
+template get*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite, key: openArray[byte], onData: DataProc
-): RocksDBResult[bool] {.inline.} =
+): RocksDBResult[bool] =
   ## Gets the value of the given key from the column family using the `onData`
   ## callback.
   cf.db.get(key, onData, cf.handle)
 
-proc get*(
+template get*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite, key: openArray[byte]
-): RocksDBResult[seq[byte]] {.inline.} =
+): RocksDBResult[seq[byte]] =
   ## Gets the value of the given key from the column family.
   cf.db.get(key, cf.handle)
 
-proc put*(
+template put*(
     cf: ColFamilyReadWrite, key, val: openArray[byte]
-): RocksDBResult[void] {.inline.} =
+): RocksDBResult[void] =
   ## Puts a value for the given key into the column family.
   cf.db.put(key, val, cf.handle)
 
-proc keyExists*(
+template keyExists*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite, key: openArray[byte]
-): RocksDBResult[bool] {.inline.} =
+): RocksDBResult[bool] =
   ## Checks if the given key exists in the column family.
   cf.db.keyExists(key, cf.handle)
 
-proc delete*(
+template delete*(
     cf: ColFamilyReadWrite, key: openArray[byte]
-): RocksDBResult[void] {.inline.} =
+): RocksDBResult[void] =
   ## Deletes the given key from the column family.
   cf.db.delete(key, cf.handle)
 
-proc openIterator*(
+template openIterator*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite,
     readOpts = defaultReadOptions(autoClose = true),
-): RocksDBResult[RocksIteratorRef] {.inline.} =
+): RocksDBResult[RocksIteratorRef] =
   ## Opens an `RocksIteratorRef` for the given column family.
   cf.db.openIterator(readOpts, cf.handle)
 
-proc openWriteBatch*(cf: ColFamilyReadWrite): WriteBatchRef {.inline.} =
+template openWriteBatch*(cf: ColFamilyReadWrite): WriteBatchRef =
   ## Opens a `WriteBatchRef` for the given column family.
   cf.db.openWriteBatch(cf.handle)
 
-proc openWriteBatchWithIndex*(
+template openWriteBatchWithIndex*(
     cf: ColFamilyReadWrite, reservedBytes = 0, overwriteKey = false
-): WriteBatchWIRef {.inline.} =
+): WriteBatchWIRef =
   ## Opens a `WriteBatchRef` for the given column family.
   cf.db.openWriteBatchWithIndex(reservedBytes, overwriteKey, cf.handle)
 
-proc write*(
+template write*(
     cf: ColFamilyReadWrite, updates: WriteBatchRef | WriteBatchWIRef
-): RocksDBResult[void] {.inline.} =
+): RocksDBResult[void] =
   ## Writes the updates in the `WriteBatchRef` to the column family.
   cf.db.write(updates)

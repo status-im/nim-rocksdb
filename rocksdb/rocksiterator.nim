@@ -29,7 +29,7 @@ proc newRocksIterator*(
   doAssert not cPtr.isNil()
   RocksIteratorRef(cPtr: cPtr, readOpts: readOpts)
 
-proc isClosed*(iter: RocksIteratorRef): bool {.inline.} =
+template isClosed*(iter: RocksIteratorRef): bool =
   ## Returns `true` if the iterator is closed and `false` otherwise.
   iter.cPtr.isNil()
 

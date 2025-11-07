@@ -27,7 +27,7 @@ type
 proc createWriteBatch*(defaultCfHandle: ColFamilyHandleRef): WriteBatchRef =
   WriteBatchRef(cPtr: rocksdb_writebatch_create(), defaultCfHandle: defaultCfHandle)
 
-proc isClosed*(batch: WriteBatchRef): bool {.inline.} =
+template isClosed*(batch: WriteBatchRef): bool =
   ## Returns `true` if the `WriteBatchRef` has been closed and `false` otherwise.
   batch.cPtr.isNil()
 

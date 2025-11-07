@@ -24,25 +24,25 @@ proc initColFamilyDescriptor*(
 ): ColFamilyDescriptor =
   ColFamilyDescriptor(name: name, options: options)
 
-proc name*(descriptor: ColFamilyDescriptor): string {.inline.} =
+template name*(descriptor: ColFamilyDescriptor): string =
   descriptor.name
 
-proc options*(descriptor: ColFamilyDescriptor): ColFamilyOptionsRef {.inline.} =
+template options*(descriptor: ColFamilyDescriptor): ColFamilyOptionsRef =
   descriptor.options
 
-proc autoClose*(descriptor: ColFamilyDescriptor): bool {.inline.} =
+template autoClose*(descriptor: ColFamilyDescriptor): bool =
   descriptor.options.autoClose
 
-proc isDefault*(descriptor: ColFamilyDescriptor): bool {.inline.} =
+template isDefault*(descriptor: ColFamilyDescriptor): bool =
   descriptor.name == DEFAULT_COLUMN_FAMILY_NAME
 
-proc defaultColFamilyDescriptor*(autoClose = false): ColFamilyDescriptor {.inline.} =
+proc defaultColFamilyDescriptor*(autoClose = false): ColFamilyDescriptor =
   initColFamilyDescriptor(
     DEFAULT_COLUMN_FAMILY_NAME, defaultColFamilyOptions(autoClose = autoClose)
   )
 
-proc isClosed*(descriptor: ColFamilyDescriptor): bool {.inline.} =
+template isClosed*(descriptor: ColFamilyDescriptor): bool =
   descriptor.options.isClosed()
 
-proc close*(descriptor: ColFamilyDescriptor) {.inline.} =
+template close*(descriptor: ColFamilyDescriptor) =
   descriptor.options.close()

@@ -23,7 +23,7 @@ proc createOptimisticTxOptions*(autoClose = false): OptimisticTxOptionsRef =
     cPtr: rocksdb_optimistictransaction_options_create(), autoClose: autoClose
   )
 
-proc isClosed*(txOpts: OptimisticTxOptionsRef): bool {.inline.} =
+template isClosed*(txOpts: OptimisticTxOptionsRef): bool =
   txOpts.cPtr.isNil()
 
 proc cPtr*(txOpts: OptimisticTxOptionsRef): OptimisticTxOptionsPtr =
@@ -37,7 +37,7 @@ template setOpt(nname, ntyp, ctyp: untyped) =
 
 setOpt setSnapshot, bool, uint8
 
-proc defaultOptimisticTxOptions*(autoClose = false): OptimisticTxOptionsRef {.inline.} =
+proc defaultOptimisticTxOptions*(autoClose = false): OptimisticTxOptionsRef =
   let txOpts = createOptimisticTxOptions(autoClose)
 
   # TODO: set prefered defaults

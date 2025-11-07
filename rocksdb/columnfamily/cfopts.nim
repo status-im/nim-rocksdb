@@ -43,7 +43,7 @@ type
 proc createFixedPrefix*(value: int): SlicetransformRef =
   SlicetransformRef(cPtr: rocksdb_slicetransform_create_fixed_prefix(value.csize_t))
 
-proc isClosed*(s: SlicetransformRef): bool {.inline.} =
+template isClosed*(s: SlicetransformRef): bool =
   s.cPtr.isNil()
 
 proc cPtr*(s: SlicetransformRef): SlicetransformPtr =
@@ -58,7 +58,7 @@ proc close*(s: SlicetransformRef) =
 proc createColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
   ColFamilyOptionsRef(cPtr: rocksdb_options_create(), autoClose: autoClose)
 
-proc isClosed*(cfOpts: ColFamilyOptionsRef): bool {.inline.} =
+template isClosed*(cfOpts: ColFamilyOptionsRef): bool =
   cfOpts.cPtr.isNil()
 
 proc cPtr*(cfOpts: ColFamilyOptionsRef): ColFamilyOptionsPtr =

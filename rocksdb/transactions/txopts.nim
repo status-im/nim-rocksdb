@@ -23,7 +23,7 @@ proc createTransactionOptions*(autoClose = false): TransactionOptionsRef =
     cPtr: rocksdb_transaction_options_create(), autoClose: autoClose
   )
 
-proc isClosed*(txOpts: TransactionOptionsRef): bool {.inline.} =
+template isClosed*(txOpts: TransactionOptionsRef): bool =
   txOpts.cPtr.isNil()
 
 proc cPtr*(txOpts: TransactionOptionsRef): TransactionOptionsPtr =
@@ -42,7 +42,7 @@ setOpt deadlockDetectDepth, int, int64
 setOpt maxWriteBatchSize, int, csize_t
 setOpt skipPrepare, bool, uint8
 
-proc defaultTransactionOptions*(autoClose = false): TransactionOptionsRef {.inline.} =
+proc defaultTransactionOptions*(autoClose = false): TransactionOptionsRef =
   let txOpts = createTransactionOptions(autoClose)
 
   # TODO: set prefered defaults

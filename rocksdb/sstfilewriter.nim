@@ -49,7 +49,7 @@ proc openSstFileWriter*(
 
   ok(writer)
 
-proc isClosed*(writer: SstFileWriterRef): bool {.inline.} =
+template isClosed*(writer: SstFileWriterRef): bool =
   ## Returns `true` if the `SstFileWriterRef` is closed and `false` otherwise.
   writer.cPtr.isNil()
 
