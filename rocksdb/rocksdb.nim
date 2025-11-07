@@ -282,6 +282,62 @@ proc get*(
 
   dataRes.err(res.error())
 
+proc multiGet*(
+    db: RocksDbRef,
+    keys: openArray[seq[byte]],
+    onData: DataBatchProc,
+    sortedInput = false,
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[void] =
+  ## Get a batch of values for the given set of keys.
+  ##
+  ## The multiGet API improves performance by batching operations
+  ## in the read path for greater efficiency. Currently, only the block based
+  ## table format with full filters are supported. Other table formats such
+  ## as plain table, block based table with block based filters and
+  ## partitioned indexes will still work, but will not get any performance
+  ## benefits.
+  ##
+  ## sortedInput - If true, it means the input keys are already sorted by key
+  ## order, so the MultiGet() API doesn't have to sort them again. If false,
+  ## the keys will be copied and sorted internally by the API - the input
+  ## array will not be modified.
+  assert keys.len() > 0
+
+  var
+    keysList = keys.mapIt(cast[cstring](it[0].addr))
+    keysListSizes = keys.mapIt(csize_t(it.len))
+    values = newSeqUninit[ptr rocksdb_pinnableslice_t](keys.len)
+    errors: cstring
+
+  rocksdb_batched_multi_get_cf(
+    db.cPtr,
+    db.readOpts.cPtr,
+    cfHandle.cPtr,
+    csize_t(keys.len),
+    cast[cstringArray](keysList[0].addr),
+    keysListSizes[0].addr,
+    values[0].addr,
+    cast[cstringArray](errors.addr),
+    sortedInput,
+  )
+  bailOnErrors(errors)
+
+  var data = newSeq[seq[byte]](keys.len())
+
+  for i, v in values:
+    var vLen: csize_t
+    let src = rocksdb_pinnableslice_value(v, vLen.addr)
+    if vLen > 0:
+      var dest = newSeqUninit[byte](vLen.int)
+      copyMem(dest[0].addr, src, vLen)
+      data[i] = dest
+    rocksdb_pinnableslice_destroy(v)
+
+  onData(data)
+
+  ok()
+
 proc put*(
     db: RocksDbReadWriteRef, key, val: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[void] =
@@ -397,7 +453,7 @@ proc compactRange*(
     cast[cstring](startKey.unsafeAddrOrNil()),
     csize_t(startKey.len),
     cast[cstring](endKey.unsafeAddrOrNil()),
-    csize_t(endKey.len)
+    csize_t(endKey.len),
   )
 
   ok()

@@ -549,3 +549,47 @@ suite "RocksDbRef Tests":
       db.keyExists(keyValue1, otherCfHandle).get() == false
       db.keyExists(keyValue2, otherCfHandle).get() == true
       db.keyExists(keyValue3, otherCfHandle).get() == false
+
+  test "Test multiget":
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+
+    check:
+      db.put(keyValue1, keyValue1).isOk()
+      db.put(keyValue2, keyValue2).isOk()
+      db.keyExists(keyValue1).get() == true
+      db.keyExists(keyValue2).get() == true
+      db.keyExists(keyValue3).get() == false
+
+    var dataRes: seq[seq[byte]]
+    proc onData(data: openArray[seq[byte]]) =
+      dataRes = @data
+
+    check:
+      db.multiGet(@[keyValue1], onData).isOk()
+      dataRes.len() == 1
+      dataRes[0] == keyValue1
+
+      db.multiGet(@[keyValue1, keyValue2], onData).isOk()
+      dataRes.len() == 2
+      dataRes[0] == keyValue1
+      dataRes[1] == keyValue2
+
+      db.multiGet(@[keyValue2, keyValue3], onData).isOk()
+      dataRes.len() == 2
+      dataRes[0] == keyValue2
+      dataRes[1] == default(seq[byte])
+
+      db.multiGet(@[keyValue1, keyValue2, keyValue3], onData).isOk()
+      dataRes.len() == 3
+      dataRes[0] == keyValue1
+      dataRes[1] == keyValue2
+      dataRes[2] == default(seq[byte])
+
+      db.multiGet(@[keyValue1, keyValue2, keyValue3], onData, sortedInput = true).isOk()
+      dataRes.len() == 3
+      dataRes[0] == keyValue1
+      dataRes[1] == keyValue2
+      dataRes[2] == default(seq[byte])
