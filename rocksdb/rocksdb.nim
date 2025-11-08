@@ -307,8 +307,13 @@ proc multiGet*(
   var
     keysList = keys.mapIt(cast[cstring](it[0].addr))
     keysListSizes = keys.mapIt(csize_t(it.len))
-    values = newSeqUninit[ptr rocksdb_pinnableslice_t](keys.len)
     errors: cstring
+
+  var values =
+    when NimMajor >= 2 and NimMinor >= 2:
+      newSeqUninit[ptr rocksdb_pinnableslice_t](keys.len)
+    else:
+      newSeqUninitialized[ptr rocksdb_pinnableslice_t](keys.len)
 
   rocksdb_batched_multi_get_cf(
     db.cPtr,
@@ -329,7 +334,12 @@ proc multiGet*(
     var vLen: csize_t
     let src = rocksdb_pinnableslice_value(v, vLen.addr)
     if vLen > 0:
-      var dest = newSeqUninit[byte](vLen.int)
+      var dest =
+        when NimMajor >= 2 and NimMinor >= 2:
+          newSeqUninit[byte](vLen.int)
+        else:
+          newSeqUninitialized[byte](vLen.int)
+
       copyMem(dest[0].addr, src, vLen)
       data[i] = dest
     rocksdb_pinnableslice_destroy(v)
