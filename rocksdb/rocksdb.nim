@@ -313,7 +313,7 @@ proc multiGet*(
     when NimMajor >= 2 and NimMinor >= 2:
       newSeqUninit[ptr rocksdb_pinnableslice_t](keys.len)
     else:
-      newSeqUninitialized[ptr rocksdb_pinnableslice_t](keys.len)
+      newSeq[ptr rocksdb_pinnableslice_t](keys.len)
 
   rocksdb_batched_multi_get_cf(
     db.cPtr,
@@ -338,7 +338,7 @@ proc multiGet*(
         when NimMajor >= 2 and NimMinor >= 2:
           newSeqUninit[byte](vLen.int)
         else:
-          newSeqUninitialized[byte](vLen.int)
+          newSeq[byte](vLen.int)
 
       copyMem(dest[0].addr, src, vLen)
       data[i] = dest
