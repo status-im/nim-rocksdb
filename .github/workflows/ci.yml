@@ -38,7 +38,7 @@ jobs:
             shell: bash
           - target:
               os: windows
-            builder: windows-latest
+            builder: windows-2022
             shell: msys2 {0}
 
     defaults:
