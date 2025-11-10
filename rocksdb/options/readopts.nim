@@ -52,6 +52,7 @@ opt maxSkippableInternalKeys, int, csize_t
 opt ignoreRangeDeletions, bool, uint8
 opt deadline, int, uint64
 opt ioTimeout, int, uint64
+opt asyncIo, bool, uint8
 
 proc setSnapshot*(readOpts: ReadOptionsRef, snapshot: SnapshotRef) =
   doAssert not readOpts.isClosed()
