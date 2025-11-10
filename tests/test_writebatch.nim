@@ -195,3 +195,27 @@ suite "WriteBatchRef Tests":
     check batch.isClosed()
     batch.close()
     check batch.isClosed()
+
+  test "Test deleteRange":
+    let batch = db.openWriteBatch()
+    defer:
+      batch.close()
+
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+
+    check:
+      batch.put(keyValue1, keyValue1).isOk()
+      batch.put(keyValue2, keyValue2).isOk()
+      batch.put(keyValue3, keyValue3).isOk()
+      batch.deleteRange(keyValue1, keyValue3).isOk()
+      batch.count() == 4
+
+    let res1 = db.write(batch)
+    check:
+      res1.isOk()
+      db.keyExists(keyValue1).get() == false
+      db.keyExists(keyValue2).get() == false
+      db.keyExists(keyValue3).get() == true

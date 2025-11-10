@@ -28,7 +28,7 @@ proc newSnapshot*(cPtr: SnapshotPtr, kind: SnapshotType): SnapshotRef =
   doAssert not cPtr.isNil()
   SnapshotRef(cPtr: cPtr, kind: kind)
 
-proc isClosed*(snapshot: SnapshotRef): bool {.inline.} =
+template isClosed*(snapshot: SnapshotRef): bool =
   ## Returns `true` if the `SnapshotRef` has been closed and `false` otherwise.
   snapshot.cPtr.isNil()
 

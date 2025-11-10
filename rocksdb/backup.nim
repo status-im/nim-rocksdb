@@ -50,7 +50,7 @@ proc openBackupEngine*(
     BackupEngineRef(cPtr: backupEnginePtr, path: path, backupOpts: backupOpts)
   ok(engine)
 
-proc isClosed*(backupEngine: BackupEngineRef): bool {.inline.} =
+template isClosed*(backupEngine: BackupEngineRef): bool =
   ## Returns `true` if the `BackupEngineRef` has been closed.
   backupEngine.cPtr.isNil()
 

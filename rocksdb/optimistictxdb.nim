@@ -94,7 +94,7 @@ proc getColFamilyHandle*(
   else:
     ok(cfHandle)
 
-proc isClosed*(db: OptimisticTxDbRef): bool {.inline.} =
+template isClosed*(db: OptimisticTxDbRef): bool =
   ## Returns `true` if the `OptimisticTxDbRef` has been closed.
   db.cPtr.isNil()
 

@@ -41,7 +41,7 @@ proc createWriteBatch*(
     defaultCfHandle: defaultCfHandle,
   )
 
-proc isClosed*(batch: WriteBatchWIRef): bool {.inline.} =
+template isClosed*(batch: WriteBatchWIRef): bool =
   ## Returns `true` if the `WriteBatchWIRef` has been closed and `false` otherwise.
   batch.cPtr.isNil()
 

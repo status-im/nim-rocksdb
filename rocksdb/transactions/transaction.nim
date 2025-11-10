@@ -56,7 +56,7 @@ proc newTransaction*(
     defaultCfHandle: defaultCfHandle,
   )
 
-proc isClosed*(tx: TransactionRef): bool {.inline.} =
+template isClosed*(tx: TransactionRef): bool =
   ## Returns `true` if the `TransactionRef` has been closed.
   tx.cPtr.isNil()
 

@@ -20,7 +20,7 @@ type
 proc newColFamilyHandle*(cPtr: ColFamilyHandlePtr): ColFamilyHandleRef =
   ColFamilyHandleRef(cPtr: cPtr)
 
-proc isClosed*(handle: ColFamilyHandleRef): bool {.inline.} =
+template isClosed*(handle: ColFamilyHandleRef): bool =
   handle.cPtr.isNil()
 
 proc cPtr*(handle: ColFamilyHandleRef): ColFamilyHandlePtr =

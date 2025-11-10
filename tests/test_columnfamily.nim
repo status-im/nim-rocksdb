@@ -101,3 +101,49 @@ suite "ColFamily Tests":
       iter.value() == val
     iter.seekToKey(otherKey)
     check iter.isValid() == false
+
+  test "Test deleteRange":
+    let cf = db.getColFamily(CF_OTHER).get()
+
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+
+    check:
+      cf.put(keyValue1, keyValue1).isOk()
+      cf.put(keyValue2, keyValue2).isOk()
+      cf.put(keyValue3, keyValue3).isOk()
+      cf.keyExists(keyValue1).get() == true
+      cf.keyExists(keyValue2).get() == true
+      cf.keyExists(keyValue3).get() == true
+
+      cf.suggestCompactRange(keyValue1, keyValue3).isOk()
+      cf.deleteRange(keyValue1, keyValue3).isOk()
+      cf.compactRange(keyValue1, keyValue3).isOk()
+
+      cf.keyExists(keyValue1).get() == false
+      cf.keyExists(keyValue2).get() == false
+      cf.keyExists(keyValue3).get() == true
+
+  test "Test multiget":
+    let cf = db.getColFamily(CF_OTHER).get()
+
+    let
+      keyValue1 = @[100.byte]
+      keyValue2 = @[300.byte]
+      keyValue3 = @[200.byte]
+
+    check:
+      cf.put(keyValue1, keyValue1).isOk()
+      cf.put(keyValue2, keyValue2).isOk()
+      cf.keyExists(keyValue1).get() == true
+      cf.keyExists(keyValue2).get() == true
+      cf.keyExists(keyValue3).get() == false
+
+    let dataRes = cf.multiGet(@[keyValue1, keyValue2, keyValue3]).expect("ok")
+    check:
+      dataRes.len() == 3
+      dataRes[0] == keyValue1
+      dataRes[1] == keyValue2
+      dataRes[2] == default(seq[byte])

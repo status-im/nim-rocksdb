@@ -27,7 +27,7 @@ type
 proc createWriteBatch*(defaultCfHandle: ColFamilyHandleRef): WriteBatchRef =
   WriteBatchRef(cPtr: rocksdb_writebatch_create(), defaultCfHandle: defaultCfHandle)
 
-proc isClosed*(batch: WriteBatchRef): bool {.inline.} =
+template isClosed*(batch: WriteBatchRef): bool =
   ## Returns `true` if the `WriteBatchRef` has been closed and `false` otherwise.
   batch.cPtr.isNil()
 
@@ -69,6 +69,24 @@ proc delete*(
 
   rocksdb_writebatch_delete_cf(
     batch.cPtr, cfHandle.cPtr, cast[cstring](key.unsafeAddrOrNil()), csize_t(key.len)
+  )
+
+  ok()
+
+proc deleteRange*(
+    batch: WriteBatchRef,
+    startKey, endKey: openArray[byte],
+    cfHandle = batch.defaultCfHandle,
+): RocksDBResult[void] =
+  ## Add a delete range operation to the write batch.
+
+  rocksdb_writebatch_delete_range_cf(
+    batch.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](startKey.unsafeAddrOrNil()),
+    csize_t(startKey.len),
+    cast[cstring](endKey.unsafeAddrOrNil()),
+    csize_t(endKey.len),
   )
 
   ok()

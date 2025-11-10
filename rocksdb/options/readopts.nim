@@ -23,7 +23,7 @@ type
 proc createReadOptions*(autoClose = false): ReadOptionsRef =
   ReadOptionsRef(cPtr: rocksdb_readoptions_create(), autoClose: autoClose)
 
-proc isClosed*(readOpts: ReadOptionsRef): bool {.inline.} =
+template isClosed*(readOpts: ReadOptionsRef): bool =
   readOpts.cPtr.isNil()
 
 proc cPtr*(readOpts: ReadOptionsRef): ReadOptionsPtr =
@@ -52,12 +52,13 @@ opt maxSkippableInternalKeys, int, csize_t
 opt ignoreRangeDeletions, bool, uint8
 opt deadline, int, uint64
 opt ioTimeout, int, uint64
+opt asyncIo, bool, uint8
 
 proc setSnapshot*(readOpts: ReadOptionsRef, snapshot: SnapshotRef) =
   doAssert not readOpts.isClosed()
   rocksdb_readoptions_set_snapshot(readOpts.cPtr, snapshot.cPtr)
 
-proc defaultReadOptions*(autoClose = false): ReadOptionsRef {.inline.} =
+proc defaultReadOptions*(autoClose = false): ReadOptionsRef =
   let readOpts = createReadOptions(autoClose)
 
   # TODO: set prefered defaults

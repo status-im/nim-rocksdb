@@ -25,7 +25,7 @@ proc createBackupEngineOptions*(
     cPtr: rocksdb_backup_engine_options_create(backupDir.cstring), autoClose: autoClose
   )
 
-proc isClosed*(backupOpts: BackupEngineOptionsRef): bool {.inline.} =
+template isClosed*(backupOpts: BackupEngineOptionsRef): bool =
   backupOpts.cPtr.isNil()
 
 proc cPtr*(backupOpts: BackupEngineOptionsRef): BackupEngineOptionsPtr =
@@ -53,7 +53,7 @@ opt callbackTriggerIntervalSize, int, uint64
 
 proc defaultBackupEngineOptions*(
     backupDir: string, autoClose = false
-): BackupEngineOptionsRef {.inline.} =
+): BackupEngineOptionsRef =
   let backupOpts = createBackupEngineOptions(backupDir, autoClose)
 
   # TODO: set defaults here

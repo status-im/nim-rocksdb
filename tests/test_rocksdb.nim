@@ -514,3 +514,117 @@ suite "RocksDbRef Tests":
       db.put(otherKey, val, defaultCfHandle).isOk()
       db.put(key, val, otherCfHandle).isOk()
       db.flush(cfHandles).isOk()
+
+  test "Test deleteRange":
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+
+    check:
+      db.put(keyValue1, keyValue1).isOk()
+      db.put(keyValue2, keyValue2).isOk()
+      db.put(keyValue3, keyValue3).isOk()
+      db.keyExists(keyValue1).get() == true
+      db.keyExists(keyValue2).get() == true
+      db.keyExists(keyValue3).get() == true
+
+      db.deleteRange(keyValue1, keyValue3).isOk()
+      db.compactRange(keyValue1, keyValue3).isOk()
+
+      db.keyExists(keyValue1).get() == false
+      db.keyExists(keyValue2).get() == false
+      db.keyExists(keyValue3).get() == true
+
+    check:
+      db.put(keyValue1, keyValue1, otherCfHandle).isOk()
+      db.put(keyValue2, keyValue2, otherCfHandle).isOk()
+      db.keyExists(keyValue1, otherCfHandle).get() == true
+      db.keyExists(keyValue2, otherCfHandle).get() == true
+      db.keyExists(keyValue3, otherCfHandle).get() == false
+
+      db.deleteRange(keyValue1, keyValue2, otherCfHandle).isOk()
+      db.suggestCompactRange(keyValue1, keyValue3, otherCfHandle).isOk()
+
+      db.keyExists(keyValue1, otherCfHandle).get() == false
+      db.keyExists(keyValue2, otherCfHandle).get() == true
+      db.keyExists(keyValue3, otherCfHandle).get() == false
+
+  test "Test multiget":
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+      keyValue4 = @[4.byte]
+      keyValue5 = @[5.byte]
+      keyValue6 = @[6.byte]
+      keyValue7 = @[7.byte]
+      keyValue8 = @[8.byte]
+      keyValue9 = @[9.byte]
+
+    check:
+      db.put(keyValue1, keyValue1).isOk()
+      db.put(keyValue2, keyValue2).isOk()
+      db.put(keyValue5, keyValue5).isOk()
+      db.put(keyValue7, keyValue7).isOk()
+      db.put(keyValue9, keyValue9).isOk()
+      db.keyExists(keyValue1).get() == true
+      db.keyExists(keyValue2).get() == true
+      db.keyExists(keyValue3).get() == false
+
+    block:
+      let dataRes = db.multiGet(@[keyValue1]).expect("ok")
+      check:
+        dataRes.len() == 1
+        dataRes[0] == keyValue1
+
+    block:
+      let dataRes = db.multiGet(@[keyValue1, keyValue2]).expect("ok")
+      check:
+        dataRes.len() == 2
+        dataRes[0] == keyValue1
+        dataRes[1] == keyValue2
+
+    block:
+      let dataRes = db.multiGet(@[keyValue2, keyValue3]).expect("ok")
+      check:
+        dataRes.len() == 2
+        dataRes[0] == keyValue2
+        dataRes[1] == default(seq[byte])
+
+    block:
+      let dataRes = db.multiGet(@[keyValue1, keyValue2, keyValue3]).expect("ok")
+      check:
+        dataRes.len() == 3
+        dataRes[0] == keyValue1
+        dataRes[1] == keyValue2
+        dataRes[2] == default(seq[byte])
+
+    block:
+      let dataRes =
+        db.multiGet(@[keyValue1, keyValue2, keyValue3], sortedInput = true).expect("ok")
+      check:
+        dataRes.len() == 3
+        dataRes[0] == keyValue1
+        dataRes[1] == keyValue2
+        dataRes[2] == default(seq[byte])
+
+    block:
+      let
+        keys =
+          @[
+            keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
+            keyValue8, keyValue9,
+          ]
+        dataRes = db.multiGet(keys).expect("ok")
+      check:
+        dataRes.len() == 9
+        dataRes[0] == keyValue1
+        dataRes[1] == keyValue2
+        dataRes[2] == default(seq[byte])
+        dataRes[3] == default(seq[byte])
+        dataRes[4] == keyValue5
+        dataRes[5] == default(seq[byte])
+        dataRes[6] == keyValue7
+        dataRes[7] == default(seq[byte])
+        dataRes[8] == keyValue9

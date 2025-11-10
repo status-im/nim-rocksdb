@@ -221,11 +221,11 @@ proc getColFamilyHandle*(
   else:
     ok(cfHandle)
 
-proc isClosed*(db: RocksDbRef): bool {.inline.} =
+template isClosed*(db: RocksDbRef): bool =
   ## Returns `true` if the database has been closed and `false` otherwise.
   db.cPtr.isNil()
 
-proc cPtr*(db: RocksDbRef): RocksDbPtr {.inline.} =
+proc cPtr*(db: RocksDbRef): RocksDbPtr =
   ## Get the underlying database pointer.
   doAssert not db.isClosed()
   db.cPtr
@@ -281,6 +281,74 @@ proc get*(
     return dataRes
 
   dataRes.err(res.error())
+
+proc multiGet*(
+    db: RocksDbRef,
+    keys: openArray[seq[byte]],
+    sortedInput = false,
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[seq[seq[byte]]] =
+  ## Get a batch of values for the given set of keys.
+  ##
+  ## The multiGet API improves performance by batching operations
+  ## in the read path for greater efficiency. Currently, only the block based
+  ## table format with full filters are supported. Other table formats such
+  ## as plain table, block based table with block based filters and
+  ## partitioned indexes will still work, but will not get any performance
+  ## benefits.
+  ##
+  ## sortedInput - If true, it means the input keys are already sorted by key
+  ## order, so the MultiGet() API doesn't have to sort them again. If false,
+  ## the keys will be copied and sorted internally by the API - the input
+  ## array will not be modified.
+  assert keys.len() > 0
+
+  var
+    keysList = keys.mapIt(cast[cstring](it[0].addr))
+    keysListSizes = keys.mapIt(csize_t(it.len))
+    errors = newSeq[cstring](keys.len())
+
+  var values =
+    when NimMajor >= 2 and NimMinor >= 2:
+      newSeqUninit[ptr rocksdb_pinnableslice_t](keys.len)
+    else:
+      newSeq[ptr rocksdb_pinnableslice_t](keys.len)
+
+  rocksdb_batched_multi_get_cf(
+    db.cPtr,
+    db.readOpts.cPtr,
+    cfHandle.cPtr,
+    csize_t(keys.len),
+    cast[cstringArray](keysList[0].addr),
+    keysListSizes[0].addr,
+    values[0].addr,
+    cast[cstringArray](errors[0].addr),
+    sortedInput,
+  )
+
+  for e in errors:
+    if not e.isNil:
+      let res = err($(e))
+      rocksdb_free(e)
+      return res
+
+  var data = newSeq[seq[byte]](keys.len())
+  for i, v in values:
+    var vLen: csize_t
+    let src = rocksdb_pinnableslice_value(v, vLen.addr)
+
+    if vLen > 0:
+      var dest =
+        when NimMajor >= 2 and NimMinor >= 2:
+          newSeqUninit[byte](vLen.int)
+        else:
+          newSeq[byte](vLen.int)
+      copyMem(dest[0].addr, src, vLen)
+      data[i] = dest
+
+    rocksdb_pinnableslice_destroy(v)
+
+  ok(data)
 
 proc put*(
     db: RocksDbReadWriteRef, key, val: openArray[byte], cfHandle = db.defaultCfHandle
@@ -354,6 +422,69 @@ proc delete*(
     cfHandle.cPtr,
     cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
+    cast[cstringArray](errors.addr),
+  )
+  bailOnErrors(errors)
+
+  ok()
+
+proc deleteRange*(
+    db: RocksDbReadWriteRef,
+    startKey, endKey: openArray[byte],
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[void] =
+  ## Removes the database entries in the range [startKey, endKey), i.e. including
+  ## startKey and excluding endKey. It is not an error if no keys exist in the
+  ## range ["beginKey", "endKey").
+
+  var errors: cstring
+  rocksdb_delete_range_cf(
+    db.cPtr,
+    db.writeOpts.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](startKey.unsafeAddrOrNil()),
+    csize_t(startKey.len),
+    cast[cstring](endKey.unsafeAddrOrNil()),
+    csize_t(endKey.len),
+    cast[cstringArray](errors.addr),
+  )
+  bailOnErrors(errors)
+
+  ok()
+
+proc compactRange*(
+    db: RocksDbReadWriteRef,
+    startKey, endKey: openArray[byte],
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[void] =
+  ## Trigger range compaction for the given key range.
+
+  rocksdb_compact_range_cf(
+    db.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](startKey.unsafeAddrOrNil()),
+    csize_t(startKey.len),
+    cast[cstring](endKey.unsafeAddrOrNil()),
+    csize_t(endKey.len),
+  )
+
+  ok()
+
+proc suggestCompactRange*(
+    db: RocksDbReadWriteRef,
+    startKey, endKey: openArray[byte],
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[void] =
+  ## Suggest the range to compact.
+
+  var errors: cstring
+  rocksdb_suggest_compact_range_cf(
+    db.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](startKey.unsafeAddrOrNil()),
+    csize_t(startKey.len),
+    cast[cstring](endKey.unsafeAddrOrNil()),
+    csize_t(endKey.len),
     cast[cstringArray](errors.addr),
   )
   bailOnErrors(errors)

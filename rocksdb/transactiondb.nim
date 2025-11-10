@@ -102,7 +102,7 @@ proc getColFamilyHandle*(
   else:
     ok(cfHandle)
 
-proc isClosed*(db: TransactionDbRef): bool {.inline.} =
+template isClosed*(db: TransactionDbRef): bool =
   ## Returns `true` if the `TransactionDbRef` has been closed.
   db.cPtr.isNil()
 
