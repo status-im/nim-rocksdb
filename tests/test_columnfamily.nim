@@ -141,12 +141,8 @@ suite "ColFamily Tests":
       cf.keyExists(keyValue2).get() == true
       cf.keyExists(keyValue3).get() == false
 
-    var dataRes: seq[seq[byte]]
-    proc onData(data: openArray[seq[byte]]) =
-      dataRes = @data
-
+    let dataRes = cf.multiGet(@[keyValue1, keyValue2, keyValue3]).expect("ok")
     check:
-      cf.multiGet(@[keyValue1, keyValue2, keyValue3], onData).isOk()
       dataRes.len() == 3
       dataRes[0] == keyValue1
       dataRes[1] == keyValue2

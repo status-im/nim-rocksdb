@@ -285,10 +285,9 @@ proc get*(
 proc multiGet*(
     db: RocksDbRef,
     keys: openArray[seq[byte]],
-    onData: DataBatchProc,
     sortedInput = false,
     cfHandle = db.defaultCfHandle,
-): RocksDBResult[void] =
+): RocksDBResult[seq[seq[byte]]] =
   ## Get a batch of values for the given set of keys.
   ##
   ## The multiGet API improves performance by batching operations
@@ -307,7 +306,7 @@ proc multiGet*(
   var
     keysList = keys.mapIt(cast[cstring](it[0].addr))
     keysListSizes = keys.mapIt(csize_t(it.len))
-    errors: cstring
+    errors = newSeq[cstring](keys.len())
 
   var values =
     when NimMajor >= 2 and NimMinor >= 2:
@@ -323,30 +322,33 @@ proc multiGet*(
     cast[cstringArray](keysList[0].addr),
     keysListSizes[0].addr,
     values[0].addr,
-    cast[cstringArray](errors.addr),
+    cast[cstringArray](errors[0].addr),
     sortedInput,
   )
-  bailOnErrors(errors)
+
+  for e in errors:
+    if not e.isNil:
+      let res = err($(e))
+      rocksdb_free(e)
+      return res
 
   var data = newSeq[seq[byte]](keys.len())
-
   for i, v in values:
     var vLen: csize_t
     let src = rocksdb_pinnableslice_value(v, vLen.addr)
+
     if vLen > 0:
       var dest =
         when NimMajor >= 2 and NimMinor >= 2:
           newSeqUninit[byte](vLen.int)
         else:
           newSeq[byte](vLen.int)
-
       copyMem(dest[0].addr, src, vLen)
       data[i] = dest
+
     rocksdb_pinnableslice_destroy(v)
 
-  onData(data)
-
-  ok()
+  ok(data)
 
 proc put*(
     db: RocksDbReadWriteRef, key, val: openArray[byte], cfHandle = db.defaultCfHandle

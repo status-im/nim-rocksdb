@@ -17,5 +17,3 @@ type
   RocksDBResult*[T] = Result[T, string]
 
   DataProc* = proc(val: openArray[byte]) {.gcsafe, raises: [].}
-
-  DataBatchProc* = proc(val: openArray[seq[byte]]) {.gcsafe, raises: [].}
