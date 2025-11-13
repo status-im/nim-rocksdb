@@ -269,23 +269,24 @@ proc get*(
     db: RocksDbRef, key: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[seq[byte]] =
   ## Get the value for the given key from the specified column family.
-  ## If the value does not exist, an empty error will be returned in the result.
+  ## If the value does not exist, an error will be returned in the result.
   ## If the value does exist, the value will be returned in the result.
 
-  var dataRes: RocksDBResult[seq[byte]]
+  var value: seq[byte]
   proc onData(data: openArray[byte]) =
-    dataRes.ok(@data)
+    value = @data
 
-  let res = db.get(key, onData, cfHandle)
-  if res.isOk():
-    return dataRes
-
-  dataRes.err(res.error())
+  let valueExists = ?db.get(key, onData, cfHandle)
+  if valueExists:
+    ok(value)
+  else:
+    err("rocksdb: value does not exist")
 
 proc multiGet*(
     db: RocksDbRef,
     keys: openArray[seq[byte]],
     sortedInput = false,
+    errorOnValueNotExists = true,
     cfHandle = db.defaultCfHandle,
 ): RocksDBResult[seq[seq[byte]]] =
   ## Get a batch of values for the given set of keys.
@@ -304,11 +305,11 @@ proc multiGet*(
   assert keys.len() > 0
 
   var
-    keysList = keys.mapIt(cast[cstring](it[0].addr))
+    keysList = keys.mapIt(cast[cstring](it.unsafeAddrOrNil()))
     keysListSizes = keys.mapIt(csize_t(it.len))
     errors = newSeq[cstring](keys.len())
 
-  var values =
+  var valuesPtrs =
     when NimMajor >= 2 and NimMinor >= 2:
       newSeqUninit[ptr rocksdb_pinnableslice_t](keys.len)
     else:
@@ -321,7 +322,7 @@ proc multiGet*(
     csize_t(keys.len),
     cast[cstringArray](keysList[0].addr),
     keysListSizes[0].addr,
-    values[0].addr,
+    valuesPtrs[0].addr,
     cast[cstringArray](errors[0].addr),
     sortedInput,
   )
@@ -332,8 +333,14 @@ proc multiGet*(
       rocksdb_free(e)
       return res
 
-  var data = newSeq[seq[byte]](keys.len())
-  for i, v in values:
+  var values = newSeq[seq[byte]](keys.len())
+  for i, v in valuesPtrs:
+    if v.isNil():
+      if errorOnValueNotExists:
+        return err("rocksdb: value does not exist")
+      else:
+        continue
+
     var vLen: csize_t
     let src = rocksdb_pinnableslice_value(v, vLen.addr)
 
@@ -344,11 +351,11 @@ proc multiGet*(
         else:
           newSeq[byte](vLen.int)
       copyMem(dest[0].addr, src, vLen)
-      data[i] = dest
+      values[i] = dest
 
     rocksdb_pinnableslice_destroy(v)
 
-  ok(data)
+  ok(values)
 
 proc put*(
     db: RocksDbReadWriteRef, key, val: openArray[byte], cfHandle = db.defaultCfHandle

@@ -82,9 +82,10 @@ template multiGet*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite,
     keys: openArray[seq[byte]],
     sortedInput = false,
+    errorOnValueNotExists = true,
 ): RocksDBResult[seq[seq[byte]]] =
   ## Get a batch of values for the given set of keys.
-  cf.db.multiGet(keys, sortedInput, cf.handle)
+  cf.db.multiGet(keys, sortedInput, errorOnValueNotExists, cf.handle)
 
 template put*(cf: ColFamilyReadWrite, key, val: openArray[byte]): RocksDBResult[void] =
   ## Puts a value for the given key into the column family.
