@@ -584,7 +584,8 @@ suite "RocksDbRef Tests":
         dataRes[1] == keyValue2
 
     block:
-      let dataRes = db.multiGet(@[keyValue2, keyValue3], errorOnValueNotExists = false).expect("ok")
+      let dataRes =
+        db.multiGet(@[keyValue2, keyValue3], errorOnValueNotExists = false).expect("ok")
       check:
         dataRes.len() == 2
         dataRes[0] == keyValue2
@@ -593,14 +594,20 @@ suite "RocksDbRef Tests":
     block:
       let
         res1 = db.multiGet(@[keyValue1, keyValue2, keyValue3])
-        res2 = db.multiGet(@[keyValue1, keyValue2, keyValue3], errorOnValueNotExists = true)
+        res2 =
+          db.multiGet(@[keyValue1, keyValue2, keyValue3], errorOnValueNotExists = true)
       check:
         res1.isErr()
         res2.isErr()
 
     block:
-      let dataRes =
-        db.multiGet(@[keyValue1, keyValue2, keyValue3], sortedInput = true, errorOnValueNotExists = false).expect("ok")
+      let dataRes = db
+        .multiGet(
+          @[keyValue1, keyValue2, keyValue3],
+          sortedInput = true,
+          errorOnValueNotExists = false,
+        )
+        .expect("ok")
       check:
         dataRes.len() == 3
         dataRes[0] == keyValue1
