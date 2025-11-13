@@ -337,7 +337,7 @@ proc multiGet*(
   for i, v in valuesPtrs:
     if v.isNil():
       if errorOnValueNotExists:
-        return err("rocksdb: value does not exist")
+        return err("rocksdb: value does not exist at index " & $i)
       else:
         continue
 
