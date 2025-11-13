@@ -52,8 +52,7 @@ suite "RocksDbRef Tests":
     check r1.isOk() and r1.value == val
 
     var r2 = db.get(otherKey)
-    # there's no error string for missing keys
-    check r2.isOk() == false and r2.error.len == 0
+    check r2.isErr() and r2.error.len > 0
 
     var e1 = db.keyExists(key)
     check e1.isOk() and e1.value == true
@@ -109,8 +108,7 @@ suite "RocksDbRef Tests":
     check r1.isOk() and r1.value == val
 
     var r2 = db.get(otherKey)
-    # there's no error string for missing keys
-    check r2.isOk() == false and r2.error.len == 0
+    check r2.isErr() and r2.error.len > 0
 
     var e1 = db.keyExists(key, defaultCfHandle)
     check e1.isOk() and e1.value == true
@@ -586,23 +584,30 @@ suite "RocksDbRef Tests":
         dataRes[1] == keyValue2
 
     block:
-      let dataRes = db.multiGet(@[keyValue2, keyValue3]).expect("ok")
+      let dataRes =
+        db.multiGet(@[keyValue2, keyValue3], errorOnValueNotExists = false).expect("ok")
       check:
         dataRes.len() == 2
         dataRes[0] == keyValue2
         dataRes[1] == default(seq[byte])
 
     block:
-      let dataRes = db.multiGet(@[keyValue1, keyValue2, keyValue3]).expect("ok")
+      let
+        res1 = db.multiGet(@[keyValue1, keyValue2, keyValue3])
+        res2 =
+          db.multiGet(@[keyValue1, keyValue2, keyValue3], errorOnValueNotExists = true)
       check:
-        dataRes.len() == 3
-        dataRes[0] == keyValue1
-        dataRes[1] == keyValue2
-        dataRes[2] == default(seq[byte])
+        res1.isErr()
+        res2.isErr()
 
     block:
-      let dataRes =
-        db.multiGet(@[keyValue1, keyValue2, keyValue3], sortedInput = true).expect("ok")
+      let dataRes = db
+        .multiGet(
+          @[keyValue1, keyValue2, keyValue3],
+          sortedInput = true,
+          errorOnValueNotExists = false,
+        )
+        .expect("ok")
       check:
         dataRes.len() == 3
         dataRes[0] == keyValue1
@@ -616,7 +621,7 @@ suite "RocksDbRef Tests":
             keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
             keyValue8, keyValue9,
           ]
-        dataRes = db.multiGet(keys).expect("ok")
+        dataRes = db.multiGet(keys, errorOnValueNotExists = false).expect("ok")
       check:
         dataRes.len() == 9
         dataRes[0] == keyValue1

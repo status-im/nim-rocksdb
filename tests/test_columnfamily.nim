@@ -53,8 +53,7 @@ suite "ColFamily Tests":
     check r1.isOk() and r1.value == val
 
     var r2 = cf.get(otherKey)
-    # there's no error string for missing keys
-    check r2.isOk() == false and r2.error.len == 0
+    check r2.isErr() and r2.error.len > 0
 
     var e1 = cf.keyExists(key)
     check e1.isOk() and e1.value == true
@@ -132,14 +131,15 @@ suite "ColFamily Tests":
     let
       keyValue1 = @[100.byte]
       keyValue2 = @[300.byte]
-      keyValue3 = @[200.byte]
+      keyValue3 = default(seq[byte])
 
     check:
       cf.put(keyValue1, keyValue1).isOk()
       cf.put(keyValue2, keyValue2).isOk()
+      cf.put(keyValue3, keyValue3).isOk()
       cf.keyExists(keyValue1).get() == true
       cf.keyExists(keyValue2).get() == true
-      cf.keyExists(keyValue3).get() == false
+      cf.keyExists(keyValue3).get() == true
 
     let dataRes = cf.multiGet(@[keyValue1, keyValue2, keyValue3]).expect("ok")
     check:
