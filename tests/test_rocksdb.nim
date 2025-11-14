@@ -574,45 +574,38 @@ suite "RocksDbRef Tests":
       let dataRes = db.multiGet(@[keyValue1]).expect("ok")
       check:
         dataRes.len() == 1
-        dataRes[0] == keyValue1
+        dataRes[0] == Opt.some(keyValue1)
 
     block:
       let dataRes = db.multiGet(@[keyValue1, keyValue2]).expect("ok")
       check:
         dataRes.len() == 2
-        dataRes[0] == keyValue1
-        dataRes[1] == keyValue2
+        dataRes[0] == Opt.some(keyValue1)
+        dataRes[1] == Opt.some(keyValue2)
+
+    block:
+      let dataRes = db.multiGet(@[keyValue2, keyValue3]).expect("ok")
+      check:
+        dataRes.len() == 2
+        dataRes[0] == Opt.some(keyValue2)
+        dataRes[1] == Opt.none(seq[byte])
+
+    block:
+      let dataRes = db.multiGet(@[keyValue1, keyValue2, keyValue3]).expect("ok")
+      check:
+        dataRes.len() == 3
+        dataRes[0] == Opt.some(keyValue1)
+        dataRes[1] == Opt.some(keyValue2)
+        dataRes[2] == Opt.none(seq[byte])
 
     block:
       let dataRes =
-        db.multiGet(@[keyValue2, keyValue3], errorOnValueNotExists = false).expect("ok")
-      check:
-        dataRes.len() == 2
-        dataRes[0] == keyValue2
-        dataRes[1] == default(seq[byte])
-
-    block:
-      let
-        res1 = db.multiGet(@[keyValue1, keyValue2, keyValue3])
-        res2 =
-          db.multiGet(@[keyValue1, keyValue2, keyValue3], errorOnValueNotExists = true)
-      check:
-        res1.isErr()
-        res2.isErr()
-
-    block:
-      let dataRes = db
-        .multiGet(
-          @[keyValue1, keyValue2, keyValue3],
-          sortedInput = true,
-          errorOnValueNotExists = false,
-        )
-        .expect("ok")
+        db.multiGet(@[keyValue1, keyValue2, keyValue3], sortedInput = true).expect("ok")
       check:
         dataRes.len() == 3
-        dataRes[0] == keyValue1
-        dataRes[1] == keyValue2
-        dataRes[2] == default(seq[byte])
+        dataRes[0] == Opt.some(keyValue1)
+        dataRes[1] == Opt.some(keyValue2)
+        dataRes[2] == Opt.none(seq[byte])
 
     block:
       let
@@ -621,15 +614,15 @@ suite "RocksDbRef Tests":
             keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
             keyValue8, keyValue9,
           ]
-        dataRes = db.multiGet(keys, errorOnValueNotExists = false).expect("ok")
+        dataRes = db.multiGet(keys).expect("ok")
       check:
         dataRes.len() == 9
-        dataRes[0] == keyValue1
-        dataRes[1] == keyValue2
-        dataRes[2] == default(seq[byte])
-        dataRes[3] == default(seq[byte])
-        dataRes[4] == keyValue5
-        dataRes[5] == default(seq[byte])
-        dataRes[6] == keyValue7
-        dataRes[7] == default(seq[byte])
-        dataRes[8] == keyValue9
+        dataRes[0] == Opt.some(keyValue1)
+        dataRes[1] == Opt.some(keyValue2)
+        dataRes[2] == Opt.none(seq[byte])
+        dataRes[3] == Opt.none(seq[byte])
+        dataRes[4] == Opt.some(keyValue5)
+        dataRes[5] == Opt.none(seq[byte])
+        dataRes[6] == Opt.some(keyValue7)
+        dataRes[7] == Opt.none(seq[byte])
+        dataRes[8] == Opt.some(keyValue9)

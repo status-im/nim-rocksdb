@@ -286,9 +286,8 @@ proc multiGet*(
     db: RocksDbRef,
     keys: openArray[seq[byte]],
     sortedInput = false,
-    errorOnValueNotExists = true,
     cfHandle = db.defaultCfHandle,
-): RocksDBResult[seq[seq[byte]]] =
+): RocksDBResult[seq[Opt[seq[byte]]]] =
   ## Get a batch of values for the given set of keys.
   ##
   ## The multiGet API improves performance by batching operations
@@ -333,26 +332,26 @@ proc multiGet*(
       rocksdb_free(e)
       return res
 
-  var values = newSeq[seq[byte]](keys.len())
+  var values = newSeq[Opt[seq[byte]]](keys.len())
   for i, v in valuesPtrs:
     if v.isNil():
-      if errorOnValueNotExists:
-        return err("rocksdb: value does not exist at index " & $i)
-      else:
-        continue
+      values[i] = Opt.none(seq[byte])
+      continue
 
-    var vLen: csize_t
+    var vLen: csize_t = 0
     let src = rocksdb_pinnableslice_value(v, vLen.addr)
+    if vLen == 0:
+      values[i] = Opt.some(default(seq[byte]))
+      continue
 
-    if vLen > 0:
-      var dest =
-        when NimMajor >= 2 and NimMinor >= 2:
-          newSeqUninit[byte](vLen.int)
-        else:
-          newSeq[byte](vLen.int)
-      copyMem(dest[0].addr, src, vLen)
-      values[i] = dest
-
+    assert vLen > 0
+    var dest =
+      when NimMajor >= 2 and NimMinor >= 2:
+        newSeqUninit[byte](vLen.int)
+      else:
+        newSeq[byte](vLen.int)
+    copyMem(dest[0].addr, src, vLen)
+    values[i] = Opt.some(dest)
     rocksdb_pinnableslice_destroy(v)
 
   ok(values)

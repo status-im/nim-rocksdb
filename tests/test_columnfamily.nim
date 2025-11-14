@@ -144,6 +144,6 @@ suite "ColFamily Tests":
     let dataRes = cf.multiGet(@[keyValue1, keyValue2, keyValue3]).expect("ok")
     check:
       dataRes.len() == 3
-      dataRes[0] == keyValue1
-      dataRes[1] == keyValue2
-      dataRes[2] == default(seq[byte])
+      dataRes[0] == Opt.some(keyValue1)
+      dataRes[1] == Opt.some(keyValue2)
+      dataRes[2] == Opt.some(default(seq[byte]))
