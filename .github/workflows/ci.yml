@@ -91,6 +91,16 @@ jobs:
           echo "ncpu=$ncpu" >> $GITHUB_ENV
           echo "MAKE_CMD=${MAKE_CMD}" >> $GITHUB_ENV
 
+      - name: Install DLLs dependencies (Windows)
+        if: >
+          runner.os == 'Windows' &&
+          steps.windows-dlls-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p external
+          curl -L "https://nim-lang.org/download/windeps.zip" -o external/windeps.zip
+          7z x -y external/windeps.zip -oexternal/dlls-${{ matrix.target.cpu }}
+          echo "${{ github.workspace }}/external/dlls-${{ matrix.target.cpu }}" >> $GITHUB_PATH
+
       - name: Build Nim and Nimble
         run: |
           curl -O -L -s -S https://raw.githubusercontent.com/status-im/nimbus-build-system/master/scripts/build_nim.sh
