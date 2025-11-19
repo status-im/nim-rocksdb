@@ -688,11 +688,10 @@ suite "RocksDbRef Tests":
 
     block:
       let
-        keys =
-          [
-            keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
-            keyValue8, keyValue9,
-          ]
+        keys = [
+          keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
+          keyValue8, keyValue9,
+        ]
         dataRes = db.multiGet(keys).expect("ok")
       check:
         dataRes.len() == 9

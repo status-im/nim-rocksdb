@@ -383,7 +383,7 @@ proc multiGet*[N](
     keysListSizes {.noinit.}: array[N, csize_t]
     errors: array[N, cstring]
 
-  for i in 0..keys.high:
+  for i in 0 .. keys.high:
     keysList[i] = cast[cstring](keys[i].unsafeAddrOrNil())
     keysListSizes[i] = csize_t(keys[i].len)
 
