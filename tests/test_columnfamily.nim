@@ -131,7 +131,7 @@ suite "ColFamily Tests":
     let
       keyValue1 = @[100.byte]
       keyValue2 = @[300.byte]
-      keyValue3 = emptyValue
+      keyValue3 = default(seq[byte])
 
     check:
       cf.put(keyValue1, keyValue1).isOk()
@@ -146,7 +146,7 @@ suite "ColFamily Tests":
       dataRes.len() == 3
       dataRes[0] == Opt.some(keyValue1)
       dataRes[1] == Opt.some(keyValue2)
-      dataRes[2] == Opt.some(emptyValue)
+      dataRes[2] == Opt.some(default(seq[byte]))
 
   test "Test multiget - array":
     let cf = db.getColFamily(CF_OTHER).get()
@@ -154,7 +154,7 @@ suite "ColFamily Tests":
     let
       keyValue1 = @[100.byte]
       keyValue2 = @[300.byte]
-      keyValue3 = emptyValue
+      keyValue3 = default(seq[byte])
 
     check:
       cf.put(keyValue1, keyValue1).isOk()
@@ -169,4 +169,4 @@ suite "ColFamily Tests":
       dataRes.len() == 3
       dataRes[0] == Opt.some(keyValue1)
       dataRes[1] == Opt.some(keyValue2)
-      dataRes[2] == Opt.some(emptyValue)
+      dataRes[2] == Opt.some(default(seq[byte]))
