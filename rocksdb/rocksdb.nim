@@ -363,6 +363,7 @@ proc multiGet*[N](
     cfHandle = db.defaultCfHandle,
 ): RocksDBResult[array[N, Opt[seq[byte]]]] =
   ## Get a batch of values for the given set of keys.
+  ## Use this variant when the number of keys are known at compile time.
   ##
   ## The multiGet API improves performance by batching operations
   ## in the read path for greater efficiency. Currently, only the block based
