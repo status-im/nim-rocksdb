@@ -86,6 +86,14 @@ template multiGet*(
   ## Get a batch of values for the given set of keys.
   cf.db.multiGet(keys, sortedInput, cf.handle)
 
+template multiGet*[N](
+    cf: ColFamilyReadOnly | ColFamilyReadWrite,
+    keys: array[N, seq[byte]],
+    sortedInput = false,
+): RocksDBResult[array[N, Opt[seq[byte]]]] =
+  ## Get a batch of values for the given set of keys.
+  cf.db.multiGet(keys, sortedInput, cf.handle)
+
 template put*(cf: ColFamilyReadWrite, key, val: openArray[byte]): RocksDBResult[void] =
   ## Puts a value for the given key into the column family.
   cf.db.put(key, val, cf.handle)

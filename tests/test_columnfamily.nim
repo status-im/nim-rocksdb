@@ -147,3 +147,26 @@ suite "ColFamily Tests":
       dataRes[0] == Opt.some(keyValue1)
       dataRes[1] == Opt.some(keyValue2)
       dataRes[2] == Opt.some(default(seq[byte]))
+
+  test "Test multiget - array":
+    let cf = db.getColFamily(CF_OTHER).get()
+
+    let
+      keyValue1 = @[100.byte]
+      keyValue2 = @[300.byte]
+      keyValue3 = default(seq[byte])
+
+    check:
+      cf.put(keyValue1, keyValue1).isOk()
+      cf.put(keyValue2, keyValue2).isOk()
+      cf.put(keyValue3, keyValue3).isOk()
+      cf.keyExists(keyValue1).get() == true
+      cf.keyExists(keyValue2).get() == true
+      cf.keyExists(keyValue3).get() == true
+
+    let dataRes = cf.multiGet([keyValue1, keyValue2, keyValue3]).expect("ok")
+    check:
+      dataRes.len() == 3
+      dataRes[0] == Opt.some(keyValue1)
+      dataRes[1] == Opt.some(keyValue2)
+      dataRes[2] == Opt.some(default(seq[byte]))

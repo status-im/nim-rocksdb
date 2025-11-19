@@ -356,6 +356,79 @@ proc multiGet*(
 
   ok(values)
 
+proc multiGet*[N](
+    db: RocksDbRef,
+    keys: array[N, seq[byte]],
+    sortedInput = false,
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[array[N, Opt[seq[byte]]]] =
+  ## Get a batch of values for the given set of keys.
+  ##
+  ## The multiGet API improves performance by batching operations
+  ## in the read path for greater efficiency. Currently, only the block based
+  ## table format with full filters are supported. Other table formats such
+  ## as plain table, block based table with block based filters and
+  ## partitioned indexes will still work, but will not get any performance
+  ## benefits.
+  ##
+  ## sortedInput - If true, it means the input keys are already sorted by key
+  ## order, so the MultiGet() API doesn't have to sort them again. If false,
+  ## the keys will be copied and sorted internally by the API - the input
+  ## array will not be modified.
+  assert keys.len() > 0
+
+  var
+    keysList {.noinit.}: array[N, cstring]
+    keysListSizes {.noinit.}: array[N, csize_t]
+    errors: array[N, cstring]
+
+  for i in 0..keys.high:
+    keysList[i] = cast[cstring](keys[i].unsafeAddrOrNil())
+    keysListSizes[i] = csize_t(keys[i].len)
+
+  var valuesPtrs: array[N, ptr rocksdb_pinnableslice_t]
+  rocksdb_batched_multi_get_cf(
+    db.cPtr,
+    db.readOpts.cPtr,
+    cfHandle.cPtr,
+    csize_t(keys.len),
+    cast[cstringArray](keysList[0].addr),
+    keysListSizes[0].addr,
+    valuesPtrs[0].addr,
+    cast[cstringArray](errors[0].addr),
+    sortedInput,
+  )
+
+  for e in errors:
+    if not e.isNil:
+      let res = err($(e))
+      rocksdb_free(e)
+      return res
+
+  var values {.noinit.}: array[N, Opt[seq[byte]]]
+  for i, v in valuesPtrs:
+    if v.isNil():
+      values[i] = Opt.none(seq[byte])
+      continue
+
+    var vLen: csize_t = 0
+    let src = rocksdb_pinnableslice_value(v, vLen.addr)
+    if vLen == 0:
+      values[i] = Opt.some(default(seq[byte]))
+      continue
+
+    assert vLen > 0
+    var dest =
+      when NimMajor >= 2 and NimMinor >= 2:
+        newSeq[byte](vLen.int)
+      else:
+        newSeq[byte](vLen.int)
+    copyMem(dest[0].addr, src, vLen)
+    values[i] = Opt.some(dest)
+    rocksdb_pinnableslice_destroy(v)
+
+  ok(values)
+
 proc put*(
     db: RocksDbReadWriteRef, key, val: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[void] =
