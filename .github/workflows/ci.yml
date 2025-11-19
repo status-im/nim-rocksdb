@@ -16,31 +16,7 @@ jobs:
         with:
           version: 0.6.1
   build:
-    uses: status-im/nimbus-common-workflow/.github/workflows/common.yml@main
-    strategy:
-      fail-fast: false
-      matrix:
-        target:
-          - os: linux
-            cpu: amd64
-            platform: x64
-            builder: ubuntu-latest
-          - os: linux-gcc-14 # This is to use ubuntu 24 and install gcc 14. Should be removed when ubuntu-latest is 26.04
-            cpu: amd64
-            platform: x64
-            builder: ubuntu-24.04
-          - os: windows
-            cpu: amd64
-            platform: x64
-            builder: windows-latest
-          - os: macos
-            cpu: amd64
-            platform: x64
-            builder: macos-15-intel
-          - os: macos
-            cpu: arm64
-            platform: arm64
-            builder: macos-latest
+    uses: ./.github/workflows/common.yml
     with:
       nim-versions: '["version-2-0", "version-2-2", "devel"]'
       test-command: |
