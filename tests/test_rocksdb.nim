@@ -685,3 +685,22 @@ suite "RocksDbRef Tests":
         dataRes[0] == Opt.some(keyValue1)
         dataRes[1] == Opt.some(keyValue2)
         dataRes[2] == Opt.none(seq[byte])
+
+    block:
+      let
+        keys = [
+          keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
+          keyValue8, keyValue9,
+        ]
+        dataRes = db.multiGet(keys).expect("ok")
+      check:
+        dataRes.len() == 9
+        dataRes[0] == Opt.some(keyValue1)
+        dataRes[1] == Opt.some(keyValue2)
+        dataRes[2] == Opt.none(seq[byte])
+        dataRes[3] == Opt.none(seq[byte])
+        dataRes[4] == Opt.some(keyValue5)
+        dataRes[5] == Opt.none(seq[byte])
+        dataRes[6] == Opt.some(keyValue7)
+        dataRes[7] == Opt.none(seq[byte])
+        dataRes[8] == Opt.some(keyValue9)
