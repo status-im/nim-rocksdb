@@ -27,6 +27,8 @@ task format, "Format nim code using nph":
 task test, "Run tests":
   build()
   when defined(windows):
-    exec "nim c -d:nimDebugDlOpen -r --threads:on tests/test_all.nim"
+    exec "nim c -d:nimDebugDlOpen -r --mm:refc --threads:on tests/test_all.nim"
+    exec "nim c -d:nimDebugDlOpen -r --mm:orc --threads:on tests/test_all.nim"
   else:
-    exec "nim c -r --threads:on tests/test_all.nim"
+    exec "nim c -r --mm:refc --threads:on tests/test_all.nim"
+    exec "nim c -r --mm:orc --threads:on tests/test_all.nim"
