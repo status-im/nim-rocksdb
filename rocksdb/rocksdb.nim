@@ -38,6 +38,8 @@ export
   writebatch, writebatchwi, snapshot.SnapshotRef, snapshot.isClosed,
   snapshot.getSequenceNumber
 
+const emptyValue*: seq[byte] = @[]
+
 type
   RocksDbPtr* = ptr rocksdb_t
   IngestExternalFilesOptionsPtr = ptr rocksdb_ingestexternalfileoptions_t
@@ -341,7 +343,7 @@ proc multiGet*(
     var vLen: csize_t = 0
     let src = rocksdb_pinnableslice_value(v, vLen.addr)
     if vLen == 0:
-      values[i] = Opt.some(default(seq[byte]))
+      values[i] = Opt.some(emptyValue)
       continue
 
     assert vLen > 0
@@ -415,7 +417,7 @@ proc multiGet*[N](
     var vLen: csize_t = 0
     let src = rocksdb_pinnableslice_value(v, vLen.addr)
     if vLen == 0:
-      values[i] = Opt.some(default(seq[byte]))
+      values[i] = Opt.some(emptyValue)
       continue
 
     assert vLen > 0
