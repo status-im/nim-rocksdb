@@ -408,7 +408,7 @@ proc multiGet*[N](
       rocksdb_free(e)
       return res
 
-  var values {.noinit.}: array[N, Opt[seq[byte]]]
+  var values: array[N, Opt[seq[byte]]]
   for i, v in valuesPtrs:
     if v.isNil():
       values[i] = Opt.none(seq[byte])
