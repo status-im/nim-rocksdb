@@ -626,3 +626,70 @@ suite "RocksDbRef Tests":
         dataRes[6] == Opt.some(keyValue7)
         dataRes[7] == Opt.none(seq[byte])
         dataRes[8] == Opt.some(keyValue9)
+
+  test "Test multiget iterator":
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+      keyValue4 = @[4.byte]
+      keyValue5 = @[5.byte]
+      keyValue6 = @[6.byte]
+      keyValue7 = @[7.byte]
+      keyValue8 = @[8.byte]
+      keyValue9 = @[9.byte]
+
+    check:
+      db.put(keyValue1, keyValue1).isOk()
+      db.put(keyValue2, keyValue2).isOk()
+      db.put(keyValue5, keyValue5).isOk()
+      db.put(keyValue7, keyValue7).isOk()
+      db.put(keyValue9, keyValue9).isOk()
+      db.keyExists(keyValue1).get() == true
+      db.keyExists(keyValue2).get() == true
+      db.keyExists(keyValue3).get() == false
+
+    let
+      keys =
+        @[
+          keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
+          keyValue8, keyValue9,
+        ]
+
+      expected = [
+        Opt.some(keyValue1),
+        Opt.some(keyValue2),
+        Opt.none(seq[byte]),
+        Opt.none(seq[byte]),
+        Opt.some(keyValue5),
+        Opt.none(seq[byte]),
+        Opt.some(keyValue7),
+        Opt.none(seq[byte]),
+        Opt.some(keyValue9),
+      ]
+
+      iter = db.multiGetIter(keys).expect("ok")
+
+    block:
+      var i = 0
+      for slice in iter.items(autoClose = false):
+        check slice.map(
+          proc(s: auto): auto =
+            s.data()
+        ) == expected[i]
+        inc i
+      check:
+        i == 9
+        not iter.isClosed()
+
+    block:
+      var i = 0
+      for slice in iter:
+        check slice.map(
+          proc(s: auto): auto =
+            s.data()
+        ) == expected[i]
+        inc i
+      check:
+        i == 9
+        iter.isClosed()

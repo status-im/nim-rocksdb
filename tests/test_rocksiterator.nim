@@ -223,28 +223,50 @@ suite "RocksIteratorRef Tests":
     check res.isOk()
     var iter = res.get()
 
-    var expected = byte(1)
-    for k, v in iter:
-      check:
-        k == @[expected]
-        v == @[expected]
-      inc expected
-    check iter.isClosed()
+    block:
+      var expected = byte(1)
+      for k, v in iter.pairs(autoClose = false):
+        check:
+          k == @[expected]
+          v == @[expected]
+        inc expected
+      check not iter.isClosed()
+
+    block:
+      var expected = byte(1)
+      for k, v in iter:
+        check:
+          k == @[expected]
+          v == @[expected]
+        inc expected
+      check iter.isClosed()
 
   test "Test pairs slice iterator":
     let res = db.openIterator(cfHandle = defaultCfHandle)
     check res.isOk()
     var iter = res.get()
 
-    var expected = byte(1)
-    for k, v in iter.slicePairs():
-      check:
-        k.data() == @[expected]
-        v.data() == @[expected]
-        k.data(asOpenArray = true) == [expected]
-        v.data(asOpenArray = true) == @[expected]
-      inc expected
-    check iter.isClosed()
+    block:
+      var expected = byte(1)
+      for k, v in iter.slicePairs(autoClose = false):
+        check:
+          k.data() == @[expected]
+          v.data() == @[expected]
+          k.data(asOpenArray = true) == [expected]
+          v.data(asOpenArray = true) == @[expected]
+        inc expected
+      check not iter.isClosed()
+
+    block:
+      var expected = byte(1)
+      for k, v in iter.slicePairs():
+        check:
+          k.data() == @[expected]
+          v.data() == @[expected]
+          k.data(asOpenArray = true) == [expected]
+          v.data(asOpenArray = true) == @[expected]
+        inc expected
+      check iter.isClosed()
 
   test "Test close":
     let res = db.openIterator()

@@ -23,6 +23,49 @@ type
     cPtr: RocksIteratorPtr
     readOpts: ReadOptionsRef
 
+  PinnableSlicePtr = ptr rocksdb_pinnableslice_t
+
+  MultiGetIteratorRef* = ref seq[PinnableSlicePtr]
+
+func init*(T: type MultiGetIteratorRef, len: int): T =
+  doAssert len > 0
+  let iter = new T
+  iter[] =
+    when NimMajor >= 2 and NimMinor >= 2:
+      newSeqUninit[PinnableSlicePtr](len)
+    else:
+      newSeq[PinnableSlicePtr](len)
+  iter
+
+func isClosed*(iter: MultiGetIteratorRef): bool =
+  iter[].len() == 0
+
+func close*(iter: MultiGetIteratorRef) =
+  for pSlice in iter[]:
+    rocksdb_pinnableslice_destroy(pSlice)
+  iter[].setLen(0)
+
+iterator items*(
+    iter: MultiGetIteratorRef, autoClose: static bool = true
+): Opt[RocksDbSlice] =
+  ## Iterates over the values in the iterator returning an optional slice
+  ## for each value. The iterator is automatically closed after the iteration
+  ## unless autoClose is set to false.
+  doAssert not iter.isClosed()
+
+  when autoClose:
+    defer:
+      iter.close()
+
+  for pSlice in iter[]:
+    if pSlice.isNil():
+      yield Opt.none(RocksDbSlice)
+      continue
+
+    var len: csize_t = 0
+    let data = rocksdb_pinnableslice_value(pSlice, len.addr)
+    yield Opt.some(RocksDbSlice.init(data, len))
+
 proc newRocksIterator*(
     cPtr: RocksIteratorPtr, readOpts: ReadOptionsRef
 ): RocksIteratorRef =
