@@ -179,6 +179,21 @@ suite "RocksIteratorRef Tests":
       iter.key() == empty
       iter.value() == val1
 
+  test "Empty value":
+    let key = @[0x1.byte, 0x2, 0x3]
+    let empty: seq[byte] = @[]
+    check db.put(key, empty).isOk()
+
+    let iter = db.openIterator().get()
+    defer:
+      iter.close()
+
+    iter.seekToKey(key)
+    check:
+      iter.isValid()
+      iter.key() == key
+      iter.value() == empty
+
   test "Empty column family":
     let res = db.openIterator(cfHandle = emptyCfHandle)
     check res.isOk()

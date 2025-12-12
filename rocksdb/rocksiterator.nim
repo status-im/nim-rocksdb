@@ -73,47 +73,47 @@ proc prev*(iter: RocksIteratorRef) =
   ## Seeks to the previous entry in the column family.
   rocksdb_iter_prev(iter.cPtr)
 
-proc key*(iter: RocksIteratorRef, onData: DataProc) =
-  ## Returns the current key using the provided `onData` callback.
-
+template keyOpenArray(iter: RocksIteratorRef): openArray[byte] =
   var kLen: csize_t
   let kData = rocksdb_iter_key(iter.cPtr, kLen.addr)
 
+  const empty = []
   if kData.isNil or kLen == 0:
-    onData([])
+    empty.toOpenArrayByte(0, -1)
   else:
-    onData(kData.toOpenArrayByte(0, kLen.int - 1))
+    kData.toOpenArrayByte(0, kLen.int - 1)
 
-proc key*(iter: RocksIteratorRef): seq[byte] =
-  ## Returns the current key.
+proc key*(iter: RocksIteratorRef, onData: DataProc) =
+  ## Returns the current key using the provided `onData` callback.
+  onData(iter.keyOpenArray())
 
-  var res: seq[byte]
-  proc onData(data: openArray[byte]) =
-    res = @data
+template key*(iter: RocksIteratorRef, asOpenArray: static bool = false): auto =
+  ## Returns the current value.
+  when asOpenArray:
+    iter.keyOpenArray()
+  else:
+    @(iter.keyOpenArray())
 
-  iter.key(onData)
-  res
-
-proc value*(iter: RocksIteratorRef, onData: DataProc) =
-  ## Returns the current value using the provided `onData` callback.
-
+template valueOpenArray(iter: RocksIteratorRef): openArray[byte] =
   var vLen: csize_t
   let vData = rocksdb_iter_value(iter.cPtr, vLen.addr)
 
+  const empty = []
   if vData.isNil or vLen == 0:
-    onData([])
+    empty.toOpenArrayByte(0, -1)
   else:
-    onData(vData.toOpenArrayByte(0, vLen.int - 1))
+    vData.toOpenArrayByte(0, vLen.int - 1)
 
-proc value*(iter: RocksIteratorRef): seq[byte] =
+proc value*(iter: RocksIteratorRef, onData: DataProc) =
+  ## Returns the current value using the provided `onData` callback.
+  onData(iter.valueOpenArray())
+
+template value*(iter: RocksIteratorRef, asOpenArray: static bool = false): auto =
   ## Returns the current value.
-
-  var res: seq[byte]
-  proc onData(data: openArray[byte]) =
-    res = @data
-
-  iter.value(onData)
-  res
+  when asOpenArray:
+    iter.valueOpenArray()
+  else:
+    @(iter.valueOpenArray())
 
 proc status*(iter: RocksIteratorRef): RocksDBResult[void] =
   ## Returns the status of the iterator.
@@ -133,27 +133,15 @@ proc close*(iter: RocksIteratorRef) =
 
     autoCloseNonNil(iter.readOpts)
 
-iterator pairs*(iter: RocksIteratorRef): tuple[key: seq[byte], value: seq[byte]] =
+iterator pairs*(iter: RocksIteratorRef, autoClose = true): tuple[key: seq[byte], value: seq[byte]] =
   ## Iterates over the key value pairs in the column family yielding them in
   ## the form of a tuple. The iterator is automatically closed after the
   ## iteration.
   doAssert not iter.isClosed()
   defer:
-    iter.close()
+    if autoClose: iter.close()
 
   iter.seekToFirst()
   while iter.isValid():
-    var
-      key: seq[byte]
-      value: seq[byte]
-    iter.key(
-      proc(data: openArray[byte]) =
-        key = @data
-    )
-    iter.value(
-      proc(data: openArray[byte]) =
-        value = @data
-    )
-
+    yield (iter.key(), iter.value())
     iter.next()
-    yield (key, value)
