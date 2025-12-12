@@ -133,7 +133,9 @@ proc close*(iter: RocksIteratorRef) =
 
     autoCloseNonNil(iter.readOpts)
 
-iterator pairs*(iter: RocksIteratorRef, autoClose: static bool = true): tuple[key: seq[byte], value: seq[byte]] =
+iterator pairs*(
+    iter: RocksIteratorRef, autoClose: static bool = true
+): tuple[key: seq[byte], value: seq[byte]] =
   ## Iterates over the key value pairs in the column family yielding them in
   ## the form of a tuple. The iterator is automatically closed after the
   ## iteration.
@@ -161,7 +163,9 @@ func value(iter: RocksIteratorRef, T: type RocksDbSlice): RocksDbSlice =
   let data = rocksdb_iter_value(iter.cPtr, len.addr)
   RocksDbSlice.init(data, len)
 
-iterator pairs*(iter: RocksIteratorRef, T: type RocksDbSlice, autoClose: static bool = true): tuple[key: T, value: T] =
+iterator pairs*(
+    iter: RocksIteratorRef, T: type RocksDbSlice, autoClose: static bool = true
+): tuple[key: T, value: T] =
   ## Iterates over the key value pairs in the column family yielding them in
   ## the form of a tuple. The iterator is automatically closed after the
   ## iteration.

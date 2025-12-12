@@ -12,10 +12,9 @@
 
 {.push raises: [].}
 
-type
-  RocksDbSlice* = object
-    data: cstring
-    len: csize_t
+type RocksDbSlice* = object
+  data: cstring
+  len: csize_t
 
 template init*(T: type RocksDbSlice, data: cstring, len: csize_t) =
   RocksDbSlice(data: data, len: len)
