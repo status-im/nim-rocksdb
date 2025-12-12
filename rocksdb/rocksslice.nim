@@ -16,19 +16,22 @@ type RocksDbSlice* = object
   data: cstring
   len: csize_t
 
-template init*(T: type RocksDbSlice, data: cstring, len: csize_t) =
-  RocksDbSlice(data: data, len: len)
+func init*(T: type RocksDbSlice, data: cstring, len: csize_t): T =
+  T(data: data, len: len)
 
-template dataOpenArray(slice: RocksDbSlice): openArray[byte] =
+template toOpenArray*(data: cstring, len: csize_t): openArray[byte] =
   const empty = []
-  if slice.data.isNil or slice.len == 0:
+  if data.isNil or len == 0:
     empty.toOpenArrayByte(0, -1)
   else:
-    slice.data.toOpenArrayByte(0, slice.len.int - 1)
+    data.toOpenArrayByte(0, len.int - 1)
+
+template toOpenArray*(slice: RocksDbSlice): openArray[byte] =
+  toOpenArray(slice.data, slice.len)
 
 template data*(slice: RocksDbSlice, asOpenArray: static bool = false): auto =
   ## Returns the data.
   when asOpenArray:
-    iter.keyOpenArray()
+    slice.toOpenArray()
   else:
-    @(iter.keyOpenArray())
+    @(slice.toOpenArray())

@@ -76,12 +76,7 @@ proc prev*(iter: RocksIteratorRef) =
 template keyOpenArray(iter: RocksIteratorRef): openArray[byte] =
   var kLen: csize_t
   let kData = rocksdb_iter_key(iter.cPtr, kLen.addr)
-
-  const empty = []
-  if kData.isNil or kLen == 0:
-    empty.toOpenArrayByte(0, -1)
-  else:
-    kData.toOpenArrayByte(0, kLen.int - 1)
+  toOpenArray(kData, kLen)
 
 proc key*(iter: RocksIteratorRef, onData: DataProc) =
   ## Returns the current key using the provided `onData` callback.
@@ -97,12 +92,7 @@ template key*(iter: RocksIteratorRef, asOpenArray: static bool = false): auto =
 template valueOpenArray(iter: RocksIteratorRef): openArray[byte] =
   var vLen: csize_t
   let vData = rocksdb_iter_value(iter.cPtr, vLen.addr)
-
-  const empty = []
-  if vData.isNil or vLen == 0:
-    empty.toOpenArrayByte(0, -1)
-  else:
-    vData.toOpenArrayByte(0, vLen.int - 1)
+  toOpenArray(vData, vLen)
 
 proc value*(iter: RocksIteratorRef, onData: DataProc) =
   ## Returns the current value using the provided `onData` callback.
@@ -137,8 +127,8 @@ iterator pairs*(
     iter: RocksIteratorRef, autoClose: static bool = true
 ): tuple[key: seq[byte], value: seq[byte]] =
   ## Iterates over the key value pairs in the column family yielding them in
-  ## the form of a tuple. The iterator is automatically closed after the
-  ## iteration.
+  ## the form of a tuple of seq[byte]. The iterator is automatically closed
+  ## after the iteration unless autoClose is set to false.
   doAssert not iter.isClosed()
   when autoClose:
     defer:
@@ -150,25 +140,24 @@ iterator pairs*(
     yield (iter.key(), iter.value())
     iter.next()
 
-func key(iter: RocksIteratorRef, T: type RocksDbSlice): RocksDbSlice =
+func keySlice(iter: RocksIteratorRef): RocksDbSlice =
   ## Returns the current key as a slice.
-  var len: csize_t
-  let data = rocksdb_iter_key(iter.cPtr, len.addr)
+  var kLen: csize_t
+  let kData = rocksdb_iter_key(iter.cPtr, kLen.addr)
+  RocksDbSlice.init(kData, kLen)
 
-  return RocksDbSlice.init(data, len)
-
-func value(iter: RocksIteratorRef, T: type RocksDbSlice): RocksDbSlice =
+func valueSlice(iter: RocksIteratorRef): RocksDbSlice =
   ## Returns the current value as a slice.
-  var len: csize_t
-  let data = rocksdb_iter_value(iter.cPtr, len.addr)
-  RocksDbSlice.init(data, len)
+  var vLen: csize_t
+  let vData = rocksdb_iter_value(iter.cPtr, vLen.addr)
+  RocksDbSlice.init(vData, vLen)
 
-iterator pairs*(
-    iter: RocksIteratorRef, T: type RocksDbSlice, autoClose: static bool = true
-): tuple[key: T, value: T] =
+iterator slicePairs*(
+    iter: RocksIteratorRef, autoClose: static bool = true
+): tuple[key: RocksDbSlice, value: RocksDbSlice] =
   ## Iterates over the key value pairs in the column family yielding them in
-  ## the form of a tuple. The iterator is automatically closed after the
-  ## iteration.
+  ## the form of a tuple of slices. The iterator is automatically closed
+  ## after the iteration unless autoClose is set to false.
   doAssert not iter.isClosed()
   when autoClose:
     defer:
@@ -177,5 +166,5 @@ iterator pairs*(
   iter.seekToFirst()
 
   while iter.isValid():
-    yield (iter.key(T), iter.value(T))
+    yield (iter.keySlice(), iter.valueSlice())
     iter.next()

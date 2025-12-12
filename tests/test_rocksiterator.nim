@@ -237,10 +237,12 @@ suite "RocksIteratorRef Tests":
     var iter = res.get()
 
     var expected = byte(1)
-    for k, v in iter.pairs(RocksDbSlice):
+    for k, v in iter.slicePairs():
       check:
         k.data() == @[expected]
         v.data() == @[expected]
+        k.data(asOpenArray = true) == [expected]
+        v.data(asOpenArray = true) == @[expected]
       inc expected
     check iter.isClosed()
 
