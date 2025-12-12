@@ -1,5 +1,5 @@
 # Nim-RocksDB
-# Copyright 2024 Status Research & Development GmbH
+# Copyright 2024-2025 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -228,6 +228,19 @@ suite "RocksIteratorRef Tests":
       check:
         k == @[expected]
         v == @[expected]
+      inc expected
+    check iter.isClosed()
+
+  test "Test pairs slice iterator":
+    let res = db.openIterator(cfHandle = defaultCfHandle)
+    check res.isOk()
+    var iter = res.get()
+
+    var expected = byte(1)
+    for k, v in iter.pairs(RocksDbSlice):
+      check:
+        k.data() == @[expected]
+        v.data() == @[expected]
       inc expected
     check iter.isClosed()
 

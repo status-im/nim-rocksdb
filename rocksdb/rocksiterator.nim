@@ -1,5 +1,5 @@
 # Nim-RocksDB
-# Copyright 2024 Status Research & Development GmbH
+# Copyright 2024-2025 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -12,9 +12,9 @@
 
 {.push raises: [].}
 
-import ./lib/librocksdb, ./internal/utils, ./options/readopts, ./rocksresult
+import ./lib/librocksdb, ./internal/utils, ./options/readopts, ./rocksresult, rocksslice
 
-export rocksresult
+export rocksresult, rocksslice
 
 type
   RocksIteratorPtr* = ptr rocksdb_iterator_t
@@ -88,7 +88,7 @@ proc key*(iter: RocksIteratorRef, onData: DataProc) =
   onData(iter.keyOpenArray())
 
 template key*(iter: RocksIteratorRef, asOpenArray: static bool = false): auto =
-  ## Returns the current value.
+  ## Returns the current key.
   when asOpenArray:
     iter.keyOpenArray()
   else:
@@ -133,15 +133,45 @@ proc close*(iter: RocksIteratorRef) =
 
     autoCloseNonNil(iter.readOpts)
 
-iterator pairs*(iter: RocksIteratorRef, autoClose = true): tuple[key: seq[byte], value: seq[byte]] =
+iterator pairs*(iter: RocksIteratorRef, autoClose: static bool = true): tuple[key: seq[byte], value: seq[byte]] =
   ## Iterates over the key value pairs in the column family yielding them in
   ## the form of a tuple. The iterator is automatically closed after the
   ## iteration.
   doAssert not iter.isClosed()
-  defer:
-    if autoClose: iter.close()
+  when autoClose:
+    defer:
+      iter.close()
 
   iter.seekToFirst()
+
   while iter.isValid():
     yield (iter.key(), iter.value())
+    iter.next()
+
+func key(iter: RocksIteratorRef, T: type RocksDbSlice): RocksDbSlice =
+  ## Returns the current key as a slice.
+  var len: csize_t
+  let data = rocksdb_iter_key(iter.cPtr, len.addr)
+
+  return RocksDbSlice.init(data, len)
+
+func value(iter: RocksIteratorRef, T: type RocksDbSlice): RocksDbSlice =
+  ## Returns the current value as a slice.
+  var len: csize_t
+  let data = rocksdb_iter_value(iter.cPtr, len.addr)
+  RocksDbSlice.init(data, len)
+
+iterator pairs*(iter: RocksIteratorRef, T: type RocksDbSlice, autoClose: static bool = true): tuple[key: T, value: T] =
+  ## Iterates over the key value pairs in the column family yielding them in
+  ## the form of a tuple. The iterator is automatically closed after the
+  ## iteration.
+  doAssert not iter.isClosed()
+  when autoClose:
+    defer:
+      iter.close()
+
+  iter.seekToFirst()
+
+  while iter.isValid():
+    yield (iter.key(T), iter.value(T))
     iter.next()
