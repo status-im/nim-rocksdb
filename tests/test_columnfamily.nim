@@ -147,3 +147,48 @@ suite "ColFamily Tests":
       dataRes[0] == Opt.some(keyValue1)
       dataRes[1] == Opt.some(keyValue2)
       dataRes[2] == Opt.some(default(seq[byte]))
+
+  test "Test multiget iterator":
+    let cf = db.getColFamily(CF_OTHER).get()
+
+    let
+      keyValue1 = @[100.byte]
+      keyValue2 = @[300.byte]
+      keyValue3 = default(seq[byte])
+
+    check:
+      cf.put(keyValue1, keyValue1).isOk()
+      cf.put(keyValue2, keyValue2).isOk()
+      cf.put(keyValue3, keyValue3).isOk()
+      cf.keyExists(keyValue1).get() == true
+      cf.keyExists(keyValue2).get() == true
+      cf.keyExists(keyValue3).get() == true
+
+    let
+      expected =
+        [Opt.some(keyValue1), Opt.some(keyValue2), Opt.some(default(seq[byte]))]
+      iter = cf.multiGetIter(@[keyValue1, keyValue2, keyValue3]).expect("ok")
+
+    block:
+      var i = 0
+      for slice in iter.items(autoClose = false):
+        check slice.map(
+          proc(s: auto): auto =
+            s.data()
+        ) == expected[i]
+        inc i
+      check:
+        i == 3
+        not iter.isClosed()
+
+    block:
+      var i = 0
+      for slice in iter.items(autoClose = true):
+        check slice.map(
+          proc(s: auto): auto =
+            s.data()
+        ) == expected[i]
+        inc i
+      check:
+        i == 3
+        iter.isClosed()

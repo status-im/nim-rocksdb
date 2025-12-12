@@ -78,6 +78,14 @@ template get*(
   ## Gets the value of the given key from the column family.
   cf.db.get(key, cf.handle)
 
+template multiGetIter*(
+    cf: ColFamilyReadOnly | ColFamilyReadWrite,
+    keys: openArray[seq[byte]],
+    sortedInput = false,
+): RocksDBResult[MultiGetIteratorRef] =
+  ## Get a batch of values for the given set of keys.
+  cf.db.multiGetIter(keys, sortedInput, cf.handle)
+
 template multiGet*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite,
     keys: openArray[seq[byte]],

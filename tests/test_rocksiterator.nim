@@ -1,5 +1,5 @@
 # Nim-RocksDB
-# Copyright 2024 Status Research & Development GmbH
+# Copyright 2024-2025 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -179,6 +179,21 @@ suite "RocksIteratorRef Tests":
       iter.key() == empty
       iter.value() == val1
 
+  test "Empty value":
+    let key = @[0x1.byte, 0x2, 0x3]
+    let empty: seq[byte] = @[]
+    check db.put(key, empty).isOk()
+
+    let iter = db.openIterator().get()
+    defer:
+      iter.close()
+
+    iter.seekToKey(key)
+    check:
+      iter.isValid()
+      iter.key() == key
+      iter.value() == empty
+
   test "Empty column family":
     let res = db.openIterator(cfHandle = emptyCfHandle)
     check res.isOk()
@@ -208,13 +223,50 @@ suite "RocksIteratorRef Tests":
     check res.isOk()
     var iter = res.get()
 
-    var expected = byte(1)
-    for k, v in iter:
-      check:
-        k == @[expected]
-        v == @[expected]
-      inc expected
-    check iter.isClosed()
+    block:
+      var expected = byte(1)
+      for k, v in iter.pairs(autoClose = false):
+        check:
+          k == @[expected]
+          v == @[expected]
+        inc expected
+      check not iter.isClosed()
+
+    block:
+      var expected = byte(1)
+      for k, v in iter:
+        check:
+          k == @[expected]
+          v == @[expected]
+        inc expected
+      check iter.isClosed()
+
+  test "Test pairs slice iterator":
+    let res = db.openIterator(cfHandle = defaultCfHandle)
+    check res.isOk()
+    var iter = res.get()
+
+    block:
+      var expected = byte(1)
+      for k, v in iter.slicePairs(autoClose = false):
+        check:
+          k.data() == @[expected]
+          v.data() == @[expected]
+          k.data(asOpenArray = true) == [expected]
+          v.data(asOpenArray = true) == @[expected]
+        inc expected
+      check not iter.isClosed()
+
+    block:
+      var expected = byte(1)
+      for k, v in iter.slicePairs():
+        check:
+          k.data() == @[expected]
+          v.data() == @[expected]
+          k.data(asOpenArray = true) == [expected]
+          v.data(asOpenArray = true) == @[expected]
+        inc expected
+      check iter.isClosed()
 
   test "Test close":
     let res = db.openIterator()

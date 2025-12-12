@@ -1,5 +1,5 @@
 # Nim-RocksDB
-# Copyright 2024 Status Research & Development GmbH
+# Copyright 2024-2025 Status Research & Development GmbH
 # Licensed under either of
 #
 #  * Apache License, version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
@@ -12,9 +12,9 @@
 
 {.push raises: [].}
 
-import ./lib/librocksdb, ./internal/utils, ./options/readopts, ./rocksresult
+import ./lib/librocksdb, ./internal/utils, ./options/readopts, ./rocksresult, rocksslice
 
-export rocksresult
+export rocksresult, rocksslice
 
 type
   RocksIteratorPtr* = ptr rocksdb_iterator_t
@@ -22,6 +22,49 @@ type
   RocksIteratorRef* = ref object
     cPtr: RocksIteratorPtr
     readOpts: ReadOptionsRef
+
+  PinnableSlicePtr = ptr rocksdb_pinnableslice_t
+
+  MultiGetIteratorRef* = ref seq[PinnableSlicePtr]
+
+func init*(T: type MultiGetIteratorRef, len: int): T =
+  doAssert len > 0
+  let iter = new T
+  iter[] =
+    when NimMajor >= 2 and NimMinor >= 2:
+      newSeqUninit[PinnableSlicePtr](len)
+    else:
+      newSeq[PinnableSlicePtr](len)
+  iter
+
+func isClosed*(iter: MultiGetIteratorRef): bool =
+  iter[].len() == 0
+
+func close*(iter: MultiGetIteratorRef) =
+  for pSlice in iter[]:
+    rocksdb_pinnableslice_destroy(pSlice)
+  iter[].setLen(0)
+
+iterator items*(
+    iter: MultiGetIteratorRef, autoClose: static bool = true
+): Opt[RocksDbSlice] =
+  ## Iterates over the values in the iterator returning an optional slice
+  ## for each value. The iterator is automatically closed after the iteration
+  ## unless autoClose is set to false.
+  doAssert not iter.isClosed()
+
+  when autoClose:
+    defer:
+      iter.close()
+
+  for pSlice in iter[]:
+    if pSlice.isNil():
+      yield Opt.none(RocksDbSlice)
+      continue
+
+    var len: csize_t = 0
+    let data = rocksdb_pinnableslice_value(pSlice, len.addr)
+    yield Opt.some(RocksDbSlice.init(data, len))
 
 proc newRocksIterator*(
     cPtr: RocksIteratorPtr, readOpts: ReadOptionsRef
@@ -73,47 +116,37 @@ proc prev*(iter: RocksIteratorRef) =
   ## Seeks to the previous entry in the column family.
   rocksdb_iter_prev(iter.cPtr)
 
-proc key*(iter: RocksIteratorRef, onData: DataProc) =
-  ## Returns the current key using the provided `onData` callback.
-
+template keyOpenArray(iter: RocksIteratorRef): openArray[byte] =
   var kLen: csize_t
   let kData = rocksdb_iter_key(iter.cPtr, kLen.addr)
+  toOpenArray(kData, kLen)
 
-  if kData.isNil or kLen == 0:
-    onData([])
-  else:
-    onData(kData.toOpenArrayByte(0, kLen.int - 1))
+proc key*(iter: RocksIteratorRef, onData: DataProc) =
+  ## Returns the current key using the provided `onData` callback.
+  onData(iter.keyOpenArray())
 
-proc key*(iter: RocksIteratorRef): seq[byte] =
+template key*(iter: RocksIteratorRef, asOpenArray: static bool = false): auto =
   ## Returns the current key.
+  when asOpenArray:
+    iter.keyOpenArray()
+  else:
+    @(iter.keyOpenArray())
 
-  var res: seq[byte]
-  proc onData(data: openArray[byte]) =
-    res = @data
-
-  iter.key(onData)
-  res
+template valueOpenArray(iter: RocksIteratorRef): openArray[byte] =
+  var vLen: csize_t
+  let vData = rocksdb_iter_value(iter.cPtr, vLen.addr)
+  toOpenArray(vData, vLen)
 
 proc value*(iter: RocksIteratorRef, onData: DataProc) =
   ## Returns the current value using the provided `onData` callback.
+  onData(iter.valueOpenArray())
 
-  var vLen: csize_t
-  let vData = rocksdb_iter_value(iter.cPtr, vLen.addr)
-
-  if vData.isNil or vLen == 0:
-    onData([])
-  else:
-    onData(vData.toOpenArrayByte(0, vLen.int - 1))
-
-proc value*(iter: RocksIteratorRef): seq[byte] =
+template value*(iter: RocksIteratorRef, asOpenArray: static bool = false): auto =
   ## Returns the current value.
-
-  var res: seq[byte]
-  proc onData(data: openArray[byte]) =
-    res = @data
-
-  iter.value(onData)
-  res
+  when asOpenArray:
+    iter.valueOpenArray()
+  else:
+    @(iter.valueOpenArray())
 
 proc status*(iter: RocksIteratorRef): RocksDBResult[void] =
   ## Returns the status of the iterator.
@@ -133,27 +166,48 @@ proc close*(iter: RocksIteratorRef) =
 
     autoCloseNonNil(iter.readOpts)
 
-iterator pairs*(iter: RocksIteratorRef): tuple[key: seq[byte], value: seq[byte]] =
+iterator pairs*(
+    iter: RocksIteratorRef, autoClose: static bool = true
+): tuple[key: seq[byte], value: seq[byte]] =
   ## Iterates over the key value pairs in the column family yielding them in
-  ## the form of a tuple. The iterator is automatically closed after the
-  ## iteration.
+  ## the form of a tuple of seq[byte]. The iterator is automatically closed
+  ## after the iteration unless autoClose is set to false.
   doAssert not iter.isClosed()
-  defer:
-    iter.close()
+  when autoClose:
+    defer:
+      iter.close()
 
   iter.seekToFirst()
-  while iter.isValid():
-    var
-      key: seq[byte]
-      value: seq[byte]
-    iter.key(
-      proc(data: openArray[byte]) =
-        key = @data
-    )
-    iter.value(
-      proc(data: openArray[byte]) =
-        value = @data
-    )
 
+  while iter.isValid():
+    yield (iter.key(), iter.value())
     iter.next()
-    yield (key, value)
+
+func keySlice(iter: RocksIteratorRef): RocksDbSlice =
+  ## Returns the current key as a slice.
+  var kLen: csize_t
+  let kData = rocksdb_iter_key(iter.cPtr, kLen.addr)
+  RocksDbSlice.init(kData, kLen)
+
+func valueSlice(iter: RocksIteratorRef): RocksDbSlice =
+  ## Returns the current value as a slice.
+  var vLen: csize_t
+  let vData = rocksdb_iter_value(iter.cPtr, vLen.addr)
+  RocksDbSlice.init(vData, vLen)
+
+iterator slicePairs*(
+    iter: RocksIteratorRef, autoClose: static bool = true
+): tuple[key: RocksDbSlice, value: RocksDbSlice] =
+  ## Iterates over the key value pairs in the column family yielding them in
+  ## the form of a tuple of slices. The iterator is automatically closed
+  ## after the iteration unless autoClose is set to false.
+  doAssert not iter.isClosed()
+  when autoClose:
+    defer:
+      iter.close()
+
+  iter.seekToFirst()
+
+  while iter.isValid():
+    yield (iter.keySlice(), iter.valueSlice())
+    iter.next()
