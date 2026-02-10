@@ -66,9 +66,12 @@ type
   rocksdb_writebatch_wi_t* = object
   rocksdb_writeoptions_t* = object
   rocksdb_universal_compaction_options_t* = object
+  rocksdb_livefile_t* = object
   rocksdb_livefiles_t* = object
   rocksdb_column_family_handle_t* = object
   rocksdb_column_family_metadata_t* = object
+  rocksdb_import_column_family_options_t* = object
+  rocksdb_export_import_files_metadata_t* = object
   rocksdb_level_metadata_t* = object
   rocksdb_sst_file_metadata_t* = object
   rocksdb_envoptions_t* = object
