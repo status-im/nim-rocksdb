@@ -358,6 +358,13 @@ proc rocksdb_checkpoint_create*(
   errptr: cstringArray,
 ) {.cdecl.}
 
+proc rocksdb_checkpoint_export_column_family*(
+  checkpoint: ptr rocksdb_checkpoint_t,
+  column_family: ptr rocksdb_column_family_handle_t,
+  export_dir: cstring,
+  errptr: cstringArray,
+): ptr rocksdb_export_import_files_metadata_t {.cdecl.}
+
 proc rocksdb_checkpoint_object_destroy*(checkpoint: ptr rocksdb_checkpoint_t) {.cdecl.}
 proc rocksdb_open_and_trim_history*(
   options: ptr rocksdb_options_t,
@@ -441,6 +448,15 @@ proc rocksdb_create_column_families*(
 proc rocksdb_create_column_families_destroy*(
   list: ptr ptr rocksdb_column_family_handle_t
 ) {.cdecl.}
+
+proc rocksdb_create_column_family_with_import*(
+  db: ptr rocksdb_t,
+  column_family_options: ptr rocksdb_options_t,
+  column_family_name: cstring,
+  import_options: ptr rocksdb_import_column_family_options_t,
+  metadata: ptr rocksdb_export_import_files_metadata_t,
+  errptr: cstringArray,
+): ptr rocksdb_column_family_handle_t {.cdecl.}
 
 proc rocksdb_create_column_family_with_ttl*(
   db: ptr rocksdb_t,
@@ -1653,6 +1669,10 @@ proc rocksdb_options_set_write_buffer_manager*(
   opt: ptr rocksdb_options_t, wbm: ptr rocksdb_write_buffer_manager_t
 ) {.cdecl.}
 
+proc rocksdb_options_set_sst_file_manager*(
+  opt: ptr rocksdb_options_t, sfm: ptr rocksdb_sst_file_manager_t
+) {.cdecl.}
+
 ##  Flush job info
 
 proc rocksdb_flushjobinfo_cf_name*(
@@ -1680,6 +1700,14 @@ proc rocksdb_flushjobinfo_smallest_seqno*(
 ): uint64 {.cdecl.}
 
 proc rocksdb_reset_status*(status_ptr: ptr rocksdb_status_ptr_t) {.cdecl.}
+proc rocksdb_flushjobinfo_flush_reason*(
+  info: ptr rocksdb_flushjobinfo_t
+): uint32 {.cdecl.}
+
+proc rocksdb_status_ptr_get_error*(
+  status: ptr rocksdb_status_ptr_t, errptr: cstringArray
+) {.cdecl.}
+
 ##  Compaction job info
 
 proc rocksdb_compactionjobinfo_status*(
@@ -1771,6 +1799,10 @@ proc rocksdb_subcompactionjobinfo_base_input_level*(
 proc rocksdb_subcompactionjobinfo_output_level*(
   a1: ptr rocksdb_subcompactionjobinfo_t
 ): cint {.cdecl.}
+
+proc rocksdb_subcompactionjobinfo_compaction_reason*(
+  info: ptr rocksdb_subcompactionjobinfo_t
+): uint32 {.cdecl.}
 
 ##  External file ingestion info
 
@@ -2812,6 +2844,14 @@ proc rocksdb_options_add_compact_on_deletion_collector_factory_del_ratio*(
   deletion_ratio: cdouble,
 ) {.cdecl.}
 
+proc rocksdb_options_add_compact_on_deletion_collector_factory_min_file_size*(
+  a1: ptr rocksdb_options_t,
+  window_size: csize_t,
+  num_dels_trigger: csize_t,
+  deletion_ratio: cdouble,
+  min_file_size: uint64,
+) {.cdecl.}
+
 proc rocksdb_options_set_manual_wal_flush*(
   opt: ptr rocksdb_options_t, a2: uint8
 ) {.cdecl.}
@@ -3802,12 +3842,17 @@ proc rocksdb_fifo_compaction_options_destroy*(
   fifo_opts: ptr rocksdb_fifo_compaction_options_t
 ) {.cdecl.}
 
+proc rocksdb_livefiles_create*(): ptr rocksdb_livefiles_t {.cdecl.}
 proc rocksdb_livefiles_count*(a1: ptr rocksdb_livefiles_t): cint {.cdecl.}
 proc rocksdb_livefiles_column_family_name*(
   a1: ptr rocksdb_livefiles_t, index: cint
 ): cstring {.cdecl.}
 
 proc rocksdb_livefiles_name*(
+  a1: ptr rocksdb_livefiles_t, index: cint
+): cstring {.cdecl.}
+
+proc rocksdb_livefiles_directory*(
   a1: ptr rocksdb_livefiles_t, index: cint
 ): cstring {.cdecl.}
 
@@ -3824,6 +3869,14 @@ proc rocksdb_livefiles_largestkey*(
   a1: ptr rocksdb_livefiles_t, index: cint, size: ptr csize_t
 ): cstring {.cdecl.}
 
+proc rocksdb_livefiles_smallest_seqno*(
+  a1: ptr rocksdb_livefiles_t, index: cint
+): uint64 {.cdecl.}
+
+proc rocksdb_livefiles_largest_seqno*(
+  a1: ptr rocksdb_livefiles_t, index: cint
+): uint64 {.cdecl.}
+
 proc rocksdb_livefiles_entries*(
   a1: ptr rocksdb_livefiles_t, index: cint
 ): uint64 {.cdecl.}
@@ -3833,6 +3886,41 @@ proc rocksdb_livefiles_deletions*(
 ): uint64 {.cdecl.}
 
 proc rocksdb_livefiles_destroy*(a1: ptr rocksdb_livefiles_t) {.cdecl.}
+proc rocksdb_livefile_create*(): ptr rocksdb_livefile_t {.cdecl.}
+proc rocksdb_livefile_set_column_family_name*(
+  a1: ptr rocksdb_livefile_t, a2: cstring
+) {.cdecl.}
+
+proc rocksdb_livefile_set_level*(a1: ptr rocksdb_livefile_t, a2: cint) {.cdecl.}
+proc rocksdb_livefile_set_name*(a1: ptr rocksdb_livefile_t, a2: cstring) {.cdecl.}
+proc rocksdb_livefile_set_directory*(a1: ptr rocksdb_livefile_t, a2: cstring) {.cdecl.}
+proc rocksdb_livefile_set_size*(a1: ptr rocksdb_livefile_t, a2: csize_t) {.cdecl.}
+proc rocksdb_livefile_set_smallest_key*(
+  a1: ptr rocksdb_livefile_t, a2: cstring, a3: csize_t
+) {.cdecl.}
+
+proc rocksdb_livefile_set_largest_key*(
+  a1: ptr rocksdb_livefile_t, a2: cstring, a3: csize_t
+) {.cdecl.}
+
+proc rocksdb_livefile_set_smallest_seqno*(
+  a1: ptr rocksdb_livefile_t, a2: uint64
+) {.cdecl.}
+
+proc rocksdb_livefile_set_largest_seqno*(
+  a1: ptr rocksdb_livefile_t, a2: uint64
+) {.cdecl.}
+
+proc rocksdb_livefile_set_num_entries*(a1: ptr rocksdb_livefile_t, a2: uint64) {.cdecl.}
+proc rocksdb_livefile_set_num_deletions*(
+  a1: ptr rocksdb_livefile_t, a2: uint64
+) {.cdecl.}
+
+proc rocksdb_livefile_destroy*(a1: ptr rocksdb_livefile_t) {.cdecl.}
+proc rocksdb_livefiles_add*(
+  a1: ptr rocksdb_livefiles_t, a2: ptr rocksdb_livefile_t
+) {.cdecl.}
+
 ##  Utility Helpers
 
 proc rocksdb_get_options_from_string*(
@@ -3866,6 +3954,42 @@ proc rocksdb_delete_file_in_range_cf*(
 proc rocksdb_get_column_family_metadata*(
   db: ptr rocksdb_t
 ): ptr rocksdb_column_family_metadata_t {.cdecl.}
+
+proc rocksdb_import_column_family_options_create*(): ptr rocksdb_import_column_family_options_t {.
+  cdecl
+.}
+
+proc rocksdb_import_column_family_options_set_move_files*(
+  a1: ptr rocksdb_import_column_family_options_t, a2: uint8
+) {.cdecl.}
+
+proc rocksdb_import_column_family_options_destroy*(
+  a1: ptr rocksdb_import_column_family_options_t
+) {.cdecl.}
+
+proc rocksdb_export_import_files_metadata_create*(): ptr rocksdb_export_import_files_metadata_t {.
+  cdecl
+.}
+
+proc rocksdb_export_import_files_metadata_get_db_comparator_name*(
+  a1: ptr rocksdb_export_import_files_metadata_t
+): cstring {.cdecl.}
+
+proc rocksdb_export_import_files_metadata_set_db_comparator_name*(
+  a1: ptr rocksdb_export_import_files_metadata_t, a2: cstring
+) {.cdecl.}
+
+proc rocksdb_export_import_files_metadata_get_files*(
+  a1: ptr rocksdb_export_import_files_metadata_t
+): ptr rocksdb_livefiles_t {.cdecl.}
+
+proc rocksdb_export_import_files_metadata_set_files*(
+  a1: ptr rocksdb_export_import_files_metadata_t, a2: ptr rocksdb_livefiles_t
+) {.cdecl.}
+
+proc rocksdb_export_import_files_metadata_destroy*(
+  a1: ptr rocksdb_export_import_files_metadata_t
+) {.cdecl.}
 
 ##
 ##  Returns the rocksdb_column_family_metadata_t of the specified
