@@ -16,7 +16,7 @@ func createLock*(): Lock =
   initLock(lock)
   lock
 
-func deleteLock*(lock: Lock) =
+func deleteLock*(lock: var Lock) =
   deinitLock(lock)
 
 template autoCloseNonNil*(closable: typed) =
