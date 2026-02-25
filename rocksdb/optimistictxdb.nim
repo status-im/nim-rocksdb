@@ -118,8 +118,11 @@ proc beginTransaction*(
 proc close*(db: OptimisticTxDbRef) =
   ## Close the `OptimisticTxDbRef`.
 
+  var cleanupLock = false
+
   withLock(db.lock):
     if not db.isClosed():
+      cleanupLock = true
       # the column families should be closed before the database
       db.cfTable.close()
 
@@ -129,3 +132,6 @@ proc close*(db: OptimisticTxDbRef) =
       # opts should be closed after the database is closed
       autoCloseNonNil(db.dbOpts)
       autoCloseAll(db.cfDescriptors)
+
+  if cleanupLock:
+    deleteLock(db.lock)

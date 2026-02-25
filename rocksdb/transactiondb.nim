@@ -161,8 +161,12 @@ proc releaseSnapshot*(db: TransactionDbRef, snapshot: SnapshotRef) =
 proc close*(db: TransactionDbRef) =
   ## Close the `TransactionDbRef`.
 
+  var cleanupLock = false
+
   withLock(db.lock):
     if not db.isClosed():
+      cleanupLock = true
+
       # the column families should be closed before the database
       db.cfTable.close()
 
@@ -173,3 +177,6 @@ proc close*(db: TransactionDbRef) =
       autoCloseNonNil(db.dbOpts)
       autoCloseNonNil(db.txDbOpts)
       autoCloseAll(db.cfDescriptors)
+
+  if cleanupLock:
+    deleteLock(db.lock)

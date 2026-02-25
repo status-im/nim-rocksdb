@@ -11,10 +11,13 @@
 
 import std/locks, ../lib/librocksdb
 
-proc createLock*(): Lock =
+func createLock*(): Lock =
   var lock = Lock()
   initLock(lock)
   lock
+
+func deleteLock*(lock: Lock) =
+  deinitLock(lock)
 
 template autoCloseNonNil*(closable: typed) =
   if not closable.isNil and closable.autoClose:

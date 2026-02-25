@@ -655,8 +655,12 @@ proc close*(db: RocksDbRef) =
   ## safely be called multple times. `close` is a no-op if the `RocksDbRef`
   ## is already closed.
 
+  var cleanupLock = false
+
   withLock(db.lock):
     if not db.isClosed():
+      cleanupLock = true
+
       # the column families should be closed before the database
       db.cfTable.close()
 
@@ -677,3 +681,6 @@ proc close*(db: RocksDbRef) =
 
         rocksdb_flushoptions_destroy(db.flushOptsPtr)
         db.flushOptsPtr = nil
+
+  if cleanupLock:
+    deleteLock(db.lock)
