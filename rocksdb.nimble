@@ -9,7 +9,7 @@ mode = ScriptMode.Verbose
 installDirs = @["build"]
 
 ### Dependencies
-requires "nim >= 2.0", "results", "tempfile", "unittest2"
+requires "nim >= 2.0", "results", "tempfile", "unittest2 >= 0.2.5"
 
 template build() =
   when defined(windows):
@@ -21,7 +21,7 @@ before install:
   build()
 
 task format, "Format nim code using nph":
-  exec "nimble install nph"
+  exec "nimble install nph@0.7.0"
   exec "nph ."
 
 task test, "Run tests":

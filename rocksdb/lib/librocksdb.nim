@@ -22,8 +22,6 @@
 
 ## This file exposes the low-level C API of RocksDB
 
-import std/[os, strutils]
-
 {.push raises: [].}
 
 type
@@ -112,6 +110,8 @@ else:
 when defined(rocksdb_dynamic_linking) or defined(windows):
   {.push importc, cdecl, dynlib: librocksdb.}
 else:
+  import std/[os, strutils]
+
   const
     topLevelPath = currentSourcePath.parentDir().parentDir().parentDir()
     libsDir = topLevelPath.replace('\\', '/') & "/build"
