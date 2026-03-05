@@ -219,10 +219,9 @@ suite "TransactionDbRef Tests":
       dbPath = mkdtemp() / "autoclose-enabled"
       dbOpts = defaultDbOptions(autoClose = true)
       txDbOpts = defaultTransactionDbOptions(autoClose = true)
-      columnFamilies =
-        @[
-          initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = true))
-        ]
+      columnFamilies = @[
+        initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = true))
+      ]
       db = openTransactionDb(dbPath, dbOpts, txDbOpts, columnFamilies).get()
 
     check:
@@ -244,12 +243,9 @@ suite "TransactionDbRef Tests":
       dbPath = mkdtemp() / "autoclose-disabled"
       dbOpts = defaultDbOptions(autoClose = false)
       txDbOpts = defaultTransactionDbOptions(autoClose = false)
-      columnFamilies =
-        @[
-          initColFamilyDescriptor(
-            CF_DEFAULT, defaultColFamilyOptions(autoClose = false)
-          )
-        ]
+      columnFamilies = @[
+        initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = false))
+      ]
       db = openTransactionDb(dbPath, dbOpts, txDbOpts, columnFamilies).get()
 
     check:

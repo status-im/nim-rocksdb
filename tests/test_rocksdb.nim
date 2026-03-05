@@ -373,10 +373,9 @@ suite "RocksDbRef Tests":
       dbOpts = defaultDbOptions(autoClose = true)
       readOpts = defaultReadOptions(autoClose = true)
       writeOpts = defaultWriteOptions(autoClose = true)
-      columnFamilies =
-        @[
-          initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = true))
-        ]
+      columnFamilies = @[
+        initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = true))
+      ]
       db = openRocksDb(dbPath, dbOpts, readOpts, writeOpts, columnFamilies).get()
 
     check:
@@ -401,12 +400,9 @@ suite "RocksDbRef Tests":
       dbOpts = defaultDbOptions(autoClose = false)
       readOpts = defaultReadOptions(autoClose = false)
       writeOpts = defaultWriteOptions(autoClose = false)
-      columnFamilies =
-        @[
-          initColFamilyDescriptor(
-            CF_DEFAULT, defaultColFamilyOptions(autoClose = false)
-          )
-        ]
+      columnFamilies = @[
+        initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = false))
+      ]
       db = openRocksDb(dbPath, dbOpts, readOpts, writeOpts, columnFamilies).get()
 
     check:
@@ -609,11 +605,10 @@ suite "RocksDbRef Tests":
 
     block:
       let
-        keys =
-          @[
-            keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
-            keyValue8, keyValue9,
-          ]
+        keys = @[
+          keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
+          keyValue8, keyValue9,
+        ]
         dataRes = db.multiGet(keys).expect("ok")
       check:
         dataRes.len() == 9
@@ -650,11 +645,10 @@ suite "RocksDbRef Tests":
       db.keyExists(keyValue3).get() == false
 
     let
-      keys =
-        @[
-          keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
-          keyValue8, keyValue9,
-        ]
+      keys = @[
+        keyValue1, keyValue2, keyValue3, keyValue4, keyValue5, keyValue6, keyValue7,
+        keyValue8, keyValue9,
+      ]
 
       expected = [
         Opt.some(keyValue1),

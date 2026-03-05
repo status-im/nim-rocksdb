@@ -206,10 +206,9 @@ suite "OptimisticTxDbRef Tests":
     let
       dbPath = mkdtemp() / "autoclose-enabled"
       dbOpts = defaultDbOptions(autoClose = true)
-      columnFamilies =
-        @[
-          initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = true))
-        ]
+      columnFamilies = @[
+        initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = true))
+      ]
       db = openOptimisticTxDb(dbPath, dbOpts, columnFamilies).get()
 
     check:
@@ -228,12 +227,9 @@ suite "OptimisticTxDbRef Tests":
     let
       dbPath = mkdtemp() / "autoclose-disabled"
       dbOpts = defaultDbOptions(autoClose = false)
-      columnFamilies =
-        @[
-          initColFamilyDescriptor(
-            CF_DEFAULT, defaultColFamilyOptions(autoClose = false)
-          )
-        ]
+      columnFamilies = @[
+        initColFamilyDescriptor(CF_DEFAULT, defaultColFamilyOptions(autoClose = false))
+      ]
       db = openOptimisticTxDb(dbPath, dbOpts, columnFamilies).get()
 
     check:
