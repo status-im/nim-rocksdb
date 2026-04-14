@@ -99,6 +99,12 @@ type
   rocksdb_writestallinfo_t* = object
   rocksdb_writestallcondition_t* = object
   rocksdb_memtableinfo_t* = object
+  rocksdb_compactionservice_scheduleresponse_t* = object
+  rocksdb_compactionservice_jobinfo_t* = object
+  rocksdb_compactionservice_t* = object
+  rocksdb_compaction_service_options_override_t* = object
+  rocksdb_open_and_compact_options_t* = object
+  rocksdb_pinnable_handle_t* = object
 
 when defined(windows):
   const librocksdb = "librocksdb.dll"

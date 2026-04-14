@@ -43,6 +43,33 @@
 
 ##  Exported types
 
+##  rocksdb_slice_t: Optimized slice type for high-performance C API operations
+##  This struct is ABI-compatible with rocksdb::Slice for zero-copy interop.
+##  Used by slice iterator functions and batched operations.
+
+type rocksdb_slice_t* {.bycopy.} = object
+  data*: cstring
+  size*: csize_t
+
+##  Remote Compaction typedef
+
+type
+  rocksdb_compaction_service_schedule_cb* = proc(
+    state: pointer,
+    info: ptr rocksdb_compactionservice_jobinfo_t,
+    compaction_service_input: cstring,
+    input_len: csize_t,
+  ): ptr rocksdb_compactionservice_scheduleresponse_t {.cdecl.}
+  rocksdb_compaction_service_wait_cb* = proc(
+    state: pointer,
+    scheduled_job_id: cstring,
+    result: cstringArray,
+    result_len: ptr csize_t,
+  ): cint {.cdecl.}
+  rocksdb_compaction_service_cancel_awaiting_jobs_cb* = proc(state: pointer) {.cdecl.}
+  rocksdb_compaction_service_on_installation_cb* =
+    proc(state: pointer, scheduled_job_id: cstring, status: cint) {.cdecl.}
+
 ##  DB operations
 
 proc rocksdb_open*(
@@ -716,6 +743,22 @@ proc rocksdb_batched_multi_get_cf*(
   sorted_input: bool,
 ) {.cdecl.}
 
+##  Batched MultiGet with slice array: Takes rocksdb_slice_t array directly,
+##  avoiding key conversion. faster than rocksdb_batched_multi_get_cf for
+##  operations with many keys. Eliminates overhead of converting keys from
+##  separate pointer+size arrays to Slice objects.
+
+proc rocksdb_batched_multi_get_cf_slice*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  column_family: ptr rocksdb_column_family_handle_t,
+  num_keys: csize_t,
+  keys_list: ptr rocksdb_slice_t,
+  values: ptr ptr rocksdb_pinnableslice_t,
+  errs: cstringArray,
+  sorted_input: bool,
+) {.cdecl.}
+
 ##  The value is only allocated (using malloc) and returned if it is found and
 ##  value_found isn't NULL. In that case the user is responsible for freeing it.
 
@@ -959,6 +1002,17 @@ proc rocksdb_iter_timestamp*(
 ): cstring {.cdecl.}
 
 proc rocksdb_iter_get_error*(a1: ptr rocksdb_iterator_t, errptr: cstringArray) {.cdecl.}
+##  Slice iterator functions: Return rocksdb_slice_t directly for better
+##  performance. These functions avoid the overhead of passing output parameters
+##  and provide zero-copy access to key/value/timestamp data. faster than
+##  traditional rocksdb_iter_key/value/timestamp functions.
+
+proc rocksdb_iter_key_slice*(iter: ptr rocksdb_iterator_t): rocksdb_slice_t {.cdecl.}
+proc rocksdb_iter_value_slice*(iter: ptr rocksdb_iterator_t): rocksdb_slice_t {.cdecl.}
+proc rocksdb_iter_timestamp_slice*(
+  iter: ptr rocksdb_iterator_t
+): rocksdb_slice_t {.cdecl.}
+
 proc rocksdb_iter_refresh*(iter: ptr rocksdb_iterator_t, errptr: cstringArray) {.cdecl.}
 proc rocksdb_wal_iter_next*(iter: ptr rocksdb_wal_iterator_t) {.cdecl.}
 proc rocksdb_wal_iter_valid*(a1: ptr rocksdb_wal_iterator_t): uint8 {.cdecl.}
@@ -4869,3 +4923,228 @@ proc rocksdb_wait_for_compact_options_set_timeout*(
 proc rocksdb_wait_for_compact_options_get_timeout*(
   opt: ptr rocksdb_wait_for_compact_options_t
 ): uint64 {.cdecl.}
+
+##  High-performance zero-copy Get variants
+##    These functions avoid unnecessary memory allocations and copies.
+##    The returned buffer is valid until the handle is destroyed.
+##    Bindings should migrate to these for better performance.
+##  Zero-copy get that returns a handle to pinned data.
+##    The data remains valid until rocksdb_pinnable_handle_destroy is called.
+##    Returns NULL on error or not found. Check errptr to distinguish.
+
+proc rocksdb_get_pinned_v2*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  key: cstring,
+  keylen: csize_t,
+  errptr: cstringArray,
+): ptr rocksdb_pinnable_handle_t {.cdecl.}
+
+proc rocksdb_get_pinned_cf_v2*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  column_family: ptr rocksdb_column_family_handle_t,
+  key: cstring,
+  keylen: csize_t,
+  errptr: cstringArray,
+): ptr rocksdb_pinnable_handle_t {.cdecl.}
+
+##  Get the data pointer and size from a pinnable handle.
+##    The data pointer is valid until the handle is destroyed.
+
+proc rocksdb_pinnable_handle_get_value*(
+  handle: ptr rocksdb_pinnable_handle_t, vallen: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_pinnable_handle_destroy*(handle: ptr rocksdb_pinnable_handle_t) {.cdecl.}
+##  Direct get into caller-provided buffer.
+##    Returns 1 if value fits in buffer, 0 if buffer too small.
+##    Sets *vallen to actual value size.
+##    If buffer is too small, no data is copied but *vallen is set.
+
+proc rocksdb_get_into_buffer*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  key: cstring,
+  keylen: csize_t,
+  buffer: cstring,
+  buffer_size: csize_t,
+  vallen: ptr csize_t,
+  found: ptr uint8,
+  errptr: cstringArray,
+): uint8 {.cdecl.}
+
+proc rocksdb_get_into_buffer_cf*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  column_family: ptr rocksdb_column_family_handle_t,
+  key: cstring,
+  keylen: csize_t,
+  buffer: cstring,
+  buffer_size: csize_t,
+  vallen: ptr csize_t,
+  found: ptr uint8,
+  errptr: cstringArray,
+): uint8 {.cdecl.}
+
+##  Remote compaction
+
+const
+  rocksdb_compactionservice_jobstatus_success* = 0
+  rocksdb_compactionservice_jobstatus_failure* = 1
+  rocksdb_compactionservice_jobstatus_aborted* = 2
+  rocksdb_compactionservice_jobstatus_use_local* = 3
+
+proc rocksdb_compactionservice_scheduleresponse_create*(
+  scheduled_job_id: cstring, status: cint, errptr: cstringArray
+): ptr rocksdb_compactionservice_scheduleresponse_t {.cdecl.}
+
+proc rocksdb_compactionservice_scheduleresponse_create_with_status*(
+  status: cint, errptr: cstringArray
+): ptr rocksdb_compactionservice_scheduleresponse_t {.cdecl.}
+
+proc rocksdb_compactionservice_scheduleresponse_getstatus*(
+  response: ptr rocksdb_compactionservice_scheduleresponse_t
+): cint {.cdecl.}
+
+proc rocksdb_compactionservice_scheduleresponse_get_scheduled_job_id*(
+  response: ptr rocksdb_compactionservice_scheduleresponse_t, len: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_compactionservice_scheduleresponse_t_destroy*(
+  response: ptr rocksdb_compactionservice_scheduleresponse_t
+) {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_db_name*(
+  info: ptr rocksdb_compactionservice_jobinfo_t, len: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_db_id*(
+  info: ptr rocksdb_compactionservice_jobinfo_t, len: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_db_session_id*(
+  info: ptr rocksdb_compactionservice_jobinfo_t, len: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_cf_name*(
+  info: ptr rocksdb_compactionservice_jobinfo_t, len: ptr csize_t
+): cstring {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_cf_id*(
+  info: ptr rocksdb_compactionservice_jobinfo_t
+): uint32 {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_job_id*(
+  info: ptr rocksdb_compactionservice_jobinfo_t
+): uint64 {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_priority*(
+  info: ptr rocksdb_compactionservice_jobinfo_t
+): cint {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_compaction_reason*(
+  info: ptr rocksdb_compactionservice_jobinfo_t
+): cint {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_base_input_level*(
+  info: ptr rocksdb_compactionservice_jobinfo_t
+): cint {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_get_output_level*(
+  info: ptr rocksdb_compactionservice_jobinfo_t
+): cint {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_is_full_compaction*(
+  info: ptr rocksdb_compactionservice_jobinfo_t
+): uint8 {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_is_manual_compaction*(
+  info: ptr rocksdb_compactionservice_jobinfo_t
+): uint8 {.cdecl.}
+
+proc rocksdb_compactionservice_jobinfo_t_is_bottommost_level*(
+  info: ptr rocksdb_compactionservice_jobinfo_t
+): uint8 {.cdecl.}
+
+proc rocksdb_compactionservice_create*(
+  state: pointer,
+  destructor: proc(a1: pointer) {.cdecl.},
+  schedule: rocksdb_compaction_service_schedule_cb,
+  name: cstring,
+  wait: rocksdb_compaction_service_wait_cb,
+  cancel_awaiting_jobs: rocksdb_compaction_service_cancel_awaiting_jobs_cb,
+  on_installation: rocksdb_compaction_service_on_installation_cb,
+): ptr rocksdb_compactionservice_t {.cdecl.}
+
+proc rocksdb_options_set_compaction_service*(
+  options: ptr rocksdb_options_t, service: ptr rocksdb_compactionservice_t
+) {.cdecl.}
+
+##  CompactionServiceOptionsOverride
+
+proc rocksdb_compaction_service_options_override_create*(): ptr rocksdb_compaction_service_options_override_t {.
+  cdecl
+.}
+
+proc rocksdb_compaction_service_options_override_destroy*(
+  override_options: ptr rocksdb_compaction_service_options_override_t
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_env*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  env: ptr rocksdb_env_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_comparator*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  comparator: ptr rocksdb_comparator_t,
+) {.cdecl.}
+
+##  Atomic bool management for cancellation
+##  Creates an atomic bool that can be used for cancellation.
+##  User must call rocksdb_open_and_compact_canceled_destroy() to free it.
+
+proc rocksdb_open_and_compact_canceled_create*(): ptr uint8 {.cdecl.}
+proc rocksdb_open_and_compact_canceled_destroy*(canceled: ptr uint8) {.cdecl.}
+proc rocksdb_open_and_compact_canceled_set*(canceled: ptr uint8, value: uint8) {.cdecl.}
+##  OpenAndCompactOptions
+
+proc rocksdb_open_and_compact_options_create*(): ptr rocksdb_open_and_compact_options_t {.
+  cdecl
+.}
+
+proc rocksdb_open_and_compact_options_destroy*(
+  options: ptr rocksdb_open_and_compact_options_t
+) {.cdecl.}
+
+proc rocksdb_open_and_compact_options_set_canceled*(
+  options: ptr rocksdb_open_and_compact_options_t, canceled: ptr uint8
+) {.cdecl.}
+
+proc rocksdb_open_and_compact_options_set_allow_resumption*(
+  options: ptr rocksdb_open_and_compact_options_t, allow_resumption: uint8
+) {.cdecl.}
+
+##  OpenAndCompact - main functions
+
+proc rocksdb_open_and_compact*(
+  db_path: cstring,
+  output_directory: cstring,
+  input: cstring,
+  input_len: csize_t,
+  output_len: ptr csize_t,
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  errptr: cstringArray,
+): cstring {.cdecl.}
+
+proc rocksdb_open_and_compact_with_options*(
+  options: ptr rocksdb_open_and_compact_options_t,
+  db_path: cstring,
+  output_directory: cstring,
+  input: cstring,
+  input_len: csize_t,
+  output_len: ptr csize_t,
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  errptr: cstringArray,
+): cstring {.cdecl.}
