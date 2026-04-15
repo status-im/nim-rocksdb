@@ -7,7 +7,6 @@
 #
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-
 #   RocksDB Read API Performance Benchmark
 #   ======================================
 #  
@@ -24,10 +23,14 @@
 #     - Sweet spot: batch size 64-128; diminishing returns beyond 128
 #     - Iterator variant slightly faster than multiGet for all batch sizes
 
-
 {.used.}
 
-import std/[algorithm, os, strformat, strutils, times], tempfile, unittest2, ../rocksdb/rocksdb, ./test_helper
+import
+  std/[algorithm, os, strformat, strutils, times],
+  tempfile,
+  unittest2,
+  ../rocksdb/rocksdb,
+  ./test_helper
 
 const benchmarkNameWidth = 52
 
@@ -35,15 +38,14 @@ proc benchmarkLine(name: string, elapsed: float, keyReads: int): string =
   let
     readsPerSecond = keyReads.float / elapsed
     microsecondsPerKey = (elapsed * 1_000_000.0) / keyReads.float
-  "  " &
-    alignLeft(name, benchmarkNameWidth) & " " & align(fmt"{elapsed:.4f}", 10) & " " &
-    align(fmt"{readsPerSecond:.2f}", 14) & " " &
-    align(fmt"{microsecondsPerKey:.4f}", 10)
+  "  " & alignLeft(name, benchmarkNameWidth) & " " & align(fmt"{elapsed:.4f}", 10) & " " &
+    align(fmt"{readsPerSecond:.2f}", 14) & " " & align(
+    fmt"{microsecondsPerKey:.4f}", 10
+  )
 
 proc benchmarkHeader(): string =
-  "  " &
-    alignLeft("benchmark", benchmarkNameWidth) & " " &
-    align("elapsed(s)", 10) & " " & align("reads/s", 14) & " " & align("us/key", 10)
+  "  " & alignLeft("benchmark", benchmarkNameWidth) & " " & align("elapsed(s)", 10) & " " &
+    align("reads/s", 14) & " " & align("us/key", 10)
 
 proc makeKey(i: int): seq[byte] =
   # Encode integer keys as fixed-width bytes so all APIs read identical keys.
@@ -73,15 +75,15 @@ proc runBatchedBench(
     sortedReadKeys: seq[seq[byte]],
     keyReads, batchSize: int,
 ): tuple[
-    multiGetElapsed: float,
-    multiGetIterElapsed: float,
-    multiGetSortedElapsed: float,
-    multiGetIterSortedElapsed: float,
-    multiGetBytes: int64,
-    multiGetIterBytes: int64,
-    multiGetSortedBytes: int64,
-    multiGetIterSortedBytes: int64,
-  ] =
+  multiGetElapsed: float,
+  multiGetIterElapsed: float,
+  multiGetSortedElapsed: float,
+  multiGetIterSortedElapsed: float,
+  multiGetBytes: int64,
+  multiGetIterBytes: int64,
+  multiGetSortedBytes: int64,
+  multiGetIterSortedBytes: int64,
+] =
   var
     multiGetBytes = 0'i64
     multiGetIterBytes = 0'i64
@@ -141,18 +143,12 @@ proc runBatchedBench(
   let multiGetIterSortedElapsed = epochTime() - multiGetIterSortedStart
 
   (
-    multiGetElapsed,
-    multiGetIterElapsed,
-    multiGetSortedElapsed,
-    multiGetIterSortedElapsed,
-    multiGetBytes,
-    multiGetIterBytes,
-    multiGetSortedBytes,
+    multiGetElapsed, multiGetIterElapsed, multiGetSortedElapsed,
+    multiGetIterSortedElapsed, multiGetBytes, multiGetIterBytes, multiGetSortedBytes,
     multiGetIterSortedBytes,
   )
 
 suite "RocksDb Benchmark Tests":
-
   test "Benchmark get APIs":
     const
       keyCount = 16_384
@@ -187,9 +183,8 @@ suite "RocksDb Benchmark Tests":
 
     let asyncReadOpts = defaultReadOptions(autoClose = true)
     asyncReadOpts.asyncIo = true
-    let asyncReadDb = openRocksDbReadOnly(benchmarkPath, readOpts = asyncReadOpts).expect(
-      "open async benchmark db"
-    )
+    let asyncReadDb = openRocksDbReadOnly(benchmarkPath, readOpts = asyncReadOpts)
+      .expect("open async benchmark db")
     defer:
       asyncReadDb.close()
 
@@ -275,7 +270,8 @@ suite "RocksDb Benchmark Tests":
     debugEcho benchmarkHeader()
 
     for batchSize in sweepBatchSizes:
-      let sortedSweepKeys = makeSortedReadKeys(keys, sweepIndexes, sweepReadCount, batchSize)
+      let sortedSweepKeys =
+        makeSortedReadKeys(keys, sweepIndexes, sweepReadCount, batchSize)
       let syncResults = runBatchedBench(
         syncReadDb, sweepKeys, sortedSweepKeys, sweepReadCount, batchSize
       )
@@ -295,10 +291,14 @@ suite "RocksDb Benchmark Tests":
         asyncResults.multiGetIterSortedBytes == expectedSweepBytes
 
       debugEcho benchmarkLine(
-        fmt"multiGet(sync, batch={batchSize})", syncResults.multiGetElapsed, sweepReadCount
+        fmt"multiGet(sync, batch={batchSize})",
+        syncResults.multiGetElapsed,
+        sweepReadCount,
       )
       debugEcho benchmarkLine(
-        fmt"multiGet(async, batch={batchSize})", asyncResults.multiGetElapsed, sweepReadCount
+        fmt"multiGet(async, batch={batchSize})",
+        asyncResults.multiGetElapsed,
+        sweepReadCount,
       )
       debugEcho benchmarkLine(
         fmt"multiGetIter(sync, batch={batchSize})",
