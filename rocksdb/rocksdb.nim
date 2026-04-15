@@ -304,19 +304,17 @@ proc multiGetIter*(
   assert keys.len() > 0
 
   var
-    keysList = keys.mapIt(cast[cstring](it.unsafeAddrOrNil()))
-    keysListSizes = keys.mapIt(csize_t(it.len))
+    keySlices = keys.mapIt(rocksdb_slice_t(data: cast[cstring](it.unsafeAddrOrNil()), size: csize_t(it.len)))
     errors = newSeq[cstring](keys.len())
 
   let multiGetIter = MultiGetIteratorRef.init(keys.len)
 
-  rocksdb_batched_multi_get_cf(
+  rocksdb_batched_multi_get_cf_slice(
     db.cPtr,
     db.readOpts.cPtr,
     cfHandle.cPtr,
     csize_t(keys.len),
-    cast[cstringArray](keysList[0].addr),
-    keysListSizes[0].addr,
+    keySlices[0].addr,
     multiGetIter[][0].addr,
     cast[cstringArray](errors[0].addr),
     sortedInput,
