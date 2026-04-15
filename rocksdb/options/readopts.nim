@@ -60,8 +60,7 @@ proc setSnapshot*(readOpts: ReadOptionsRef, snapshot: SnapshotRef) =
 
 proc defaultReadOptions*(autoClose = false): ReadOptionsRef =
   let readOpts = createReadOptions(autoClose)
-
-  # TODO: set prefered defaults
+  readOpts.asyncIo = true
   readOpts
 
 proc close*(readOpts: ReadOptionsRef) =
