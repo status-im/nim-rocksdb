@@ -78,6 +78,16 @@ template get*(
   ## Gets the value of the given key from the column family.
   cf.db.get(key, cf.handle)
 
+template get*(
+    cf: ColFamilyReadOnly | ColFamilyReadWrite,
+    key: openArray[byte],
+    data: var openArray[byte],
+    dataLen: var int,
+): RocksDBResult[bool] =
+  ## Gets the value of the given key from the column family into the
+  ## caller-provided buffer `data` and sets `dataLen` to the valid length.
+  cf.db.get(key, data, dataLen, cf.handle)
+
 template multiGetIter*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite,
     keys: openArray[seq[byte]],

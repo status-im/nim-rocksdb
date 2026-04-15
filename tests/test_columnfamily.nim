@@ -192,3 +192,42 @@ suite "ColFamily Tests":
       check:
         i == 3
         iter.isClosed()
+
+  test "Test get into buffer":
+    let cf = db.getColFamily(CF_OTHER).get()
+
+    check cf.put(key, val).isOk()
+
+    # Key found, buffer is exactly the right size
+    var buf = newSeq[byte](val.len)
+    var dataLen = -1
+    let r1 = cf.get(key, buf, dataLen)
+    check:
+      r1.isOk() and r1.value == true
+      dataLen == val.len
+      buf == val
+
+    # Key found, larger buffer also works
+    var bigBuf = newSeq[byte](val.len + 10)
+    dataLen = -1
+    let r2 = cf.get(key, bigBuf, dataLen)
+    check:
+      r2.isOk() and r2.value == true
+      dataLen == val.len
+      bigBuf[0 ..< val.len] == val
+
+    # Key found but buffer too small
+    var smallBuf = newSeq[byte](val.len - 1)
+    dataLen = -1
+    let r3 = cf.get(key, smallBuf, dataLen)
+    check:
+      r3.isErr()
+      dataLen == val.len
+
+    # Key not found
+    var buf2 = newSeq[byte](val.len)
+    dataLen = -1
+    let r4 = cf.get(otherKey, buf2, dataLen)
+    check:
+      r4.isOk() and r4.value == false
+      dataLen == 0

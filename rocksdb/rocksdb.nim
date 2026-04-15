@@ -281,6 +281,50 @@ proc get*(
   else:
     err("rocksdb: value does not exist")
 
+proc get*(
+    db: RocksDbRef,
+    key: openArray[byte],
+    data: var openArray[byte],
+    dataLen: var int,
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[bool] =
+  ## Get the value for the given key from the specified column family into the
+  ## caller-provided buffer `data`. If the key does not exist, `false` will be
+  ## returned in the result, `dataLen` will be set to `0`, and `data` will not
+  ## be modified. If the key exists and the value fits in the buffer, `true`
+  ## will be returned, `dataLen` will be set to the number of bytes written,
+  ## and the value bytes will have been written into `data[0..<dataLen]`. If
+  ## the buffer is too small to hold the value, an error will be returned and
+  ## `dataLen` will be set to the required length.
+
+  var
+    vallen: csize_t
+    found: uint8
+    errors: cstring
+  let fits = rocksdb_get_into_buffer_cf(
+    db.cPtr,
+    db.readOpts.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](key.unsafeAddrOrNil()),
+    csize_t(key.len),
+    cast[cstring](data.unsafeAddrOrNil()),
+    csize_t(data.len),
+    vallen.addr,
+    found.addr,
+    cast[cstringArray](errors.addr),
+  )
+  bailOnErrors(errors)
+
+  dataLen = vallen.int
+
+  if found == 0:
+    dataLen = 0
+    ok(false)
+  elif fits == 0:
+    err("rocksdb: buffer too small, value length is " & $vallen)
+  else:
+    ok(true)
+
 proc multiGetIter*(
     db: RocksDbRef,
     keys: openArray[seq[byte]],

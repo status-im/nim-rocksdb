@@ -687,3 +687,50 @@ suite "RocksDbRef Tests":
       check:
         i == 9
         iter.isClosed()
+
+  test "Test get into buffer":
+    check db.put(key, val).isOk()
+
+    # Key found, buffer is exactly the right size
+    var buf = newSeq[byte](val.len)
+    var dataLen = -1
+    let r1 = db.get(key, buf, dataLen)
+    check:
+      r1.isOk() and r1.value == true
+      dataLen == val.len
+      buf == val
+
+    # Key found, larger buffer also works
+    var bigBuf = newSeq[byte](val.len + 10)
+    dataLen = -1
+    let r2 = db.get(key, bigBuf, dataLen)
+    check:
+      r2.isOk() and r2.value == true
+      dataLen == val.len
+      bigBuf[0 ..< val.len] == val
+
+    # Key found but buffer too small
+    var smallBuf = newSeq[byte](val.len - 1)
+    dataLen = -1
+    let r3 = db.get(key, smallBuf, dataLen)
+    check:
+      r3.isErr()
+      dataLen == val.len
+
+    # Key not found
+    var buf2 = newSeq[byte](val.len)
+    dataLen = -1
+    let r4 = db.get(otherKey, buf2, dataLen)
+    check:
+      r4.isOk() and r4.value == false
+      dataLen == 0
+
+    # With explicit column family handle
+    check db.put(key, val, defaultCfHandle).isOk()
+    var buf3 = newSeq[byte](val.len)
+    dataLen = -1
+    let r5 = db.get(key, buf3, dataLen, defaultCfHandle)
+    check:
+      r5.isOk() and r5.value == true
+      dataLen == val.len
+      buf3 == val
