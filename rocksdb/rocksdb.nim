@@ -243,26 +243,25 @@ proc get*(
   ## The `onData` callback reduces the number of copies and therefore should be
   ## preferred if performance is required.
 
-  var
-    len: csize_t
-    errors: cstring
-  let data = rocksdb_get_cf(
+  var errors: cstring
+  let handle = rocksdb_get_pinned_cf_v2(
     db.cPtr,
     db.readOpts.cPtr,
     cfHandle.cPtr,
     cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
-    len.addr,
     cast[cstringArray](errors.addr),
   )
   bailOnErrors(errors)
 
-  if data.isNil():
-    doAssert len == 0
+  if handle.isNil():
     ok(false)
   else:
+    defer:
+      rocksdb_pinnable_handle_destroy(handle)
+    var len: csize_t
+    let data = rocksdb_pinnable_handle_get_value(handle, len.addr)
     onData(toOpenArrayByte(data, 0, len.int - 1))
-    rocksdb_free(data)
     ok(true)
 
 proc get*(
