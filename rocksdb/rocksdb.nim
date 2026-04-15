@@ -304,7 +304,9 @@ proc multiGetIter*(
   assert keys.len() > 0
 
   var
-    keySlices = keys.mapIt(rocksdb_slice_t(data: cast[cstring](it.unsafeAddrOrNil()), size: csize_t(it.len)))
+    keySlices = keys.mapIt(
+      rocksdb_slice_t(data: cast[cstring](it.unsafeAddrOrNil()), size: csize_t(it.len))
+    )
     errors = newSeq[cstring](keys.len())
 
   let multiGetIter = MultiGetIteratorRef.init(keys.len)

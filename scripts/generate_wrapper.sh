@@ -68,4 +68,6 @@ sed -i ':a;N;$!ba;s/#ifdef _WIN32\
 # generate nim wrapper
 c2nim ${OUTPUT_HEADER_FILE} --out:"${C2NIM_GENERATED_WRAPPER}"
 
+sed -i 's/{.bycopy.}//g' "${C2NIM_GENERATED_WRAPPER}"
+
 nimble format
