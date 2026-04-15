@@ -243,26 +243,25 @@ proc get*(
   ## The `onData` callback reduces the number of copies and therefore should be
   ## preferred if performance is required.
 
-  var
-    len: csize_t
-    errors: cstring
-  let data = rocksdb_get_cf(
+  var errors: cstring
+  let handle = rocksdb_get_pinned_cf_v2(
     db.cPtr,
     db.readOpts.cPtr,
     cfHandle.cPtr,
     cast[cstring](key.unsafeAddrOrNil()),
     csize_t(key.len),
-    len.addr,
     cast[cstringArray](errors.addr),
   )
   bailOnErrors(errors)
 
-  if data.isNil():
-    doAssert len == 0
+  if handle.isNil():
     ok(false)
   else:
+    defer:
+      rocksdb_pinnable_handle_destroy(handle)
+    var len: csize_t
+    let data = rocksdb_pinnable_handle_get_value(handle, len.addr)
     onData(toOpenArrayByte(data, 0, len.int - 1))
-    rocksdb_free(data)
     ok(true)
 
 proc get*(
@@ -281,6 +280,50 @@ proc get*(
     ok(value)
   else:
     err("rocksdb: value does not exist")
+
+proc get*(
+    db: RocksDbRef,
+    key: openArray[byte],
+    data: var openArray[byte],
+    dataLen: var int,
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[bool] =
+  ## Get the value for the given key from the specified column family into the
+  ## caller-provided buffer `data`. If the key does not exist, `false` will be
+  ## returned in the result, `dataLen` will be set to `0`, and `data` will not
+  ## be modified. If the key exists and the value fits in the buffer, `true`
+  ## will be returned, `dataLen` will be set to the number of bytes written,
+  ## and the value bytes will have been written into `data[0..<dataLen]`. If
+  ## the buffer is too small to hold the value, an error will be returned and
+  ## `dataLen` will be set to the required length.
+
+  var
+    vallen: csize_t
+    found: uint8
+    errors: cstring
+  let fits = rocksdb_get_into_buffer_cf(
+    db.cPtr,
+    db.readOpts.cPtr,
+    cfHandle.cPtr,
+    cast[cstring](key.unsafeAddrOrNil()),
+    csize_t(key.len),
+    cast[cstring](data.unsafeAddrOrNil()),
+    csize_t(data.len),
+    vallen.addr,
+    found.addr,
+    cast[cstringArray](errors.addr),
+  )
+  bailOnErrors(errors)
+
+  dataLen = vallen.int
+
+  if found == 0:
+    dataLen = 0
+    ok(false)
+  elif fits == 0:
+    err("rocksdb: buffer too small, value length is " & $vallen)
+  else:
+    ok(true)
 
 proc multiGetIter*(
     db: RocksDbRef,
@@ -304,19 +347,19 @@ proc multiGetIter*(
   assert keys.len() > 0
 
   var
-    keysList = keys.mapIt(cast[cstring](it.unsafeAddrOrNil()))
-    keysListSizes = keys.mapIt(csize_t(it.len))
+    keySlices = keys.mapIt(
+      rocksdb_slice_t(data: cast[cstring](it.unsafeAddrOrNil()), size: csize_t(it.len))
+    )
     errors = newSeq[cstring](keys.len())
 
   let multiGetIter = MultiGetIteratorRef.init(keys.len)
 
-  rocksdb_batched_multi_get_cf(
+  rocksdb_batched_multi_get_cf_slice(
     db.cPtr,
     db.readOpts.cPtr,
     cfHandle.cPtr,
     csize_t(keys.len),
-    cast[cstringArray](keysList[0].addr),
-    keysListSizes[0].addr,
+    keySlices[0].addr,
     multiGetIter[][0].addr,
     cast[cstringArray](errors[0].addr),
     sortedInput,

@@ -47,7 +47,7 @@
 ##  This struct is ABI-compatible with rocksdb::Slice for zero-copy interop.
 ##  Used by slice iterator functions and batched operations.
 
-type rocksdb_slice_t* {.bycopy.} = object
+type rocksdb_slice_t* = object
   data*: cstring
   size*: csize_t
 

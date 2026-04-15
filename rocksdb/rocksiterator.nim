@@ -117,9 +117,8 @@ proc prev*(iter: RocksIteratorRef) =
   rocksdb_iter_prev(iter.cPtr)
 
 template keyOpenArray(iter: RocksIteratorRef): openArray[byte] =
-  var kLen: csize_t
-  let kData = rocksdb_iter_key(iter.cPtr, kLen.addr)
-  toOpenArray(kData, kLen)
+  let kSlice = rocksdb_iter_key_slice(iter.cPtr)
+  toOpenArray(kSlice.data, kSlice.size)
 
 proc key*(iter: RocksIteratorRef, onData: DataProc) =
   ## Returns the current key using the provided `onData` callback.
@@ -133,9 +132,8 @@ template key*(iter: RocksIteratorRef, asOpenArray: static bool = false): auto =
     @(iter.keyOpenArray())
 
 template valueOpenArray(iter: RocksIteratorRef): openArray[byte] =
-  var vLen: csize_t
-  let vData = rocksdb_iter_value(iter.cPtr, vLen.addr)
-  toOpenArray(vData, vLen)
+  let vSlice = rocksdb_iter_value_slice(iter.cPtr)
+  toOpenArray(vSlice.data, vSlice.size)
 
 proc value*(iter: RocksIteratorRef, onData: DataProc) =
   ## Returns the current value using the provided `onData` callback.
@@ -185,15 +183,13 @@ iterator pairs*(
 
 func keySlice(iter: RocksIteratorRef): RocksDbSlice =
   ## Returns the current key as a slice.
-  var kLen: csize_t
-  let kData = rocksdb_iter_key(iter.cPtr, kLen.addr)
-  RocksDbSlice.init(kData, kLen)
+  let kSlice = rocksdb_iter_key_slice(iter.cPtr)
+  RocksDbSlice.init(kSlice.data, kSlice.size)
 
 func valueSlice(iter: RocksIteratorRef): RocksDbSlice =
   ## Returns the current value as a slice.
-  var vLen: csize_t
-  let vData = rocksdb_iter_value(iter.cPtr, vLen.addr)
-  RocksDbSlice.init(vData, vLen)
+  let vSlice = rocksdb_iter_value_slice(iter.cPtr)
+  RocksDbSlice.init(vSlice.data, vSlice.size)
 
 iterator slicePairs*(
     iter: RocksIteratorRef, autoClose: static bool = true
