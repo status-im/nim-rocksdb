@@ -11,11 +11,11 @@ proc cacheCreateLRU*(size: int, autoClose = false): CacheRef =
   CacheRef(cPtr: rocksdb_cache_create_lru(size.csize_t), autoClose: autoClose)
 
 proc cacheCreateHyperClock*(
-    capacity: int, estimatedEntryCharge: int = 0, autoClose = false
+    size: int, estimatedEntryCharge: int = 0, autoClose = false
 ): CacheRef =
   CacheRef(
     cPtr:
-      rocksdb_cache_create_hyper_clock(capacity.csize_t, estimatedEntryCharge.csize_t),
+      rocksdb_cache_create_hyper_clock(size.csize_t, estimatedEntryCharge.csize_t),
     autoClose: autoClose,
   )
 
