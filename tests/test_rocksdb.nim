@@ -688,6 +688,50 @@ suite "RocksDbRef Tests":
         i == 9
         iter.isClosed()
 
+  test "Test block cache with LRU cache":
+    let
+      dbPath2 = mkdtemp() / "lru-block-cache"
+      tableOpts = defaultTableOptions(autoClose = true)
+      cache = cacheCreateLRU(1024 * 1024, autoClose = true)
+      cfOpts = defaultColFamilyOptions(autoClose = true)
+
+    tableOpts.blockCache = cache
+    cfOpts.blockBasedTableFactory = tableOpts
+
+    let db2 = openRocksDb(
+        dbPath2, columnFamilies = @[initColFamilyDescriptor(CF_DEFAULT, cfOpts)]
+      )
+      .get()
+
+    check:
+      db2.put(key, val).isOk()
+      db2.get(key).get() == val
+
+    db2.close()
+    removeDir($dbPath2)
+
+  test "Test block cache with HyperClockCache":
+    let
+      dbPath2 = mkdtemp() / "hyper-clock-cache"
+      tableOpts = defaultTableOptions(autoClose = true)
+      cache = cacheCreateHyperClock(1024 * 1024, autoClose = true)
+      cfOpts = defaultColFamilyOptions(autoClose = true)
+
+    tableOpts.blockCache = cache
+    cfOpts.blockBasedTableFactory = tableOpts
+
+    let db2 = openRocksDb(
+        dbPath2, columnFamilies = @[initColFamilyDescriptor(CF_DEFAULT, cfOpts)]
+      )
+      .get()
+
+    check:
+      db2.put(key, val).isOk()
+      db2.get(key).get() == val
+
+    db2.close()
+    removeDir($dbPath2)
+
   test "Test get into buffer":
     check db.put(key, val).isOk()
 

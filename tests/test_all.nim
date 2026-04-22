@@ -14,6 +14,7 @@ import
   ./internal/test_cftable,
   ./lib/test_librocksdb,
   ./options/test_backupopts,
+  ./options/test_cache,
   ./options/test_dbopts,
   ./options/test_readopts,
   ./options/test_tableopts,
