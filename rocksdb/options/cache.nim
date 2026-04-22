@@ -14,8 +14,7 @@ proc cacheCreateHyperClock*(
     size: int, estimatedEntryCharge: int = 0, autoClose = false
 ): CacheRef =
   CacheRef(
-    cPtr:
-      rocksdb_cache_create_hyper_clock(size.csize_t, estimatedEntryCharge.csize_t),
+    cPtr: rocksdb_cache_create_hyper_clock(size.csize_t, estimatedEntryCharge.csize_t),
     autoClose: autoClose,
   )
 
