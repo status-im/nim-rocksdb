@@ -24,6 +24,7 @@ import
   ./transactions/test_txopts,
   ./test_backup,
   ./test_columnfamily,
+  ./test_memoryusage,
   ./test_optimistictxdb,
   ./test_rocksdb,
   ./test_rocksiterator,
