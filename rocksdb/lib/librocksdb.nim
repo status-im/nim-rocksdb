@@ -105,6 +105,9 @@ type
   rocksdb_compaction_service_options_override_t* = object
   rocksdb_open_and_compact_options_t* = object
   rocksdb_pinnable_handle_t* = object
+  rocksdb_file_checksum_gen_factory_t* = object
+  rocksdb_sst_partitioner_factory_t* = object
+  rocksdb_table_properties_collector_factory_t* = object
 
 when defined(windows):
   const librocksdb = "librocksdb.dll"

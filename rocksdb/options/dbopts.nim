@@ -87,7 +87,6 @@ opt unorderedWrite, bool, uint8
 opt allowConcurrentMemtableWrite, bool, uint8
 opt enableWriteThreadAdaptiveYield, bool, uint8
 opt skipStatsUpdateOnDbOpen, bool, uint8
-opt skipCheckingSstFileSizesOnDbOpen, bool, uint8
 opt allowIngestBehind, bool, uint8
 opt manualWalFlush, bool, uint8
 opt atomicFlush, bool, uint8
