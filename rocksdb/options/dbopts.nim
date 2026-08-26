@@ -134,10 +134,8 @@ proc walCompression*(dbOpts: DbOptionsRef): WalCompressionType =
   doAssert not dbOpts.isClosed()
 
   case rocksdb_options_get_wal_compression(dbOpts.cPtr)
-  of rocksdb_zstd_compression:
-    WalCompressionType.zstdCompression
-  else:
-    WalCompressionType.noCompression
+  of rocksdb_zstd_compression: WalCompressionType.zstdCompression
+  else: WalCompressionType.noCompression
 
 proc enableStatistics*(dbOpts: DbOptionsRef) =
   doAssert not dbOpts.isClosed()
