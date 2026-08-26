@@ -1224,6 +1224,14 @@ proc rocksdb_writebatch_iterate*(
   deleted: proc(a1: pointer, k: cstring, klen: csize_t) {.cdecl.},
 ) {.cdecl.}
 
+proc rocksdb_writebatch_iterate_ld*(
+  a1: ptr rocksdb_writebatch_t,
+  state: pointer,
+  put: proc(a1: pointer, k: cstring, klen: csize_t, v: cstring, vlen: csize_t) {.cdecl.},
+  deleted: proc(a1: pointer, k: cstring, klen: csize_t) {.cdecl.},
+  log_data: proc(a1: pointer, blob: cstring, blob_len: csize_t) {.cdecl.},
+) {.cdecl.}
+
 proc rocksdb_writebatch_iterate_cf*(
   a1: ptr rocksdb_writebatch_t,
   state: pointer,
@@ -1234,6 +1242,19 @@ proc rocksdb_writebatch_iterate_cf*(
   merge_cf: proc(
     a1: pointer, cfid: uint32, k: cstring, klen: csize_t, v: cstring, vlen: csize_t
   ) {.cdecl.},
+) {.cdecl.}
+
+proc rocksdb_writebatch_iterate_cf_ld*(
+  a1: ptr rocksdb_writebatch_t,
+  state: pointer,
+  put_cf: proc(
+    a1: pointer, cfid: uint32, k: cstring, klen: csize_t, v: cstring, vlen: csize_t
+  ) {.cdecl.},
+  deleted_cf: proc(a1: pointer, cfid: uint32, k: cstring, klen: csize_t) {.cdecl.},
+  merge_cf: proc(
+    a1: pointer, cfid: uint32, k: cstring, klen: csize_t, v: cstring, vlen: csize_t
+  ) {.cdecl.},
+  log_data: proc(a1: pointer, blob: cstring, blob_len: csize_t) {.cdecl.},
 ) {.cdecl.}
 
 proc rocksdb_writebatch_data*(
@@ -1652,6 +1673,10 @@ proc rocksdb_block_based_options_set_format_version*(
   a1: ptr rocksdb_block_based_table_options_t, a2: cint
 ) {.cdecl.}
 
+proc rocksdb_block_based_options_set_separate_key_value_in_data_block*(
+  a1: ptr rocksdb_block_based_table_options_t, a2: uint8
+) {.cdecl.}
+
 const
   rocksdb_block_based_table_index_type_binary_search* = 0
   rocksdb_block_based_table_index_type_hash_search* = 1
@@ -1668,6 +1693,16 @@ const
   rocksdb_block_based_table_data_block_index_type_binary_search_and_hash* = 1
 
 proc rocksdb_block_based_options_set_data_block_index_type*(
+  a1: ptr rocksdb_block_based_table_options_t, a2: cint
+) {.cdecl.}
+
+##  uses one of the above enums
+
+const
+  rocksdb_block_based_table_index_block_search_type_binary* = 0
+  rocksdb_block_based_table_index_block_search_type_interpolation* = 1
+
+proc rocksdb_block_based_options_set_index_block_search_type*(
   a1: ptr rocksdb_block_based_table_options_t, a2: cint
 ) {.cdecl.}
 
@@ -1717,6 +1752,10 @@ proc rocksdb_block_based_options_set_partition_pinning_tier*(
 
 proc rocksdb_block_based_options_set_unpartitioned_pinning_tier*(
   a1: ptr rocksdb_block_based_table_options_t, a2: cint
+) {.cdecl.}
+
+proc rocksdb_block_based_options_set_block_align*(
+  a1: ptr rocksdb_block_based_table_options_t, a2: uint8
 ) {.cdecl.}
 
 proc rocksdb_options_set_write_buffer_manager*(
@@ -2070,6 +2109,11 @@ proc rocksdb_options_set_paranoid_checks*(
 ) {.cdecl.}
 
 proc rocksdb_options_get_paranoid_checks*(a1: ptr rocksdb_options_t): uint8 {.cdecl.}
+proc rocksdb_options_set_open_files_async*(
+  a1: ptr rocksdb_options_t, a2: uint8
+) {.cdecl.}
+
+proc rocksdb_options_get_open_files_async*(a1: ptr rocksdb_options_t): uint8 {.cdecl.}
 proc rocksdb_options_set_db_paths*(
   a1: ptr rocksdb_options_t, path_values: ptr ptr rocksdb_dbpath_t, num_paths: csize_t
 ) {.cdecl.}
@@ -2103,6 +2147,44 @@ proc rocksdb_logger_create_callback_logger*(
 ): ptr rocksdb_logger_t {.cdecl.}
 
 proc rocksdb_logger_destroy*(logger: ptr rocksdb_logger_t) {.cdecl.}
+##  File Checksum Gen Factory
+
+proc rocksdb_file_checksum_gen_crc32c_factory_create*(): ptr rocksdb_file_checksum_gen_factory_t {.
+  cdecl
+.}
+
+proc rocksdb_file_checksum_gen_factory_destroy*(
+  factory: ptr rocksdb_file_checksum_gen_factory_t
+) {.cdecl.}
+
+proc rocksdb_options_set_file_checksum_gen_factory*(
+  a1: ptr rocksdb_options_t, a2: ptr rocksdb_file_checksum_gen_factory_t
+) {.cdecl.}
+
+##  SST Partitioner Factory
+
+proc rocksdb_sst_partitioner_fixed_prefix_factory_create*(
+  prefix_len: csize_t
+): ptr rocksdb_sst_partitioner_factory_t {.cdecl.}
+
+proc rocksdb_sst_partitioner_factory_destroy*(
+  factory: ptr rocksdb_sst_partitioner_factory_t
+) {.cdecl.}
+
+proc rocksdb_options_set_sst_partitioner_factory*(
+  a1: ptr rocksdb_options_t, a2: ptr rocksdb_sst_partitioner_factory_t
+) {.cdecl.}
+
+##  Table Properties Collector Factory
+
+proc rocksdb_table_properties_collector_factory_destroy*(
+  factory: ptr rocksdb_table_properties_collector_factory_t
+) {.cdecl.}
+
+proc rocksdb_options_add_table_properties_collector_factory*(
+  a1: ptr rocksdb_options_t, a2: ptr rocksdb_table_properties_collector_factory_t
+) {.cdecl.}
+
 proc rocksdb_options_set_write_buffer_size*(
   a1: ptr rocksdb_options_t, a2: csize_t
 ) {.cdecl.}
@@ -2313,14 +2395,6 @@ proc rocksdb_options_set_skip_stats_update_on_db_open*(
 ) {.cdecl.}
 
 proc rocksdb_options_get_skip_stats_update_on_db_open*(
-  opt: ptr rocksdb_options_t
-): uint8 {.cdecl.}
-
-proc rocksdb_options_set_skip_checking_sst_file_sizes_on_db_open*(
-  opt: ptr rocksdb_options_t, val: uint8
-) {.cdecl.}
-
-proc rocksdb_options_get_skip_checking_sst_file_sizes_on_db_open*(
   opt: ptr rocksdb_options_t
 ): uint8 {.cdecl.}
 
@@ -3033,7 +3107,12 @@ const
   rocksdb_internal_range_del_reseek_count* = 75
   rocksdb_block_read_cpu_time* = 76
   rocksdb_internal_merge_point_lookup_count* = 77
-  rocksdb_total_metric_count* = 80
+  rocksdb_data_block_read_byte* = 78
+  rocksdb_index_block_read_byte* = 79
+  rocksdb_filter_block_read_byte* = 80
+  rocksdb_compression_dict_block_read_byte* = 81
+  rocksdb_metadata_block_read_byte* = 82
+  rocksdb_total_metric_count* = 85
 
 proc rocksdb_set_perf_level*(a1: cint) {.cdecl.}
 proc rocksdb_perfcontext_create*(): ptr rocksdb_perfcontext_t {.cdecl.}
@@ -3220,12 +3299,6 @@ proc rocksdb_readoptions_set_tailing*(
 ) {.cdecl.}
 
 proc rocksdb_readoptions_get_tailing*(a1: ptr rocksdb_readoptions_t): uint8 {.cdecl.}
-##  The functionality that this option controlled has been removed.
-
-proc rocksdb_readoptions_set_managed*(
-  a1: ptr rocksdb_readoptions_t, a2: uint8
-) {.cdecl.}
-
 proc rocksdb_readoptions_set_readahead_size*(
   a1: ptr rocksdb_readoptions_t, a2: csize_t
 ) {.cdecl.}
@@ -3800,7 +3873,6 @@ proc rocksdb_slicetransform_create*(
     a1: pointer, key: cstring, length: csize_t, dst_length: ptr csize_t
   ): cstring {.cdecl.},
   in_domain: proc(a1: pointer, key: cstring, length: csize_t): uint8 {.cdecl.},
-  in_range: proc(a1: pointer, key: cstring, length: csize_t): uint8 {.cdecl.},
   name: proc(a1: pointer): cstring {.cdecl.},
 ): ptr rocksdb_slicetransform_t {.cdecl.}
 
@@ -3891,6 +3963,22 @@ proc rocksdb_fifo_compaction_options_set_max_table_files_size*(
 proc rocksdb_fifo_compaction_options_get_max_table_files_size*(
   fifo_opts: ptr rocksdb_fifo_compaction_options_t
 ): uint64 {.cdecl.}
+
+proc rocksdb_fifo_compaction_options_set_max_data_files_size*(
+  fifo_opts: ptr rocksdb_fifo_compaction_options_t, size: uint64
+) {.cdecl.}
+
+proc rocksdb_fifo_compaction_options_get_max_data_files_size*(
+  fifo_opts: ptr rocksdb_fifo_compaction_options_t
+): uint64 {.cdecl.}
+
+proc rocksdb_fifo_compaction_options_set_use_kv_ratio_compaction*(
+  fifo_opts: ptr rocksdb_fifo_compaction_options_t, use_kv_ratio_compaction: uint8
+) {.cdecl.}
+
+proc rocksdb_fifo_compaction_options_get_use_kv_ratio_compaction*(
+  fifo_opts: ptr rocksdb_fifo_compaction_options_t
+): uint8 {.cdecl.}
 
 proc rocksdb_fifo_compaction_options_destroy*(
   fifo_opts: ptr rocksdb_fifo_compaction_options_t
@@ -5087,6 +5175,10 @@ proc rocksdb_compaction_service_options_override_create*(): ptr rocksdb_compacti
   cdecl
 .}
 
+proc rocksdb_compaction_service_options_override_create_from_options*(
+  option: ptr rocksdb_options_t
+): ptr rocksdb_compaction_service_options_override_t {.cdecl.}
+
 proc rocksdb_compaction_service_options_override_destroy*(
   override_options: ptr rocksdb_compaction_service_options_override_t
 ) {.cdecl.}
@@ -5099,6 +5191,72 @@ proc rocksdb_compaction_service_options_override_set_env*(
 proc rocksdb_compaction_service_options_override_set_comparator*(
   override_options: ptr rocksdb_compaction_service_options_override_t,
   comparator: ptr rocksdb_comparator_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_merge_operator*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  merge_operator: ptr rocksdb_mergeoperator_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_compaction_filter*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  compaction_filter: ptr rocksdb_compactionfilter_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_compaction_filter_factory*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  compaction_filter_factory: ptr rocksdb_compactionfilterfactory_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_prefix_extractor*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  prefix_extractor: ptr rocksdb_slicetransform_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_block_based_table_factory*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  table_options: ptr rocksdb_block_based_table_options_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_cuckoo_table_factory*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  table_options: ptr rocksdb_cuckoo_table_options_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_add_event_listener*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  event_listener: ptr rocksdb_eventlistener_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_statistics*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  options: ptr rocksdb_options_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_info_log*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  logger: ptr rocksdb_logger_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_option*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  key: cstring,
+  value: cstring,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_file_checksum_gen_factory*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  factory: ptr rocksdb_file_checksum_gen_factory_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_set_sst_partitioner_factory*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  factory: ptr rocksdb_sst_partitioner_factory_t,
+) {.cdecl.}
+
+proc rocksdb_compaction_service_options_override_add_table_properties_collector_factory*(
+  override_options: ptr rocksdb_compaction_service_options_override_t,
+  factory: ptr rocksdb_table_properties_collector_factory_t,
 ) {.cdecl.}
 
 ##  Atomic bool management for cancellation
