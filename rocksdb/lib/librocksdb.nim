@@ -129,6 +129,9 @@ else:
   {.passl: libsDir & "/liblz4.a".}
   {.passl: libsDir & "/libzstd.a".}
 
+  when defined(linux):
+    {.passl: libsDir & "/liburing.a".}
+
   when defined(windows):
     {.passl: "-lshlwapi -lrpcrt4".}
 

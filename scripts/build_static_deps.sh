@@ -18,6 +18,8 @@ ROCKSDB_LIB_DIR="${REPO_DIR}/vendor/rocksdb"
 BUILD_DEST="${REPO_DIR}/build"
 LZ4_VERSION=1.10.0
 ZSTD_VERSION=1.5.7
+LIBURING_VERSION=2.13
+LIBURING_DIR="${ROCKSDB_LIB_DIR}/liburing-liburing-${LIBURING_VERSION}"
 
 : "${MAKE:=make}"
 
@@ -33,10 +35,40 @@ export PORTABLE=1
 export DEBUG_LEVEL=0
 #export USE_LTO=1
 
+WITH_LIBURING=0
+if [[ "$(uname)" == "Linux" ]]; then
+  # Build RocksDb with io_uring support using a static liburing built from
+  # source so that the library doesn't depend on the build machine having the
+  # liburing development files installed.
+  WITH_LIBURING=1
+  export ROCKSDB_USE_IO_URING=1
+fi
+
+build_liburing() {
+  if [ ! -f "${LIBURING_DIR}/src/liburing.a" ]; then
+    echo "Building liburing static library."
+    curl -sSL "https://github.com/axboe/liburing/archive/refs/tags/liburing-${LIBURING_VERSION}.tar.gz" | \
+      tar xz -C "${ROCKSDB_LIB_DIR}"
+    (cd "${LIBURING_DIR}" && ./configure > /dev/null && \
+      ${MAKE} -j${NPROC} -C src liburing.a > /dev/null 2>&1)
+  fi
+
+  # Make the liburing header and library visible to the compiler so that the
+  # io_uring support check in build_detect_platform succeeds.
+  export CPATH="${LIBURING_DIR}/src/include${CPATH:+:${CPATH}}"
+  export LIBRARY_PATH="${LIBURING_DIR}/src${LIBRARY_PATH:+:${LIBRARY_PATH}}"
+}
+
+LIBURING_A_PRESENT=1
+if [[ ${WITH_LIBURING} == 1 ]] && [ ! -f "${BUILD_DEST}/liburing.a" ]; then
+  LIBURING_A_PRESENT=0
+fi
+
 if [ -f "${BUILD_DEST}/librocksdb.a" ] && \
    [ -f "${BUILD_DEST}/liblz4.a" ] && \
    [ -f "${BUILD_DEST}/libzstd.a" ] && \
-   [ -f "${BUILD_DEST}/version.txt" ]; then
+   [ -f "${BUILD_DEST}/version.txt" ] && \
+   [ ${LIBURING_A_PRESENT} == 1 ]; then
 
   ROCKSDB_VERSION_BEFORE=$(cat "${BUILD_DEST}/version.txt")
 
@@ -59,6 +91,11 @@ if ${MAKE} -C "${ROCKSDB_LIB_DIR}" -q unity.a; then
   cp "${ROCKSDB_LIB_DIR}/libzstd.a" "${BUILD_DEST}/"
   cp "${ROCKSDB_LIB_DIR}/unity.a" "${BUILD_DEST}/librocksdb.a"
 
+  if [[ ${WITH_LIBURING} == 1 ]]; then
+    build_liburing
+    cp "${LIBURING_DIR}/src/liburing.a" "${BUILD_DEST}/"
+  fi
+
   cd ${REPO_DIR}/vendor/rocksdb
   ${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full > "${BUILD_DEST}/version.txt" 2>&1
   cd ${REPO_DIR}
@@ -67,6 +104,12 @@ if ${MAKE} -C "${ROCKSDB_LIB_DIR}" -q unity.a; then
 else
   ${REPO_DIR}/scripts/clean_build_artifacts.sh
   echo "Building RocksDb static libraries."
+fi
+
+# This must run after clean_build_artifacts.sh because that script removes the
+# liburing build from the vendor directory.
+if [[ ${WITH_LIBURING} == 1 ]]; then
+  build_liburing
 fi
 
 ${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" liblz4.a libzstd.a --no-print-directory > /dev/null 2>&1
@@ -78,11 +121,21 @@ ${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" unity.a --no-print-directory > /dev/n
 
 #cat "${REPO_DIR}/vendor/rocksdb/make_config.mk"
 
+if [[ ${WITH_LIBURING} == 1 ]] && \
+   ! grep -q "ROCKSDB_IOURING_PRESENT" "${ROCKSDB_LIB_DIR}/make_config.mk"; then
+  echo "io_uring support was not detected by the RocksDb build."
+  exit 1
+fi
+
 mkdir -p "${BUILD_DEST}"
 
 cp "${ROCKSDB_LIB_DIR}/liblz4.a" "${BUILD_DEST}/"
 cp "${ROCKSDB_LIB_DIR}/libzstd.a" "${BUILD_DEST}/"
 cp "${ROCKSDB_LIB_DIR}/unity.a" "${BUILD_DEST}/librocksdb.a"
+
+if [[ ${WITH_LIBURING} == 1 ]]; then
+  cp "${LIBURING_DIR}/src/liburing.a" "${BUILD_DEST}/"
+fi
 
 cd ${REPO_DIR}/vendor/rocksdb
 ${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full > "${BUILD_DEST}/version.txt" 2>&1
