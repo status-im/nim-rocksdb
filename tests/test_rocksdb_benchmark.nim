@@ -34,14 +34,13 @@
 #   RocksDb only uses io_uring when both of these hold:
 #     1. It was compiled with ROCKSDB_IOURING_PRESENT, which requires liburing
 #        to be present at build time (see scripts/build_static_deps.sh).
-#     2. The application defines the weak symbol `RocksDbIOUringEnable` and it
-#        returns true. When that symbol is left undefined, RocksDb hands every
-#        file it opens a null io_uring instance (env/fs_posix.cc) and both
-#        MultiRead and ReadAsync fall back to serialized pread calls.
+#     2. The weak symbol `RocksDbIOUringEnable` is defined and returns true.
+#        nim-rocksdb defines it in lib/librocksdb.nim, enabled by default on
+#        Linux static builds and controllable through setIoUringEnabled.
 #
-#   This file defines that symbol, so the io_uring paths can be turned on and
-#   off at runtime. Turning them off reproduces what a build without liburing
-#   does: PosixRandomAccessFile::MultiRead sees a null ring and defers to
+#   This benchmark uses setIoUringEnabled to turn the io_uring paths on and off
+#   at runtime. Turning them off reproduces what a build without liburing does:
+#   PosixRandomAccessFile::MultiRead sees a null ring and defers to
 #   FSRandomAccessFile::MultiRead, which reads each request in turn. Measuring
 #   both from one process keeps the data, the key order and the machine state
 #   identical across the comparison.
@@ -69,14 +68,6 @@ import
   ./test_helper
 
 const benchmarkNameWidth = 52
-
-# RocksDb calls this weak symbol to decide whether io_uring may be used. It is
-# consulted every time a file is opened, so flipping this flag and reopening the
-# database switches the io_uring paths on or off.
-var ioUringEnabled = false
-
-proc rocksDbIOUringEnable(): bool {.exportc: "RocksDbIOUringEnable", cdecl, used.} =
-  ioUringEnabled
 
 proc readSyscallCount(): int64 =
   ## Number of read syscalls this process has made, from /proc/self/io. Reads
@@ -475,7 +466,7 @@ suite "RocksDb Benchmark Tests":
     ] =
       ## Open the database with io_uring either enabled or disabled, then run
       ## the same batched reads against it.
-      ioUringEnabled = uringOn
+      setIoUringEnabled(uringOn)
 
       let dbOpts = defaultDbOptions(autoClose = true)
       # Bypass the page cache so reads reach the device, which is the only place

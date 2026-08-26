@@ -116,6 +116,19 @@ elif defined(macosx):
 else:
   const librocksdb = "librocksdb.so"
 
+when defined(linux) and not defined(rocksdb_dynamic_linking):
+  var ioUringEnabled = true
+
+  proc rocksDbIOUringEnable(): bool {.exportc: "RocksDbIOUringEnable", cdecl, used.} =
+    ioUringEnabled
+
+  proc setIoUringEnabled*(enabled: bool) =
+    ioUringEnabled = enabled
+
+else:
+  proc setIoUringEnabled*(enabled: bool) =
+    discard
+
 when defined(rocksdb_dynamic_linking) or defined(windows):
   {.push importc, cdecl, dynlib: librocksdb.}
 else:
