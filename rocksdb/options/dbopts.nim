@@ -21,6 +21,32 @@ type
     cache: CacheRef
     autoClose*: bool # if true then close will be called when the database is closed
 
+  InfoLogLevel* {.pure.} = enum
+    debugLevel = 0
+    infoLevel = 1
+    warnLevel = 2
+    errorLevel = 3
+    fatalLevel = 4
+    headerLevel = 5
+
+  StatisticsLevel* {.pure.} = enum
+    disableAll = rocksdb_statistics_level_disable_all
+    exceptHistogramOrTimers = rocksdb_statistics_level_except_histogram_or_timers
+    exceptTimers = rocksdb_statistics_level_except_timers
+    exceptDetailedTimers = rocksdb_statistics_level_except_detailed_timers
+    exceptTimeForMutex = rocksdb_statistics_level_except_time_for_mutex
+    all = rocksdb_statistics_level_all
+
+  WalRecoveryMode* {.pure.} = enum
+    tolerateCorruptedTailRecords = 0
+    absoluteConsistency = 1
+    pointInTimeRecovery = 2
+    skipAnyCorruptedRecords = 3
+
+  WalCompressionType* {.pure.} = enum
+    noCompression = 0
+    zstdCompression = 7
+
 proc createDbOptions*(autoClose = false): DbOptionsRef =
   DbOptionsRef(cPtr: rocksdb_options_create(), autoClose: autoClose)
 
@@ -51,7 +77,9 @@ opt createIfMissing, bool, uint8
 opt createMissingColumnFamilies, bool, uint8
 opt errorIfExists, bool, uint8
 opt paranoidChecks, bool, uint8
+opt openFilesAsync, bool, uint8
 
+opt infoLogLevel, InfoLogLevel, cint
 opt maxOpenFiles, int, cint
 opt maxFileOpeningThreads, int, cint
 opt maxTotalWalSize, int, uint64
@@ -59,6 +87,7 @@ opt useFsync, bool, cint
 opt deleteObsoleteFilesPeriodMicros, int, uint64
 opt maxBackgroundJobs, int, cint
 opt maxBackgroundCompactions, int, cint
+opt maxBackgroundFlushes, int, cint
 opt maxSubcompactions, int, uint32
 opt maxLogFileSize, int, csize_t
 opt logFiletimeToRoll, int, csize_t
@@ -89,8 +118,42 @@ opt enableWriteThreadAdaptiveYield, bool, uint8
 opt skipStatsUpdateOnDbOpen, bool, uint8
 opt allowIngestBehind, bool, uint8
 opt manualWalFlush, bool, uint8
+opt walRecoveryMode, WalRecoveryMode, cint
 opt atomicFlush, bool, uint8
 opt avoidUnnecessaryBlockingIo, bool, uint8
+opt statisticsLevel, StatisticsLevel, cint
+opt trackAndVerifyWalsInManifest, bool, uint8
+opt writeDbidToManifest, bool, uint8
+opt writeIdentityFile, bool, uint8
+
+proc `walCompression=`*(dbOpts: DbOptionsRef, value: WalCompressionType) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_wal_compression(dbOpts.cPtr, value.ord.cint)
+
+proc walCompression*(dbOpts: DbOptionsRef): WalCompressionType =
+  doAssert not dbOpts.isClosed()
+
+  case rocksdb_options_get_wal_compression(dbOpts.cPtr)
+  of rocksdb_zstd_compression:
+    WalCompressionType.zstdCompression
+  else:
+    WalCompressionType.noCompression
+
+proc enableStatistics*(dbOpts: DbOptionsRef) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_enable_statistics(dbOpts.cPtr)
+
+proc `dumpMallocStats=`*(dbOpts: DbOptionsRef, value: bool) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_dump_malloc_stats(dbOpts.cPtr, value.uint8)
+
+proc `dbLogDir=`*(dbOpts: DbOptionsRef, value: string) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_db_log_dir(dbOpts.cPtr, value.cstring)
+
+proc `walDir=`*(dbOpts: DbOptionsRef, value: string) =
+  doAssert not dbOpts.isClosed()
+  rocksdb_options_set_wal_dir(dbOpts.cPtr, value.cstring)
 
 proc `rowCache=`*(dbOpts: DbOptionsRef, cache: CacheRef) =
   doAssert not dbOpts.isClosed()

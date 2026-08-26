@@ -26,6 +26,15 @@ suite "BackupEngineOptionsRef Tests":
 
     backupOpts.close()
 
+  test "Test set and get options":
+    let backupOpts = createBackupEngineOptions(".")
+
+    backupOpts.maxValidBackupsToOpen = 10
+
+    check backupOpts.maxValidBackupsToOpen == 10
+
+    backupOpts.close()
+
   test "Test close":
     let backupOpts = defaultBackupEngineOptions(".")
 

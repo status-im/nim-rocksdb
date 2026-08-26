@@ -26,6 +26,13 @@ suite "ReadOptionsRef Tests":
 
     readOpts.close()
 
+  test "Test set options":
+    var readOpts = createReadOptions()
+
+    readOpts.autoReadaheadSize = true
+
+    readOpts.close()
+
   test "Test close":
     var readOpts = defaultReadOptions()
 

@@ -50,6 +50,7 @@ opt restoreRateLimit, int, uint64
 opt shareFilesWithChecksumNaming, bool, cint
 opt maxBackgroundOperations, int, cint
 opt callbackTriggerIntervalSize, int, uint64
+opt maxValidBackupsToOpen, int, cint
 
 proc defaultBackupEngineOptions*(
     backupDir: string, autoClose = false

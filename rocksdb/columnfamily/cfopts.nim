@@ -40,6 +40,22 @@ type
     xpressCompression = rocksdb_xpress_compression
     zstdCompression = rocksdb_zstd_compression
 
+  CompactionStyle* {.pure.} = enum
+    level = rocksdb_level_compaction
+    universal = rocksdb_universal_compaction
+    fifo = rocksdb_fifo_compaction
+
+  CompactionPri* {.pure.} = enum
+    byCompensatedSize = rocksdb_k_by_compensated_size_compaction_pri
+    oldestLargestSeqFirst = rocksdb_k_oldest_largest_seq_first_compaction_pri
+    oldestSmallestSeqFirst = rocksdb_k_oldest_smallest_seq_first_compaction_pri
+    minOverlappingRatio = rocksdb_k_min_overlapping_ratio_compaction_pri
+    roundRobin = rocksdb_k_round_robin_compaction_pri
+
+  PrepopulateBlobCache* {.pure.} = enum
+    disable = rocksdb_prepopulate_blob_disable
+    flushOnly = rocksdb_prepopulate_blob_flush_only
+
 proc createFixedPrefix*(value: int): SlicetransformRef =
   SlicetransformRef(cPtr: rocksdb_slicetransform_create_fixed_prefix(value.csize_t))
 
@@ -128,6 +144,14 @@ opt compressionOptionsUseZstdDictTrainer, bool, uint8
 opt compressionOptionsParallelThreads, int, cint
 opt compressionOptionsMaxDictBufferBytes, int, uint64
 
+opt compactionStyle, CompactionStyle, cint
+opt compactionPri, CompactionPri, cint
+opt levelCompactionDynamicLevelBytes, bool, uint8
+opt experimentalMempurgeThreshold, float, cdouble
+opt memtableOpScanFlushTrigger, int, uint32
+opt memtableAvgOpScanFlushTrigger, int, uint32
+opt prepopulateBlobCache, PrepopulateBlobCache, cint
+
 proc defaultColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
   createColFamilyOptions(autoClose)
 
@@ -178,6 +202,18 @@ proc setMemtableVectorRep*(cfOpts: ColFamilyOptionsRef) =
 proc `memtableWholeKeyFiltering=`*(dbOpts: ColFamilyOptionsRef, value: bool) =
   doAssert not dbOpts.isClosed()
   rocksdb_options_set_memtable_whole_key_filtering(dbOpts.cPtr, value.uint8)
+
+proc `memtableBatchLookupOptimization=`*(cfOpts: ColFamilyOptionsRef, value: bool) =
+  doAssert not cfOpts.isClosed()
+
+  var errors: cstring
+  rocksdb_get_options_from_string(
+    cfOpts.cPtr,
+    cstring("memtable_batch_lookup_optimization=" & $value),
+    cfOpts.cPtr,
+    cast[cstringArray](errors.addr),
+  )
+  doAssert errors.isNil(), $errors
 
 proc setCompressionOptions*(
     cfOpts: ColFamilyOptionsRef,

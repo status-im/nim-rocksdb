@@ -21,6 +21,36 @@ suite "ColFamilyOptionsRef Tests":
     cfOpts.close()
     check cfOpts.isClosed()
 
+  test "Test set and get options":
+    var cfOpts = defaultColFamilyOptions()
+
+    cfOpts.compactionStyle = CompactionStyle.universal
+    cfOpts.compactionPri = CompactionPri.roundRobin
+    cfOpts.levelCompactionDynamicLevelBytes = false
+    cfOpts.experimentalMempurgeThreshold = 1.5
+    cfOpts.memtableOpScanFlushTrigger = 100
+    cfOpts.memtableAvgOpScanFlushTrigger = 50
+    cfOpts.prepopulateBlobCache = PrepopulateBlobCache.flushOnly
+
+    check:
+      cfOpts.compactionStyle == CompactionStyle.universal
+      cfOpts.compactionPri == CompactionPri.roundRobin
+      not cfOpts.levelCompactionDynamicLevelBytes
+      cfOpts.experimentalMempurgeThreshold == 1.5
+      cfOpts.memtableOpScanFlushTrigger == 100
+      cfOpts.memtableAvgOpScanFlushTrigger == 50
+      cfOpts.prepopulateBlobCache == PrepopulateBlobCache.flushOnly
+
+    cfOpts.close()
+
+  test "Test memtableBatchLookupOptimization":
+    var cfOpts = defaultColFamilyOptions()
+
+    cfOpts.memtableBatchLookupOptimization = true
+    cfOpts.memtableBatchLookupOptimization = false
+
+    cfOpts.close()
+
   test "Test auto close enabled":
     let
       cfOpts = defaultColFamilyOptions()
