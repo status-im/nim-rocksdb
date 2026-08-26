@@ -152,9 +152,6 @@ opt memtableOpScanFlushTrigger, int, uint32
 opt memtableAvgOpScanFlushTrigger, int, uint32
 opt prepopulateBlobCache, PrepopulateBlobCache, cint
 
-proc defaultColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
-  createColFamilyOptions(autoClose)
-
 # proc setFixedPrefixExtractor*(dbOpts: ColFamilyOptionsRef, length: int) =
 #   doAssert not dbOpts.isClosed()
 #   rocksdb_options_set_prefix_extractor(
@@ -264,3 +261,8 @@ proc `bottommostCompressionOptionsMaxDictBufferBytes=`*(
   rocksdb_options_set_bottommost_compression_options_max_dict_buffer_bytes(
     dbOpts.cPtr, value.uint64, 1
   )
+
+proc defaultColFamilyOptions*(autoClose = false): ColFamilyOptionsRef =
+  let cfOpts = createColFamilyOptions(autoClose)
+  cfOpts.memtableBatchLookupOptimization = true
+  cfOpts
