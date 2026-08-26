@@ -36,7 +36,15 @@ fi
 
 ${REPO_DIR}/vendor/vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
-${REPO_DIR}/vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-windows-rocksdb --recurse --overlay-triplets=${REPO_DIR}/triplets
+# The vcpkg buildtrees contain deeply nested paths which can exceed the
+# Windows MAX_PATH limit, so in CI (where RUNNER_TEMP is set) redirect
+# them to a short path outside the repository.
+VCPKG_EXTRA_ARGS=""
+if [[ -n "${RUNNER_TEMP:-}" ]]; then
+  VCPKG_EXTRA_ARGS="--x-buildtrees-root=${RUNNER_TEMP}/vbt"
+fi
+
+${REPO_DIR}/vendor/vcpkg/vcpkg install rocksdb[lz4,zstd]:x64-windows-rocksdb --recurse --overlay-triplets=${REPO_DIR}/triplets ${VCPKG_EXTRA_ARGS}
 
 mkdir -p "${BUILD_DEST}"
 cp ${REPO_DIR}/vendor/vcpkg/installed/x64-windows-rocksdb/bin/rocksdb-shared.dll ${BUILD_DEST}/librocksdb.dll
