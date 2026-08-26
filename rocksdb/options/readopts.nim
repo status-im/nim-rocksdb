@@ -54,6 +54,10 @@ opt deadline, int, uint64
 opt ioTimeout, int, uint64
 opt asyncIo, bool, uint8
 
+proc `autoReadaheadSize=`*(readOpts: ReadOptionsRef, value: bool) =
+  doAssert not readOpts.isClosed()
+  rocksdb_readoptions_set_auto_readahead_size(readOpts.cPtr, value.uint8)
+
 proc setSnapshot*(readOpts: ReadOptionsRef, snapshot: SnapshotRef) =
   doAssert not readOpts.isClosed()
   rocksdb_readoptions_set_snapshot(readOpts.cPtr, snapshot.cPtr)

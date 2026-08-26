@@ -57,10 +57,6 @@ because RocksDb is a C++ library. For example:
 
 Note that static linking is currently not supported on windows.
 
-## Usage
-
-See [simple_example](examples/simple_example.nim)
-
 ### Contribution
 
 Any contribution intentionally submitted for inclusion in the work by you shall

@@ -26,6 +26,37 @@ suite "DbOptionsRef Tests":
 
     dbOpts.close()
 
+  test "Test set and get options":
+    let dbOpts = createDbOptions()
+
+    dbOpts.openFilesAsync = true
+    dbOpts.infoLogLevel = InfoLogLevel.warnLevel
+    dbOpts.maxBackgroundFlushes = 2
+    dbOpts.walRecoveryMode = WalRecoveryMode.absoluteConsistency
+    dbOpts.walCompression = WalCompressionType.zstdCompression
+    dbOpts.enableStatistics()
+    dbOpts.statisticsLevel = StatisticsLevel.exceptTimers
+    dbOpts.trackAndVerifyWalsInManifest = true
+    dbOpts.writeDbidToManifest = true
+    dbOpts.writeIdentityFile = false
+
+    check:
+      dbOpts.openFilesAsync
+      dbOpts.infoLogLevel == InfoLogLevel.warnLevel
+      dbOpts.maxBackgroundFlushes == 2
+      dbOpts.walRecoveryMode == WalRecoveryMode.absoluteConsistency
+      dbOpts.walCompression == WalCompressionType.zstdCompression
+      dbOpts.statisticsLevel == StatisticsLevel.exceptTimers
+      dbOpts.trackAndVerifyWalsInManifest
+      dbOpts.writeDbidToManifest
+      not dbOpts.writeIdentityFile
+
+    dbOpts.dumpMallocStats = true
+    dbOpts.dbLogDir = "."
+    dbOpts.walDir = "."
+
+    dbOpts.close()
+
   test "Test close":
     let dbOpts = defaultDbOptions()
 

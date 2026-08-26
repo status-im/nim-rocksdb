@@ -26,6 +26,19 @@ suite "TableOptionsRef Tests":
 
     tableOpts.close()
 
+  test "Test set options":
+    let tableOpts = createTableOptions()
+
+    tableOpts.checksum = ChecksumType.xxh3
+    tableOpts.separateKeyValueInDataBlock = true
+    tableOpts.indexBlockSearchType = IndexBlockSearchType.interpolationSearch
+    tableOpts.topLevelIndexPinningTier = PinningTier.all
+    tableOpts.partitionPinningTier = PinningTier.flushAndSimilar
+    tableOpts.unpartitionedPinningTier = PinningTier.none
+    tableOpts.blockAlign = true
+
+    tableOpts.close()
+
   test "Test close":
     let tableOpts = defaultTableOptions()
 

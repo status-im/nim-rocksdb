@@ -26,6 +26,24 @@ type
     binarySearchAndHash =
       rocksdb_block_based_table_data_block_index_type_binary_search_and_hash
 
+  IndexBlockSearchType* {.pure.} = enum
+    binarySearch = rocksdb_block_based_table_index_block_search_type_binary
+    interpolationSearch =
+      rocksdb_block_based_table_index_block_search_type_interpolation
+
+  PinningTier* {.pure.} = enum
+    fallback = rocksdb_block_based_k_fallback_pinning_tier
+    none = rocksdb_block_based_k_none_pinning_tier
+    flushAndSimilar = rocksdb_block_based_k_flush_and_similar_pinning_tier
+    all = rocksdb_block_based_k_all_pinning_tier
+
+  ChecksumType* {.pure.} = enum
+    noChecksum = 0
+    crc32c = 1
+    xxHash = 2
+    xxHash64 = 3
+    xxh3 = 4
+
 proc createRibbon*(bitsPerKey: float): FilterPolicyRef =
   FilterPolicyRef(cPtr: rocksdb_filterpolicy_create_ribbon(bitsPerKey))
 
@@ -63,6 +81,7 @@ template opt(nname, ntyp, ctyp: untyped) =
     doAssert not opts.isClosed
     `rocksdb_block_based_options_set nname`(opts.cPtr, value.ctyp)
 
+opt checksum, ChecksumType, char
 opt cacheIndexAndFilterBlocks, bool, uint8
 opt cacheIndexAndFilterBlocksWithHighPriority, bool, uint8
 opt pinL0FilterAndIndexBlocksInCache, bool, uint8
@@ -81,6 +100,12 @@ opt optimizeFiltersForMemory, bool, uint8
 opt useDeltaEncoding, bool, uint8
 opt wholeKeyFiltering, bool, uint8
 opt formatVersion, int, cint
+opt separateKeyValueInDataBlock, bool, uint8
+opt indexBlockSearchType, IndexBlockSearchType, cint
+opt topLevelIndexPinningTier, PinningTier, cint
+opt partitionPinningTier, PinningTier, cint
+opt unpartitionedPinningTier, PinningTier, cint
+opt blockAlign, bool, uint8
 
 proc `blockCache=`*(opts: TableOptionsRef, cache: CacheRef) =
   doAssert not opts.isClosed()
