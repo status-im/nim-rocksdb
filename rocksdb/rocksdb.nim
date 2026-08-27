@@ -36,7 +36,7 @@ import
 export
   rocksresult, dbopts, readopts, writeopts, cfdescriptor, cfhandle, rocksiterator,
   writebatch, writebatchwi, snapshot.SnapshotRef, snapshot.isClosed,
-  snapshot.getSequenceNumber
+  snapshot.getSequenceNumber, librocksdb.setIoUringEnabled
 
 type
   RocksDbPtr* = ptr rocksdb_t
