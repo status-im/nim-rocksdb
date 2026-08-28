@@ -365,11 +365,19 @@ proc multiGetIter*(
     sortedInput,
   )
 
+  var
+    failed = false
+    errorMsg: string
   for e in errors:
     if not e.isNil:
-      let res = err($(e))
+      if not failed:
+        failed = true
+        errorMsg = $(e)
       rocksdb_free(e)
-      return res
+
+  if failed:
+    multiGetIter.close()
+    return err(errorMsg)
 
   ok(multiGetIter)
 
@@ -405,6 +413,93 @@ proc multiGet*(
     inc i
 
   ok(values)
+
+const MULTI_GET_MAX_KEYS* = 256
+  ## Maximum number of keys accepted per call by the buffer based `multiGet`
+  ## below - the limit keeps the working state small enough to fit in stack
+  ## memory.
+
+proc multiGet*(
+    db: RocksDbRef,
+    keys: openArray[RocksDbSlice],
+    values: var openArray[RocksDbMutSlice],
+    sortedInput = false,
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[void] =
+  ## Get a batch of values for the given set of keys into caller-provided
+  ## buffers. Nothing is allocated on the Nim heap - the values are copied
+  ## straight out of the pinnable slices handed back by RocksDB, which does
+  ## allocate internally for every call. At least one and at most
+  ## `MULTI_GET_MAX_KEYS` keys may be fetched per call.
+  ##
+  ## Each entry of `keys` is a slice describing the bytes of a key and each
+  ## entry of `values` is a `RocksDbMutSlice` describing a caller-owned,
+  ## writable buffer into which the value of the corresponding key is copied.
+  ## The length of each buffer is set to the number of bytes written, so
+  ## `values[i].data()` returns the value of `keys[i]`.
+  ##
+  ## Keys that do not exist in the database are not an error - `values[i]` is
+  ## marked as not found instead, which distinguishes a missing value from an
+  ## empty one since both have a length of zero.
+  ##
+  ## An error is returned if any value does not fit into its buffer, in which
+  ## case the contents and lengths of `values` are undefined.
+  ##
+  ## sortedInput - If true, it means the input keys are already sorted by key
+  ## order, so the MultiGet() API doesn't have to sort them again. If false,
+  ## the keys will be copied and sorted internally by the API - the input
+  ## array will not be modified.
+
+  doAssert keys.len > 0 and keys.len <= MULTI_GET_MAX_KEYS
+  doAssert values.len == keys.len
+
+  var
+    valuePtrs: array[MULTI_GET_MAX_KEYS, ptr rocksdb_pinnableslice_t]
+    errs: array[MULTI_GET_MAX_KEYS, cstring]
+
+  # `RocksDbSlice` is layout compatible with `rocksdb_slice_t` (statically
+  # checked in `rocksslice`), so the keys are passed through as-is rather than
+  # copied into a staging array.
+  rocksdb_batched_multi_get_cf_slice(
+    db.cPtr,
+    db.readOpts.cPtr,
+    cfHandle.cPtr,
+    csize_t(keys.len),
+    cast[ptr rocksdb_slice_t](unsafeAddr keys[0]),
+    addr valuePtrs[0],
+    cast[cstringArray](addr errs[0]),
+    sortedInput,
+  )
+
+  defer:
+    for i in 0 ..< keys.len:
+      if not valuePtrs[i].isNil:
+        rocksdb_pinnableslice_destroy(valuePtrs[i])
+      if not errs[i].isNil:
+        rocksdb_free(errs[i])
+
+  for i in 0 ..< keys.len:
+    if not errs[i].isNil:
+      return err("rocksdb: key " & $i & ": " & $(errs[i]))
+
+    if valuePtrs[i].isNil:
+      values[i].len = 0
+      values[i].found = false
+      continue
+
+    var valLen: csize_t
+    let valPtr = rocksdb_pinnableslice_value(valuePtrs[i], valLen.addr)
+
+    if int(valLen) > values[i].capacity:
+      return
+        err("rocksdb: key " & $i & ": buffer too small, value length is " & $valLen)
+
+    if valLen > 0:
+      copyMem(values[i].baseAddr, valPtr, int(valLen))
+    values[i].len = int(valLen)
+    values[i].found = true
+
+  ok()
 
 proc put*(
     db: RocksDbReadWriteRef, key, val: openArray[byte], cfHandle = db.defaultCfHandle

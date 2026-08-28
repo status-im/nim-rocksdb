@@ -17,8 +17,9 @@ template build() =
   else:
     exec "scripts/build_static_deps.sh"
 
-before install:
-  build()
+when declared(before):
+  before install:
+    build()
 
 task format, "Format nim code using nph":
   exec "nimble install nph@0.7.0"

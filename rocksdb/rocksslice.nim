@@ -12,25 +12,81 @@
 
 {.push raises: [].}
 
-type RocksDbSlice* = object
-  data: cstring
-  len: csize_t
+import ./lib/librocksdb
+
+type
+  RocksDbSlice* = object
+    buf: ptr byte
+    size: csize_t
+
+  RocksDbMutSlice* = object
+    buf: ptr byte
+    size: int
+    cap: int
+    hasValue: bool
+
+static:
+  doAssert sizeof(RocksDbSlice) == sizeof(rocksdb_slice_t)
+  doAssert offsetOf(RocksDbSlice, buf) == offsetOf(rocksdb_slice_t, data)
+  doAssert offsetOf(RocksDbSlice, size) == offsetOf(rocksdb_slice_t, size)
+  doAssert typeof(default(RocksDbSlice).size) is typeof(default(rocksdb_slice_t).size)
 
 func init*(T: type RocksDbSlice, data: cstring, len: csize_t): T =
-  T(data: data, len: len)
+  T(buf: cast[ptr byte](data), size: len)
 
-template toOpenArray*(data: cstring, len: csize_t): openArray[byte] =
-  const empty = []
+func init*(T: type RocksDbSlice, data: openArray[byte]): T =
+  T(
+    buf:
+      if data.len > 0:
+        unsafeAddr data[0]
+      else:
+        nil,
+    size: csize_t(data.len),
+  )
+
+func init*(T: type RocksDbMutSlice, data: var openArray[byte]): T =
+  T(
+    buf:
+      if data.len > 0:
+        addr data[0]
+      else:
+        nil,
+    size: 0,
+    cap: data.len,
+    hasValue: false,
+  )
+
+template baseAddr*(slice: RocksDbSlice | RocksDbMutSlice): pointer =
+  cast[pointer](slice.buf)
+
+template len*(slice: RocksDbSlice | RocksDbMutSlice): int =
+  int(slice.size)
+
+template `len=`*(slice: var RocksDbMutSlice, len: int) =
+  slice.size = len
+
+template capacity*(slice: RocksDbMutSlice): int =
+  slice.cap
+
+template found*(slice: RocksDbMutSlice): bool =
+  slice.hasValue
+
+template `found=`*(slice: var RocksDbMutSlice, found: bool) =
+  slice.hasValue = found
+
+template toOpenArray*(data: cstring | ptr byte, len: csize_t | int): openArray[byte] =
+  const empty: array[0, byte] = []
   if data.isNil or len == 0:
-    empty.toOpenArrayByte(0, -1)
+    empty.toOpenArray(0, -1)
   else:
-    data.toOpenArrayByte(0, len.int - 1)
+    cast[ptr UncheckedArray[byte]](data).toOpenArray(0, len.int - 1)
 
-template toOpenArray*(slice: RocksDbSlice): openArray[byte] =
-  toOpenArray(slice.data, slice.len)
+template toOpenArray*(slice: RocksDbSlice | RocksDbMutSlice): openArray[byte] =
+  toOpenArray(slice.buf, slice.size)
 
-template data*(slice: RocksDbSlice, asOpenArray: static bool = false): auto =
-  ## Returns the data.
+template data*(
+    slice: RocksDbSlice | RocksDbMutSlice, asOpenArray: static bool = false
+): auto =
   when asOpenArray:
     slice.toOpenArray()
   else:
