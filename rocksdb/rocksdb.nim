@@ -378,7 +378,7 @@ proc multiGetIter*(
         return err(errMsg)
 
   if keys.len <= maxStackKeys:
-    var errs: array[maxStackKeys, cstring]
+    var errs {.noinit.}: array[maxStackKeys, cstring]
     multiGetIterImpl(errs)
   else:
     var errs = newSeq[cstring](keys.len)
@@ -391,14 +391,14 @@ proc multiGetIter*(
     keys: openArray[seq[byte]],
     sortedInput = false,
     cfHandle = db.defaultCfHandle,
-): RocksDBResult[MultiGetIteratorRef] =
+): RocksDBResult[MultiGetIteratorRef] {.inline.} =
   ## Get a batch of values for the given set of keys.
   ##
   ## See the `RocksDbSlice` overload above for the details.
   doAssert keys.len() > 0
 
   if keys.len <= maxStackKeys:
-    var keySlices: array[maxStackKeys, RocksDbSlice]
+    var keySlices {.noinit.}: array[maxStackKeys, RocksDbSlice]
     keys.toSlices(keySlices)
     db.multiGetIter(keySlices.toOpenArray(0, keys.len - 1), sortedInput, cfHandle)
   else:
@@ -521,8 +521,8 @@ proc multiGet*(
 
   if keys.len <= maxStackKeys:
     var
-      valuePtrs: array[maxStackKeys, ptr rocksdb_pinnableslice_t]
-      errs: array[maxStackKeys, cstring]
+      valuePtrs {.noinit.}: array[maxStackKeys, ptr rocksdb_pinnableslice_t]
+      errs {.noinit.}: array[maxStackKeys, cstring]
     multiGetImpl(valuePtrs, errs)
   else:
     var
