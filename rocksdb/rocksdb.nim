@@ -406,6 +406,87 @@ proc multiGet*(
 
   ok(values)
 
+const MULTI_GET_MAX_KEYS* = 128
+  ## Maximum number of keys accepted per call by the buffer based `multiGet`
+  ## below - the limit keeps the working state small enough to fit in stack
+  ## memory.
+
+proc multiGet*(
+    db: RocksDbRef,
+    keys: openArray[RocksDbSlice],
+    values: openArray[RocksDbSlice],
+    valueLens: var openArray[int],
+    sortedInput = false,
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[void] =
+  ## Get a batch of values for the given set of keys into caller-provided
+  ## buffers, without allocating any memory on the happy path. At least one
+  ## and at most `MULTI_GET_MAX_KEYS` keys may be fetched per call.
+  ##
+  ## Each entry of `keys` is a slice describing the bytes of a key and each
+  ## entry of `values` describes a caller-owned buffer (pointer and capacity)
+  ## into which the value of the corresponding key is copied - `valueLens[i]`
+  ## is set to the number of bytes written into `values[i]`.
+  ##
+  ## An error is returned if any key does not exist or if any value does not
+  ## fit into its buffer, in which case the contents of `values` and
+  ## `valueLens` are undefined.
+  ##
+  ## sortedInput - If true, it means the input keys are already sorted by key
+  ## order, so the MultiGet() API doesn't have to sort them again. If false,
+  ## the keys will be copied and sorted internally by the API - the input
+  ## array will not be modified.
+
+  doAssert keys.len > 0 and keys.len <= MULTI_GET_MAX_KEYS
+  doAssert values.len == keys.len and valueLens.len == keys.len
+
+  var
+    keySlices {.noinit.}: array[MULTI_GET_MAX_KEYS, rocksdb_slice_t]
+    valuePtrs {.noinit.}: array[MULTI_GET_MAX_KEYS, ptr rocksdb_pinnableslice_t]
+    errs {.noinit.}: array[MULTI_GET_MAX_KEYS, cstring]
+
+  for i in 0 ..< keys.len:
+    keySlices[i] =
+      rocksdb_slice_t(data: cast[cstring](keys[i].baseAddr), size: csize_t(keys[i].len))
+    errs[i] = nil
+
+  rocksdb_batched_multi_get_cf_slice(
+    db.cPtr,
+    db.readOpts.cPtr,
+    cfHandle.cPtr,
+    csize_t(keys.len),
+    addr keySlices[0],
+    addr valuePtrs[0],
+    cast[cstringArray](addr errs[0]),
+    sortedInput,
+  )
+
+  defer:
+    for i in 0 ..< keys.len:
+      if not valuePtrs[i].isNil:
+        rocksdb_pinnableslice_destroy(valuePtrs[i])
+      if not errs[i].isNil:
+        rocksdb_free(errs[i])
+
+  for i in 0 ..< keys.len:
+    if not errs[i].isNil:
+      return err($(errs[i]))
+
+    if valuePtrs[i].isNil:
+      return err("rocksdb: value does not exist")
+
+    var valLen: csize_t
+    let valPtr = rocksdb_pinnableslice_value(valuePtrs[i], valLen.addr)
+
+    if int(valLen) > values[i].len:
+      return err("rocksdb: buffer too small, value length is " & $valLen)
+
+    if valLen > 0:
+      copyMem(values[i].baseAddr, valPtr, int(valLen))
+    valueLens[i] = int(valLen)
+
+  ok()
+
 proc put*(
     db: RocksDbReadWriteRef, key, val: openArray[byte], cfHandle = db.defaultCfHandle
 ): RocksDBResult[void] =

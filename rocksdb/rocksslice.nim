@@ -19,6 +19,18 @@ type RocksDbSlice* = object
 func init*(T: type RocksDbSlice, data: cstring, len: csize_t): T =
   T(data: data, len: len)
 
+func init*(T: type RocksDbSlice, data: openArray[byte]): T =
+  T(
+    data: if data.len > 0: cast[cstring](unsafeAddr data[0]) else: nil,
+    len: csize_t(data.len),
+  )
+
+template len*(slice: RocksDbSlice): int =
+  int(slice.len)
+
+template baseAddr*(slice: RocksDbSlice): pointer =
+  cast[pointer](slice.data)
+
 template toOpenArray*(data: cstring, len: csize_t): openArray[byte] =
   const empty = []
   if data.isNil or len == 0:
@@ -30,7 +42,6 @@ template toOpenArray*(slice: RocksDbSlice): openArray[byte] =
   toOpenArray(slice.data, slice.len)
 
 template data*(slice: RocksDbSlice, asOpenArray: static bool = false): auto =
-  ## Returns the data.
   when asOpenArray:
     slice.toOpenArray()
   else:
