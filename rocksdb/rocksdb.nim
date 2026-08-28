@@ -325,9 +325,16 @@ proc get*(
   else:
     ok(true)
 
+const maxStackKeys = 256
+
+template freeErrs(errs: untyped, pos, len: int) =
+  for j in pos ..< len:
+    if not errs[j].isNil:
+      rocksdb_free(errs[j])
+
 proc multiGetIter*(
     db: RocksDbRef,
-    keys: openArray[seq[byte]],
+    keys: openArray[RocksDbSlice],
     sortedInput = false,
     cfHandle = db.defaultCfHandle,
 ): RocksDBResult[MultiGetIteratorRef] =
@@ -344,42 +351,58 @@ proc multiGetIter*(
   ## order, so the MultiGet() API doesn't have to sort them again. If false,
   ## the keys will be copied and sorted internally by the API - the input
   ## array will not be modified.
-  assert keys.len() > 0
-
-  var
-    keySlices = keys.mapIt(
-      rocksdb_slice_t(data: cast[cstring](it.unsafeAddrOrNil()), size: csize_t(it.len))
-    )
-    errors = newSeq[cstring](keys.len())
+  doAssert keys.len() > 0
 
   let multiGetIter = MultiGetIteratorRef.init(keys.len)
 
-  rocksdb_batched_multi_get_cf_slice(
-    db.cPtr,
-    db.readOpts.cPtr,
-    cfHandle.cPtr,
-    csize_t(keys.len),
-    keySlices[0].addr,
-    multiGetIter[][0].addr,
-    cast[cstringArray](errors[0].addr),
-    sortedInput,
-  )
+  template multiGetIterImpl(errs: untyped) =
+    # `RocksDbSlice` is layout compatible with `rocksdb_slice_t` (statically
+    # checked in `rocksslice`), so the keys are passed through as-is rather than
+    # copied into a staging array.
+    rocksdb_batched_multi_get_cf_slice(
+      db.cPtr,
+      db.readOpts.cPtr,
+      cfHandle.cPtr,
+      csize_t(keys.len),
+      cast[ptr rocksdb_slice_t](unsafeAddr keys[0]),
+      multiGetIter[][0].addr,
+      cast[cstringArray](addr errs[0]),
+      sortedInput,
+    )
 
-  var
-    failed = false
-    errorMsg: string
-  for e in errors:
-    if not e.isNil:
-      if not failed:
-        failed = true
-        errorMsg = $(e)
-      rocksdb_free(e)
+    for i in 0 ..< keys.len:
+      if not errs[i].isNil:
+        let errMsg = $(errs[i])
+        freeErrs(errs, i, keys.len)
+        multiGetIter.close()
+        return err(errMsg)
 
-  if failed:
-    multiGetIter.close()
-    return err(errorMsg)
+  if keys.len <= maxStackKeys:
+    var errs: array[maxStackKeys, cstring]
+    multiGetIterImpl(errs)
+  else:
+    var errs = newSeq[cstring](keys.len)
+    multiGetIterImpl(errs)
 
   ok(multiGetIter)
+
+proc multiGetIter*(
+    db: RocksDbRef,
+    keys: openArray[seq[byte]],
+    sortedInput = false,
+    cfHandle = db.defaultCfHandle,
+): RocksDBResult[MultiGetIteratorRef] =
+  ## Get a batch of values for the given set of keys.
+  ##
+  ## See the `RocksDbSlice` overload above for the details.
+  doAssert keys.len() > 0
+
+  if keys.len <= maxStackKeys:
+    var keySlices: array[maxStackKeys, RocksDbSlice]
+    keys.toSlices(keySlices)
+    db.multiGetIter(keySlices.toOpenArray(0, keys.len - 1), sortedInput, cfHandle)
+  else:
+    db.multiGetIter(keys.toSlices(), sortedInput, cfHandle)
 
 proc multiGet*(
     db: RocksDbRef,
@@ -414,11 +437,6 @@ proc multiGet*(
 
   ok(values)
 
-const MULTI_GET_MAX_KEYS* = 256
-  ## Maximum number of keys accepted per call by the buffer based `multiGet`
-  ## below - the limit keeps the working state small enough to fit in stack
-  ## memory.
-
 proc multiGet*(
     db: RocksDbRef,
     keys: openArray[RocksDbSlice],
@@ -427,10 +445,11 @@ proc multiGet*(
     cfHandle = db.defaultCfHandle,
 ): RocksDBResult[void] =
   ## Get a batch of values for the given set of keys into caller-provided
-  ## buffers. Nothing is allocated on the Nim heap - the values are copied
-  ## straight out of the pinnable slices handed back by RocksDB, which does
-  ## allocate internally for every call. At least one and at most
-  ## `MULTI_GET_MAX_KEYS` keys may be fetched per call.
+  ## buffers. When fetching small batches of keys nothing is allocated on the
+  ## Nim heap - the values are copied straight out of the pinnable slices
+  ## handed back by RocksDB, which does allocate internally for every call.
+  ## Larger requests allocate the working state on the heap. At least one key
+  ## must be fetched per call.
   ##
   ## Each entry of `keys` is a slice describing the bytes of a key and each
   ## entry of `values` is a `RocksDbMutSlice` describing a caller-owned,
@@ -450,54 +469,66 @@ proc multiGet*(
   ## the keys will be copied and sorted internally by the API - the input
   ## array will not be modified.
 
-  doAssert keys.len > 0 and keys.len <= MULTI_GET_MAX_KEYS
+  doAssert keys.len > 0
   doAssert values.len == keys.len
 
-  var
-    valuePtrs: array[MULTI_GET_MAX_KEYS, ptr rocksdb_pinnableslice_t]
-    errs: array[MULTI_GET_MAX_KEYS, cstring]
+  template multiGetImpl(valuePtrs, errs: untyped) =
+    # `RocksDbSlice` is layout compatible with `rocksdb_slice_t` (statically
+    # checked in `rocksslice`), so the keys are passed through as-is rather than
+    # copied into a staging array.
+    rocksdb_batched_multi_get_cf_slice(
+      db.cPtr,
+      db.readOpts.cPtr,
+      cfHandle.cPtr,
+      csize_t(keys.len),
+      cast[ptr rocksdb_slice_t](unsafeAddr keys[0]),
+      addr valuePtrs[0],
+      cast[cstringArray](addr errs[0]),
+      sortedInput,
+    )
 
-  # `RocksDbSlice` is layout compatible with `rocksdb_slice_t` (statically
-  # checked in `rocksslice`), so the keys are passed through as-is rather than
-  # copied into a staging array.
-  rocksdb_batched_multi_get_cf_slice(
-    db.cPtr,
-    db.readOpts.cPtr,
-    cfHandle.cPtr,
-    csize_t(keys.len),
-    cast[ptr rocksdb_slice_t](unsafeAddr keys[0]),
-    addr valuePtrs[0],
-    cast[cstringArray](addr errs[0]),
-    sortedInput,
-  )
+    defer:
+      for i in 0 ..< keys.len:
+        if not valuePtrs[i].isNil:
+          rocksdb_pinnableslice_destroy(valuePtrs[i])
 
-  defer:
+    template returnErr(pos: int, msg: string) =
+      freeErrs(errs, pos, keys.len)
+      return err(msg)
+
     for i in 0 ..< keys.len:
-      if not valuePtrs[i].isNil:
-        rocksdb_pinnableslice_destroy(valuePtrs[i])
       if not errs[i].isNil:
-        rocksdb_free(errs[i])
+        let errMsg = "rocksdb: key " & $i & ": " & $(errs[i])
+        returnErr(i, errMsg)
 
-  for i in 0 ..< keys.len:
-    if not errs[i].isNil:
-      return err("rocksdb: key " & $i & ": " & $(errs[i]))
+      if valuePtrs[i].isNil:
+        values[i].len = 0
+        values[i].found = false
+        continue
 
-    if valuePtrs[i].isNil:
-      values[i].len = 0
-      values[i].found = false
-      continue
+      var valLen: csize_t
+      let valPtr = rocksdb_pinnableslice_value(valuePtrs[i], valLen.addr)
 
-    var valLen: csize_t
-    let valPtr = rocksdb_pinnableslice_value(valuePtrs[i], valLen.addr)
+      if int(valLen) > values[i].capacity:
+        returnErr(
+          i, "rocksdb: key " & $i & ": buffer too small, value length is " & $valLen
+        )
 
-    if int(valLen) > values[i].capacity:
-      return
-        err("rocksdb: key " & $i & ": buffer too small, value length is " & $valLen)
+      if valLen > 0:
+        copyMem(values[i].baseAddr, valPtr, int(valLen))
+      values[i].len = int(valLen)
+      values[i].found = true
 
-    if valLen > 0:
-      copyMem(values[i].baseAddr, valPtr, int(valLen))
-    values[i].len = int(valLen)
-    values[i].found = true
+  if keys.len <= maxStackKeys:
+    var
+      valuePtrs: array[maxStackKeys, ptr rocksdb_pinnableslice_t]
+      errs: array[maxStackKeys, cstring]
+    multiGetImpl(valuePtrs, errs)
+  else:
+    var
+      valuePtrs = newSeq[ptr rocksdb_pinnableslice_t](keys.len)
+      errs = newSeq[cstring](keys.len)
+    multiGetImpl(valuePtrs, errs)
 
   ok()
 

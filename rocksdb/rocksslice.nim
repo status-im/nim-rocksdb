@@ -56,6 +56,14 @@ func init*(T: type RocksDbMutSlice, data: var openArray[byte]): T =
     hasValue: false,
   )
 
+func toSlices*(keys: openArray[seq[byte]], slices: var openArray[RocksDbSlice]) =
+  for i in 0 ..< keys.len:
+    slices[i] = RocksDbSlice.init(keys[i])
+
+func toSlices*(keys: openArray[seq[byte]]): seq[RocksDbSlice] =
+  result = newSeq[RocksDbSlice](keys.len)
+  keys.toSlices(result)
+
 template baseAddr*(slice: RocksDbSlice | RocksDbMutSlice): pointer =
   cast[pointer](slice.buf)
 

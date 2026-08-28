@@ -27,8 +27,6 @@
 #       multiGetIter ~0.72-0.87, multiGet ~0.97-1.16 us/key
 #     - Async I/O: Modest but consistent gains in unsorted batched reads
 #     - Sweet spot: batch size 64-128; diminishing returns beyond 128
-#     - The buffer variant takes at most MULTI_GET_MAX_KEYS keys per call, so
-#       the sweep skips it for batch sizes above that limit
 #
 #   The read API benchmarks above run from a temporary directory, which is
 #   normally memory backed, and so compare the cost of the APIs themselves
@@ -237,8 +235,6 @@ proc runBufferBatchedBench(
   ## than per batch. That is how the API is meant to be used - it is the reason
   ## it takes slices at all - and it keeps the timed region to the calls
   ## themselves, matching the other variants.
-  doAssert batchSize <= MULTI_GET_MAX_KEYS
-
   var
     keySlices = newSeq[RocksDbSlice](keyReads)
     sortedKeySlices = newSeq[RocksDbSlice](keyReads)
@@ -476,48 +472,40 @@ suite "RocksDb Benchmark Tests":
         sweepReadCount,
       )
 
-      # The buffer based multiGet takes at most MULTI_GET_MAX_KEYS per call, so
-      # the larger batch sizes in the sweep have no comparable measurement.
-      if batchSize > MULTI_GET_MAX_KEYS:
-        debugEcho "  " &
-          alignLeft(fmt"multiGet(buffers, batch={batchSize})", benchmarkNameWidth) &
-          fmt" skipped - above MULTI_GET_MAX_KEYS ({MULTI_GET_MAX_KEYS})"
-      else:
-        let
-          syncBuffers = runBufferBatchedBench(
-            syncReadDb, sweepKeys, sortedSweepKeys, sweepReadCount, batchSize, valueSize
-          )
-          asyncBuffers = runBufferBatchedBench(
-            asyncReadDb, sweepKeys, sortedSweepKeys, sweepReadCount, batchSize,
-            valueSize,
-          )
+      let
+        syncBuffers = runBufferBatchedBench(
+          syncReadDb, sweepKeys, sortedSweepKeys, sweepReadCount, batchSize, valueSize
+        )
+        asyncBuffers = runBufferBatchedBench(
+          asyncReadDb, sweepKeys, sortedSweepKeys, sweepReadCount, batchSize, valueSize
+        )
 
-        check:
-          syncBuffers.bytes == expectedSweepBytes
-          syncBuffers.sortedBytes == expectedSweepBytes
-          asyncBuffers.bytes == expectedSweepBytes
-          asyncBuffers.sortedBytes == expectedSweepBytes
+      check:
+        syncBuffers.bytes == expectedSweepBytes
+        syncBuffers.sortedBytes == expectedSweepBytes
+        asyncBuffers.bytes == expectedSweepBytes
+        asyncBuffers.sortedBytes == expectedSweepBytes
 
-        debugEcho benchmarkLine(
-          fmt"multiGet(sync, buffers, batch={batchSize})",
-          syncBuffers.elapsed,
-          sweepReadCount,
-        )
-        debugEcho benchmarkLine(
-          fmt"multiGet(async, buffers, batch={batchSize})",
-          asyncBuffers.elapsed,
-          sweepReadCount,
-        )
-        debugEcho benchmarkLine(
-          fmt"multiGet(sync, buffers, sorted, batch={batchSize})",
-          syncBuffers.sortedElapsed,
-          sweepReadCount,
-        )
-        debugEcho benchmarkLine(
-          fmt"multiGet(async, buffers, sorted, batch={batchSize})",
-          asyncBuffers.sortedElapsed,
-          sweepReadCount,
-        )
+      debugEcho benchmarkLine(
+        fmt"multiGet(sync, buffers, batch={batchSize})",
+        syncBuffers.elapsed,
+        sweepReadCount,
+      )
+      debugEcho benchmarkLine(
+        fmt"multiGet(async, buffers, batch={batchSize})",
+        asyncBuffers.elapsed,
+        sweepReadCount,
+      )
+      debugEcho benchmarkLine(
+        fmt"multiGet(sync, buffers, sorted, batch={batchSize})",
+        syncBuffers.sortedElapsed,
+        sweepReadCount,
+      )
+      debugEcho benchmarkLine(
+        fmt"multiGet(async, buffers, sorted, batch={batchSize})",
+        asyncBuffers.sortedElapsed,
+        sweepReadCount,
+      )
 
   test "Benchmark multiGet with and without io_uring":
     const

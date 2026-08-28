@@ -90,6 +90,14 @@ template get*(
 
 template multiGetIter*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite,
+    keys: openArray[RocksDbSlice],
+    sortedInput = false,
+): RocksDBResult[MultiGetIteratorRef] =
+  ## Get a batch of values for the given set of keys.
+  cf.db.multiGetIter(keys, sortedInput, cf.handle)
+
+template multiGetIter*(
+    cf: ColFamilyReadOnly | ColFamilyReadWrite,
     keys: openArray[seq[byte]],
     sortedInput = false,
 ): RocksDBResult[MultiGetIteratorRef] =

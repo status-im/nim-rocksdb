@@ -688,6 +688,58 @@ suite "RocksDbRef Tests":
         i == 9
         iter.isClosed()
 
+  test "Test multiget iterator with slice keys":
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+
+    check:
+      db.put(keyValue1, keyValue1).isOk()
+      db.put(keyValue2, keyValue2).isOk()
+      db.keyExists(keyValue3).get() == false
+
+    let
+      keys = [
+        RocksDbSlice.init(keyValue1),
+        RocksDbSlice.init(keyValue2),
+        RocksDbSlice.init(keyValue3),
+      ]
+      expected = [Opt.some(keyValue1), Opt.some(keyValue2), Opt.none(seq[byte])]
+      iter = db.multiGetIter(keys).expect("ok")
+
+    var i = 0
+    for slice in iter:
+      check slice.map(
+        proc(s: auto): auto =
+          s.data()
+      ) == expected[i]
+      inc i
+    check:
+      i == 3
+      iter.isClosed()
+
+    block:
+      # A batch large enough to use the heap allocated working state, going
+      # through both the seq and the slice based overloads
+      const numKeys = 300
+      var bigKeys = newSeq[seq[byte]](numKeys)
+      for k in 0 ..< numKeys:
+        bigKeys[k] = @[0xCC.byte, byte(k shr 8), byte(k and 0xFF)]
+        check db.put(bigKeys[k], bigKeys[k]).isOk()
+
+      let bigIter = db.multiGetIter(bigKeys, sortedInput = true).expect("ok")
+      var k = 0
+      for slice in bigIter:
+        check slice.map(
+          proc(s: auto): auto =
+            s.data()
+        ) == Opt.some(bigKeys[k])
+        inc k
+      check:
+        k == numKeys
+        bigIter.isClosed()
+
   test "Test multiget into buffers":
     let
       keyValue1 = @[1.byte]
@@ -857,25 +909,48 @@ suite "RocksDbRef Tests":
         values[0].data() == val1
 
     block:
-      # A full batch of MULTI_GET_MAX_KEYS keys
+      # A large batch of keys, small enough for the stack based working state
+      const numKeys = 256
       var
-        keyData = newSeq[seq[byte]](MULTI_GET_MAX_KEYS)
-        bufs = newSeq[seq[byte]](MULTI_GET_MAX_KEYS)
-        keySlices = newSeq[RocksDbSlice](MULTI_GET_MAX_KEYS)
-        values = newSeq[RocksDbMutSlice](MULTI_GET_MAX_KEYS)
-      for i in 0 ..< MULTI_GET_MAX_KEYS:
+        keyData = newSeq[seq[byte]](numKeys)
+        bufs = newSeq[seq[byte]](numKeys)
+        keySlices = newSeq[RocksDbSlice](numKeys)
+        values = newSeq[RocksDbMutSlice](numKeys)
+      for i in 0 ..< numKeys:
         keyData[i] = @[0xAA.byte, byte(i)]
         bufs[i] = newSeq[byte](1)
         check db.put(keyData[i], @[byte(i)]).isOk()
-      for i in 0 ..< MULTI_GET_MAX_KEYS:
+      for i in 0 ..< numKeys:
         keySlices[i] = RocksDbSlice.init(keyData[i])
         values[i] = RocksDbMutSlice.init(bufs[i])
       let res = db.multiGet(keySlices, values, sortedInput = true)
       check res.isOk()
-      for i in 0 ..< MULTI_GET_MAX_KEYS:
+      for i in 0 ..< numKeys:
         check:
           values[i].len == 1
           values[i].data() == @[byte(i)]
+
+    block:
+      # A batch large enough to use the heap allocated working state
+      const numKeys = 300
+      var
+        keyData = newSeq[seq[byte]](numKeys)
+        bufs = newSeq[seq[byte]](numKeys)
+        keySlices = newSeq[RocksDbSlice](numKeys)
+        values = newSeq[RocksDbMutSlice](numKeys)
+      for i in 0 ..< numKeys:
+        keyData[i] = @[0xBB.byte, byte(i shr 8), byte(i and 0xFF)]
+        bufs[i] = newSeq[byte](1)
+        check db.put(keyData[i], @[byte(i and 0xFF)]).isOk()
+      for i in 0 ..< numKeys:
+        keySlices[i] = RocksDbSlice.init(keyData[i])
+        values[i] = RocksDbMutSlice.init(bufs[i])
+      let res = db.multiGet(keySlices, values, sortedInput = true)
+      check res.isOk()
+      for i in 0 ..< numKeys:
+        check:
+          values[i].len == 1
+          values[i].data() == @[byte(i and 0xFF)]
 
   test "Test block cache with LRU cache":
     let

@@ -251,6 +251,33 @@ suite "ColFamily Tests":
         i == 3
         iter.isClosed()
 
+  test "Test multiget iterator with slice keys":
+    let cf = db.getColFamily(CF_OTHER).get()
+
+    let
+      keyValue1 = @[100.byte]
+      keyValue2 = @[200.byte]
+
+    check:
+      cf.put(keyValue1, keyValue1).isOk()
+      cf.put(keyValue2, keyValue2).isOk()
+
+    let
+      keys = [RocksDbSlice.init(keyValue1), RocksDbSlice.init(keyValue2)]
+      expected = [Opt.some(keyValue1), Opt.some(keyValue2)]
+      iter = cf.multiGetIter(keys).expect("ok")
+
+    var i = 0
+    for slice in iter:
+      check slice.map(
+        proc(s: auto): auto =
+          s.data()
+      ) == expected[i]
+      inc i
+    check:
+      i == 2
+      iter.isClosed()
+
   test "Test get into buffer":
     let cf = db.getColFamily(CF_OTHER).get()
 
