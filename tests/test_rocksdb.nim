@@ -781,35 +781,61 @@ suite "RocksDbRef Tests":
         buf = newSeq[byte](val2.len - 1)
         values = [RocksDbMutSlice.init(buf)]
       let res = db.multiGet([RocksDbSlice.init(keyValue2)], values)
-      check:
-        res.isErr()
-        values[0].len == 0
+      check res.isErr()
 
     block:
-      # Key not found
+      # A missing key is not an error - the entry is marked as not found
       var
         buf = newSeq[byte](8)
         values = [RocksDbMutSlice.init(buf)]
       let res = db.multiGet([RocksDbSlice.init(missingKey)], values)
       check:
-        res.isErr()
+        res.isOk()
+        not values[0].found()
         values[0].len == 0
+        values[0].data() == default(seq[byte])
 
     block:
-      # A missing key leaves the entries that were not filled empty
+      # A missing value is distinguishable from an empty one, and a missing
+      # key does not stop the other keys being fetched
       var
         buf1 = newSeq[byte](8)
         buf2 = newSeq[byte](8)
-        values = [RocksDbMutSlice.init(buf1), RocksDbMutSlice.init(buf2)]
+        buf3 = newSeq[byte](8)
+        values = [
+          RocksDbMutSlice.init(buf1),
+          RocksDbMutSlice.init(buf2),
+          RocksDbMutSlice.init(buf3),
+        ]
       let res = db.multiGet(
-        [RocksDbSlice.init(keyValue1), RocksDbSlice.init(missingKey)], values
+        [
+          RocksDbSlice.init(keyValue1),
+          RocksDbSlice.init(missingKey),
+          RocksDbSlice.init(keyValue3),
+        ],
+        values,
       )
       check:
-        res.isErr()
-        values[1].len == 0
+        res.isOk()
+        values[0].found() and values[0].data() == val1
+        not values[1].found() and values[1].len == 0
+        values[2].found() and values[2].len == 0 # keyValue3 holds an empty value
+        values[1].data() == values[2].data() # both empty, only `found` differs
 
     block:
-      # Lengths are reset between calls
+      # A reused buffer must not report a stale hit when the key is missing
+      var
+        buf = newSeq[byte](8)
+        values = [RocksDbMutSlice.init(buf)]
+      check db.multiGet([RocksDbSlice.init(keyValue1)], values).isOk()
+      check values[0].found()
+      check db.multiGet([RocksDbSlice.init(missingKey)], values).isOk()
+      check:
+        not values[0].found()
+        values[0].len == 0
+
+    block:
+      # A buffer reused across calls reports the new value's length
       var
         buf = newSeq[byte](8)
         values = [RocksDbMutSlice.init(buf)]

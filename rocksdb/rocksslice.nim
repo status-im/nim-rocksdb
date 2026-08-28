@@ -16,45 +16,52 @@ import ./lib/librocksdb
 
 type
   RocksDbSlice* = object
-    data: ptr byte
-    len: csize_t
+    buf: ptr byte
+    size: csize_t
 
   RocksDbMutSlice* = object
-    data: ptr byte
-    len: int
-    capacity: int
+    buf: ptr byte
+    size: int
+    cap: int
+    hasValue: bool
 
 static:
   doAssert sizeof(RocksDbSlice) == sizeof(rocksdb_slice_t)
-  doAssert offsetOf(RocksDbSlice, data) == offsetOf(rocksdb_slice_t, data)
-  doAssert offsetOf(RocksDbSlice, len) == offsetOf(rocksdb_slice_t, size)
-  doAssert typeof(default(RocksDbSlice).len) is typeof(default(rocksdb_slice_t).size)
+  doAssert offsetOf(RocksDbSlice, buf) == offsetOf(rocksdb_slice_t, data)
+  doAssert offsetOf(RocksDbSlice, size) == offsetOf(rocksdb_slice_t, size)
+  doAssert typeof(default(RocksDbSlice).size) is typeof(default(rocksdb_slice_t).size)
 
 func init*(T: type RocksDbSlice, data: cstring, len: csize_t): T =
-  T(data: cast[ptr byte](data), len: len)
+  T(buf: cast[ptr byte](data), size: len)
 
 func init*(T: type RocksDbSlice, data: openArray[byte]): T =
-  T(data: if data.len > 0: unsafeAddr data[0] else: nil, len: csize_t(data.len))
+  T(buf: if data.len > 0: unsafeAddr data[0] else: nil, size: csize_t(data.len))
 
 func init*(T: type RocksDbMutSlice, data: var openArray[byte]): T =
   T(
-    data: if data.len > 0: addr data[0] else: nil,
-    len: 0,
-    capacity: data.len,
+    buf: if data.len > 0: addr data[0] else: nil,
+    size: 0,
+    cap: data.len,
+    hasValue: false,
   )
 
-func capacity*(slice: RocksDbMutSlice): int =
-  slice.capacity
+template baseAddr*(slice: RocksDbSlice | RocksDbMutSlice): pointer =
+  cast[pointer](slice.buf)
 
-func setLen*(slice: var RocksDbMutSlice, len: int) =
-  doAssert len >= 0 and len <= slice.capacity
-  slice.len = len
+template len*(slice: RocksDbSlice | RocksDbMutSlice): int =
+  int(slice.size)
 
-func len*(slice: RocksDbSlice | RocksDbMutSlice): int =
-  int(slice.len)
+template `len=`*(slice: var RocksDbMutSlice, len: int) =
+  slice.size = len
 
-func baseAddr*(slice: RocksDbSlice | RocksDbMutSlice): pointer =
-  cast[pointer](slice.data)
+template capacity*(slice: RocksDbMutSlice): int =
+  slice.cap
+
+template found*(slice: RocksDbMutSlice): bool =
+  slice.hasValue
+
+template `found=`*(slice: var RocksDbMutSlice, found: bool) =
+  slice.hasValue = found
 
 template toOpenArray*(data: cstring | ptr byte, len: csize_t | int): openArray[byte] =
   const empty: array[0, byte] = []
@@ -64,7 +71,7 @@ template toOpenArray*(data: cstring | ptr byte, len: csize_t | int): openArray[b
     cast[ptr UncheckedArray[byte]](data).toOpenArray(0, len.int - 1)
 
 template toOpenArray*(slice: RocksDbSlice | RocksDbMutSlice): openArray[byte] =
-  toOpenArray(slice.data, slice.len)
+  toOpenArray(slice.buf, slice.size)
 
 template data*(
     slice: RocksDbSlice | RocksDbMutSlice, asOpenArray: static bool = false

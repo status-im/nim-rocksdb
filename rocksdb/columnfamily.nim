@@ -112,7 +112,8 @@ template multiGet*(
 ): RocksDBResult[void] =
   ## Get a batch of values for the given set of keys into the caller-provided
   ## buffers described by `values`, setting the length of each buffer to the
-  ## number of bytes written.
+  ## number of bytes written, or marking it as not found if the key does not
+  ## exist.
   cf.db.multiGet(keys, values, sortedInput, cf.handle)
 
 template put*(cf: ColFamilyReadWrite, key, val: openArray[byte]): RocksDBResult[void] =

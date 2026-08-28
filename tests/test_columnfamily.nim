@@ -183,7 +183,8 @@ suite "ColFamily Tests":
         values = [RocksDbMutSlice.init(buf)]
       let res = db.multiGet([RocksDbSlice.init(keyValue1)], values)
       check:
-        res.isErr()
+        res.isOk()
+        not values[0].found()
         values[0].len == 0
 
     block:
@@ -192,9 +193,7 @@ suite "ColFamily Tests":
         buf = newSeq[byte](val2.len - 1)
         values = [RocksDbMutSlice.init(buf)]
       let res = cf.multiGet([RocksDbSlice.init(keyValue2)], values)
-      check:
-        res.isErr()
-        values[0].len == 0
+      check res.isErr()
 
     block:
       # Key not found
@@ -203,7 +202,8 @@ suite "ColFamily Tests":
         values = [RocksDbMutSlice.init(buf)]
       let res = cf.multiGet([RocksDbSlice.init(missingKey)], values)
       check:
-        res.isErr()
+        res.isOk()
+        not values[0].found()
         values[0].len == 0
 
   test "Test multiget iterator":
