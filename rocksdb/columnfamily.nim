@@ -107,14 +107,13 @@ template multiGet*(
 template multiGet*(
     cf: ColFamilyReadOnly | ColFamilyReadWrite,
     keys: openArray[RocksDbSlice],
-    values: openArray[RocksDbSlice],
-    valueLens: var openArray[int],
+    values: var openArray[RocksDbMutSlice],
     sortedInput = false,
 ): RocksDBResult[void] =
   ## Get a batch of values for the given set of keys into the caller-provided
-  ## buffers described by `values`, setting each entry of `valueLens` to the
+  ## buffers described by `values`, setting the length of each buffer to the
   ## number of bytes written.
-  cf.db.multiGet(keys, values, valueLens, sortedInput, cf.handle)
+  cf.db.multiGet(keys, values, sortedInput, cf.handle)
 
 template put*(cf: ColFamilyReadWrite, key, val: openArray[byte]): RocksDBResult[void] =
   ## Puts a value for the given key into the column family.

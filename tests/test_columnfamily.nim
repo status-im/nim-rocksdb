@@ -148,6 +148,64 @@ suite "ColFamily Tests":
       dataRes[1] == Opt.some(keyValue2)
       dataRes[2] == Opt.some(default(seq[byte]))
 
+  test "Test multiget into buffers":
+    let cf = db.getColFamily(CF_OTHER).get()
+
+    let
+      keyValue1 = @[100.byte]
+      keyValue2 = @[200.byte]
+      missingKey = @[250.byte]
+      val1 = @[10.byte, 11]
+      val2 = @[20.byte, 21, 22]
+
+    check:
+      cf.put(keyValue1, val1).isOk()
+      cf.put(keyValue2, val2).isOk()
+
+    block:
+      # All keys exist, buffers exactly the right size
+      var
+        buf1 = newSeq[byte](val1.len)
+        buf2 = newSeq[byte](val2.len)
+        values = [RocksDbMutSlice.init(buf1), RocksDbMutSlice.init(buf2)]
+      let res = cf.multiGet(
+        [RocksDbSlice.init(keyValue1), RocksDbSlice.init(keyValue2)], values
+      )
+      check:
+        res.isOk()
+        values[0].data() == val1
+        values[1].data() == val2
+
+    block:
+      # The keys are not present in the default column family
+      var
+        buf = newSeq[byte](val1.len)
+        values = [RocksDbMutSlice.init(buf)]
+      let res = db.multiGet([RocksDbSlice.init(keyValue1)], values)
+      check:
+        res.isErr()
+        values[0].len == 0
+
+    block:
+      # Buffer too small
+      var
+        buf = newSeq[byte](val2.len - 1)
+        values = [RocksDbMutSlice.init(buf)]
+      let res = cf.multiGet([RocksDbSlice.init(keyValue2)], values)
+      check:
+        res.isErr()
+        values[0].len == 0
+
+    block:
+      # Key not found
+      var
+        buf = newSeq[byte](8)
+        values = [RocksDbMutSlice.init(buf)]
+      let res = cf.multiGet([RocksDbSlice.init(missingKey)], values)
+      check:
+        res.isErr()
+        values[0].len == 0
+
   test "Test multiget iterator":
     let cf = db.getColFamily(CF_OTHER).get()
 

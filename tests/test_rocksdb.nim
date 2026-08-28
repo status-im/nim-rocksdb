@@ -688,6 +688,169 @@ suite "RocksDbRef Tests":
         i == 9
         iter.isClosed()
 
+  test "Test multiget into buffers":
+    let
+      keyValue1 = @[1.byte]
+      keyValue2 = @[2.byte]
+      keyValue3 = @[3.byte]
+      missingKey = @[4.byte]
+      val1 = @[10.byte, 11]
+      val2 = @[20.byte, 21, 22]
+      emptyVal = default(seq[byte])
+
+    check:
+      db.put(keyValue1, val1).isOk()
+      db.put(keyValue2, val2).isOk()
+      db.put(keyValue3, emptyVal).isOk()
+
+    block:
+      # Destination buffers can only be built from mutable data
+      var mutableBuf = newSeq[byte](val1.len)
+      check:
+        compiles(RocksDbMutSlice.init(mutableBuf))
+        not compiles(RocksDbMutSlice.init(val1))
+
+    block:
+      # A fresh buffer is empty but has capacity
+      var buf = newSeq[byte](8)
+      let slice = RocksDbMutSlice.init(buf)
+      check:
+        slice.len == 0
+        slice.capacity == 8
+        slice.data() == default(seq[byte])
+
+    block:
+      # All keys exist, buffers exactly the right size
+      var
+        buf1 = newSeq[byte](val1.len)
+        buf2 = newSeq[byte](val2.len)
+        values = [RocksDbMutSlice.init(buf1), RocksDbMutSlice.init(buf2)]
+      let res = db.multiGet(
+        [RocksDbSlice.init(keyValue1), RocksDbSlice.init(keyValue2)], values
+      )
+      check:
+        res.isOk()
+        values[0].data() == val1
+        values[1].data() == val2
+        buf1 == val1
+        buf2 == val2
+
+    block:
+      # Larger buffer: len is the value length, capacity is unchanged
+      var
+        buf = newSeq[byte](val1.len + 10)
+        values = [RocksDbMutSlice.init(buf)]
+      let res = db.multiGet([RocksDbSlice.init(keyValue1)], values)
+      check:
+        res.isOk()
+        values[0].len == val1.len
+        values[0].capacity == val1.len + 10
+        values[0].data() == val1
+        values[0].data(asOpenArray = true) == val1
+
+    block:
+      # Empty value round-trips with a zero-length buffer
+      var
+        emptyBuf = newSeq[byte](0)
+        values = [RocksDbMutSlice.init(emptyBuf)]
+      let res = db.multiGet([RocksDbSlice.init(keyValue3)], values)
+      check:
+        res.isOk()
+        values[0].len == 0
+        values[0].data() == emptyVal
+
+    block:
+      # Sorted input
+      var
+        buf1 = newSeq[byte](val1.len)
+        buf2 = newSeq[byte](val2.len)
+        values = [RocksDbMutSlice.init(buf1), RocksDbMutSlice.init(buf2)]
+      let res = db.multiGet(
+        [RocksDbSlice.init(keyValue1), RocksDbSlice.init(keyValue2)],
+        values,
+        sortedInput = true,
+      )
+      check:
+        res.isOk()
+        values[0].data() == val1
+        values[1].data() == val2
+
+    block:
+      # Buffer too small
+      var
+        buf = newSeq[byte](val2.len - 1)
+        values = [RocksDbMutSlice.init(buf)]
+      let res = db.multiGet([RocksDbSlice.init(keyValue2)], values)
+      check:
+        res.isErr()
+        values[0].len == 0
+
+    block:
+      # Key not found
+      var
+        buf = newSeq[byte](8)
+        values = [RocksDbMutSlice.init(buf)]
+      let res = db.multiGet([RocksDbSlice.init(missingKey)], values)
+      check:
+        res.isErr()
+        values[0].len == 0
+
+    block:
+      # A missing key leaves the entries that were not filled empty
+      var
+        buf1 = newSeq[byte](8)
+        buf2 = newSeq[byte](8)
+        values = [RocksDbMutSlice.init(buf1), RocksDbMutSlice.init(buf2)]
+      let res = db.multiGet(
+        [RocksDbSlice.init(keyValue1), RocksDbSlice.init(missingKey)], values
+      )
+      check:
+        res.isErr()
+        values[1].len == 0
+
+    block:
+      # Lengths are reset between calls
+      var
+        buf = newSeq[byte](8)
+        values = [RocksDbMutSlice.init(buf)]
+      check db.multiGet([RocksDbSlice.init(keyValue2)], values).isOk()
+      check values[0].len == val2.len
+      check db.multiGet([RocksDbSlice.init(keyValue3)], values).isOk()
+      check values[0].len == 0
+
+    block:
+      # With explicit column family handle
+      check db.put(keyValue1, val1, otherCfHandle).isOk()
+      var
+        buf = newSeq[byte](val1.len)
+        values = [RocksDbMutSlice.init(buf)]
+      let res =
+        db.multiGet([RocksDbSlice.init(keyValue1)], values, cfHandle = otherCfHandle)
+      check:
+        res.isOk()
+        values[0].data() == val1
+
+    block:
+      # A full batch of MULTI_GET_MAX_KEYS keys
+      var
+        keyData = newSeq[seq[byte]](MULTI_GET_MAX_KEYS)
+        bufs = newSeq[seq[byte]](MULTI_GET_MAX_KEYS)
+        keySlices = newSeq[RocksDbSlice](MULTI_GET_MAX_KEYS)
+        values = newSeq[RocksDbMutSlice](MULTI_GET_MAX_KEYS)
+      for i in 0 ..< MULTI_GET_MAX_KEYS:
+        keyData[i] = @[0xAA.byte, byte(i)]
+        bufs[i] = newSeq[byte](1)
+        check db.put(keyData[i], @[byte(i)]).isOk()
+      for i in 0 ..< MULTI_GET_MAX_KEYS:
+        keySlices[i] = RocksDbSlice.init(keyData[i])
+        values[i] = RocksDbMutSlice.init(bufs[i])
+      let res = db.multiGet(keySlices, values, sortedInput = true)
+      check res.isOk()
+      for i in 0 ..< MULTI_GET_MAX_KEYS:
+        check:
+          values[i].len == 1
+          values[i].data() == @[byte(i)]
+
   test "Test block cache with LRU cache":
     let
       dbPath2 = mkdtemp() / "lru-block-cache"
