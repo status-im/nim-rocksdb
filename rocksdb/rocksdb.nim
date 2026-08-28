@@ -365,11 +365,19 @@ proc multiGetIter*(
     sortedInput,
   )
 
+  var
+    failed = false
+    errorMsg: string
   for e in errors:
     if not e.isNil:
-      let res = err($(e))
+      if not failed:
+        failed = true
+        errorMsg = $(e)
       rocksdb_free(e)
-      return res
+
+  if failed:
+    multiGetIter.close()
+    return err(errorMsg)
 
   ok(multiGetIter)
 

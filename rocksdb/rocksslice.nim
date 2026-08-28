@@ -35,11 +35,22 @@ func init*(T: type RocksDbSlice, data: cstring, len: csize_t): T =
   T(buf: cast[ptr byte](data), size: len)
 
 func init*(T: type RocksDbSlice, data: openArray[byte]): T =
-  T(buf: if data.len > 0: unsafeAddr data[0] else: nil, size: csize_t(data.len))
+  T(
+    buf:
+      if data.len > 0:
+        unsafeAddr data[0]
+      else:
+        nil,
+    size: csize_t(data.len),
+  )
 
 func init*(T: type RocksDbMutSlice, data: var openArray[byte]): T =
   T(
-    buf: if data.len > 0: addr data[0] else: nil,
+    buf:
+      if data.len > 0:
+        addr data[0]
+      else:
+        nil,
     size: 0,
     cap: data.len,
     hasValue: false,

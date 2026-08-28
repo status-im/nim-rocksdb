@@ -13,15 +13,22 @@
 #   Benchmark Summary (16,384 keys × 128-byte values, up to 1M reads):
 #  
 #   Single-key reads (1M operations):
-#     - get(callback):     ~0.82 us/key (~1.2M reads/sec)
-#     - get(seq return):   ~1.46 us/key (~0.7M reads/sec)
-#     - get(into buffer):  ~0.81 us/key (~1.2M reads/sec)
+#     - get(callback):     ~0.80 us/key (~1.2M reads/sec)
+#     - get(seq return):   ~1.28 us/key (~0.8M reads/sec)
+#     - get(into buffer):  ~0.78 us/key (~1.3M reads/sec)
 #  
 #   Batched reads (400K operations, batch-size sweep):
-#     - Best performer: multiGetIter(sorted) at batch=128/256 (~0.72-0.74 us/key)
+#     - Best performer: multiGet(buffers, sorted) at batch >= 32
+#       (~0.59-0.61 us/key)
+#     - The buffer variant is fastest at every batch size, sorted or not: it
+#       writes into caller-owned memory, so it skips the seq allocated per
+#       value that the other two variants pay for
+#     - Ranking is consistent across the sweep: multiGet(buffers) ~0.59-0.74,
+#       multiGetIter ~0.72-0.87, multiGet ~0.97-1.16 us/key
 #     - Async I/O: Modest but consistent gains in unsorted batched reads
 #     - Sweet spot: batch size 64-128; diminishing returns beyond 128
-#     - Iterator variant slightly faster than multiGet for all batch sizes
+#     - The buffer variant takes at most MULTI_GET_MAX_KEYS keys per call, so
+#       the sweep skips it for batch sizes above that limit
 #
 #   The read API benchmarks above run from a temporary directory, which is
 #   normally memory backed, and so compare the cost of the APIs themselves
@@ -217,6 +224,75 @@ proc runBatchedBench(
     multiGetIterSortedBytes,
   )
 
+proc runBufferBatchedBench(
+    readDb: RocksDbRef,
+    readKeys: seq[seq[byte]],
+    sortedReadKeys: seq[seq[byte]],
+    keyReads, batchSize, valueSize: int,
+): tuple[elapsed: float, sortedElapsed: float, bytes: int64, sortedBytes: int64] =
+  ## Batched reads through the buffer based multiGet, which writes values into
+  ## caller-owned memory instead of returning freshly allocated seqs.
+  ##
+  ## The key slices and the destination buffers are built once up front rather
+  ## than per batch. That is how the API is meant to be used - it is the reason
+  ## it takes slices at all - and it keeps the timed region to the calls
+  ## themselves, matching the other variants.
+  doAssert batchSize <= MULTI_GET_MAX_KEYS
+
+  var
+    keySlices = newSeq[RocksDbSlice](keyReads)
+    sortedKeySlices = newSeq[RocksDbSlice](keyReads)
+  for i in 0 ..< keyReads:
+    keySlices[i] = RocksDbSlice.init(readKeys[i])
+    sortedKeySlices[i] = RocksDbSlice.init(sortedReadKeys[i])
+
+  var buffers = newSeq[seq[byte]](batchSize)
+  for i in 0 ..< batchSize:
+    buffers[i] = newSeq[byte](valueSize)
+  var values = newSeq[RocksDbMutSlice](batchSize)
+  for i in 0 ..< batchSize:
+    values[i] = RocksDbMutSlice.init(buffers[i])
+
+  var
+    bytes = 0'i64
+    sortedBytes = 0'i64
+    batchStart = 0
+
+  let start = epochTime()
+  while batchStart < keyReads:
+    let
+      batchEnd = min(batchStart + batchSize, keyReads)
+      count = batchEnd - batchStart
+    let res = readDb.multiGet(
+      keySlices.toOpenArray(batchStart, batchEnd - 1), values.toOpenArray(0, count - 1)
+    )
+    check res.isOk()
+    for i in 0 ..< count:
+      check values[i].found()
+      bytes += int64(values[i].len)
+    batchStart = batchEnd
+  let elapsed = epochTime() - start
+
+  batchStart = 0
+  let sortedStart = epochTime()
+  while batchStart < keyReads:
+    let
+      batchEnd = min(batchStart + batchSize, keyReads)
+      count = batchEnd - batchStart
+    let res = readDb.multiGet(
+      sortedKeySlices.toOpenArray(batchStart, batchEnd - 1),
+      values.toOpenArray(0, count - 1),
+      sortedInput = true,
+    )
+    check res.isOk()
+    for i in 0 ..< count:
+      check values[i].found()
+      sortedBytes += int64(values[i].len)
+    batchStart = batchEnd
+  let sortedElapsed = epochTime() - sortedStart
+
+  (elapsed, sortedElapsed, bytes, sortedBytes)
+
 suite "RocksDb Benchmark Tests":
   test "Benchmark get APIs":
     const
@@ -399,6 +475,49 @@ suite "RocksDb Benchmark Tests":
         asyncResults.multiGetIterSortedElapsed,
         sweepReadCount,
       )
+
+      # The buffer based multiGet takes at most MULTI_GET_MAX_KEYS per call, so
+      # the larger batch sizes in the sweep have no comparable measurement.
+      if batchSize > MULTI_GET_MAX_KEYS:
+        debugEcho "  " &
+          alignLeft(fmt"multiGet(buffers, batch={batchSize})", benchmarkNameWidth) &
+          fmt" skipped - above MULTI_GET_MAX_KEYS ({MULTI_GET_MAX_KEYS})"
+      else:
+        let
+          syncBuffers = runBufferBatchedBench(
+            syncReadDb, sweepKeys, sortedSweepKeys, sweepReadCount, batchSize, valueSize
+          )
+          asyncBuffers = runBufferBatchedBench(
+            asyncReadDb, sweepKeys, sortedSweepKeys, sweepReadCount, batchSize,
+            valueSize,
+          )
+
+        check:
+          syncBuffers.bytes == expectedSweepBytes
+          syncBuffers.sortedBytes == expectedSweepBytes
+          asyncBuffers.bytes == expectedSweepBytes
+          asyncBuffers.sortedBytes == expectedSweepBytes
+
+        debugEcho benchmarkLine(
+          fmt"multiGet(sync, buffers, batch={batchSize})",
+          syncBuffers.elapsed,
+          sweepReadCount,
+        )
+        debugEcho benchmarkLine(
+          fmt"multiGet(async, buffers, batch={batchSize})",
+          asyncBuffers.elapsed,
+          sweepReadCount,
+        )
+        debugEcho benchmarkLine(
+          fmt"multiGet(sync, buffers, sorted, batch={batchSize})",
+          syncBuffers.sortedElapsed,
+          sweepReadCount,
+        )
+        debugEcho benchmarkLine(
+          fmt"multiGet(async, buffers, sorted, batch={batchSize})",
+          asyncBuffers.sortedElapsed,
+          sweepReadCount,
+        )
 
   test "Benchmark multiGet with and without io_uring":
     const
