@@ -34,6 +34,7 @@ export ROCKSDB_DISABLE_BZIP=1
 export PORTABLE=1
 export DEBUG_LEVEL=0
 #export USE_LTO=1
+export ALLOW_BUILD_PARAMETER_CHANGE=1
 
 build_liburing() {
   if [ ! -f "${LIBURING_DIR}/src/liburing.a" ]; then
