@@ -84,93 +84,441 @@ extern "C" {
 
 /* Exported types */
 
+#ifdef C2NIM
 typedef struct rocksdb_t {} rocksdb_t;
+#else
+typedef struct rocksdb_t rocksdb_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_status_ptr_t {} rocksdb_status_ptr_t;
+#else
+typedef struct rocksdb_status_ptr_t rocksdb_status_ptr_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_backup_engine_t {} rocksdb_backup_engine_t;
+#else
+typedef struct rocksdb_backup_engine_t rocksdb_backup_engine_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_backup_engine_info_t {} rocksdb_backup_engine_info_t;
+#else
+typedef struct rocksdb_backup_engine_info_t rocksdb_backup_engine_info_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_backup_engine_options_t {} rocksdb_backup_engine_options_t;
+#else
+typedef struct rocksdb_backup_engine_options_t rocksdb_backup_engine_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_create_backup_options_t {} rocksdb_create_backup_options_t;
+#else
+typedef struct rocksdb_create_backup_options_t rocksdb_create_backup_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_restore_options_t {} rocksdb_restore_options_t;
+#else
+typedef struct rocksdb_restore_options_t rocksdb_restore_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_memory_allocator_t {} rocksdb_memory_allocator_t;
+#else
+typedef struct rocksdb_memory_allocator_t rocksdb_memory_allocator_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_lru_cache_options_t {} rocksdb_lru_cache_options_t;
+#else
+typedef struct rocksdb_lru_cache_options_t rocksdb_lru_cache_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_hyper_clock_cache_options_t {} rocksdb_hyper_clock_cache_options_t;
+#else
+typedef struct rocksdb_hyper_clock_cache_options_t rocksdb_hyper_clock_cache_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_cache_t {} rocksdb_cache_t;
+#else
+typedef struct rocksdb_cache_t rocksdb_cache_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_write_buffer_manager_t {} rocksdb_write_buffer_manager_t;
+#else
+typedef struct rocksdb_write_buffer_manager_t rocksdb_write_buffer_manager_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_sst_file_manager_t {} rocksdb_sst_file_manager_t;
+#else
+typedef struct rocksdb_sst_file_manager_t rocksdb_sst_file_manager_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compactionfilter_t {} rocksdb_compactionfilter_t;
+#else
+typedef struct rocksdb_compactionfilter_t rocksdb_compactionfilter_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compactionfiltercontext_t {} rocksdb_compactionfiltercontext_t;
+#else
+typedef struct rocksdb_compactionfiltercontext_t rocksdb_compactionfiltercontext_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compactionfilterfactory_t {} rocksdb_compactionfilterfactory_t;
+#else
+typedef struct rocksdb_compactionfilterfactory_t rocksdb_compactionfilterfactory_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_walfilter_t {} rocksdb_walfilter_t;
+#else
+typedef struct rocksdb_walfilter_t rocksdb_walfilter_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_file_checksum_gen_factory_t {} rocksdb_file_checksum_gen_factory_t;
+#else
+typedef struct rocksdb_file_checksum_gen_factory_t rocksdb_file_checksum_gen_factory_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_sst_partitioner_factory_t {} rocksdb_sst_partitioner_factory_t;
+#else
+typedef struct rocksdb_sst_partitioner_factory_t rocksdb_sst_partitioner_factory_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_table_properties_collector_factory_t {} rocksdb_table_properties_collector_factory_t;
+#else
+typedef struct rocksdb_table_properties_collector_factory_t rocksdb_table_properties_collector_factory_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_comparator_t {} rocksdb_comparator_t;
+#else
+typedef struct rocksdb_comparator_t rocksdb_comparator_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_dbpath_t {} rocksdb_dbpath_t;
+#else
+typedef struct rocksdb_dbpath_t rocksdb_dbpath_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_env_t {} rocksdb_env_t;
+#else
+typedef struct rocksdb_env_t rocksdb_env_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_fifo_compaction_options_t {} rocksdb_fifo_compaction_options_t;
+#else
+typedef struct rocksdb_fifo_compaction_options_t rocksdb_fifo_compaction_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_filelock_t {} rocksdb_filelock_t;
+#else
+typedef struct rocksdb_filelock_t rocksdb_filelock_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_filterpolicy_t {} rocksdb_filterpolicy_t;
+#else
+typedef struct rocksdb_filterpolicy_t rocksdb_filterpolicy_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_flushoptions_t {} rocksdb_flushoptions_t;
+#else
+typedef struct rocksdb_flushoptions_t rocksdb_flushoptions_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_flushwaloptions_t {} rocksdb_flushwaloptions_t;
+#else
+typedef struct rocksdb_flushwaloptions_t rocksdb_flushwaloptions_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_iterator_t {} rocksdb_iterator_t;
+#else
+typedef struct rocksdb_iterator_t rocksdb_iterator_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_logger_t {} rocksdb_logger_t;
+#else
+typedef struct rocksdb_logger_t rocksdb_logger_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_mergeoperator_t {} rocksdb_mergeoperator_t;
+#else
+typedef struct rocksdb_mergeoperator_t rocksdb_mergeoperator_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_options_t {} rocksdb_options_t;
+#else
+typedef struct rocksdb_options_t rocksdb_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compaction_options_t {} rocksdb_compaction_options_t;
+#else
+typedef struct rocksdb_compaction_options_t rocksdb_compaction_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compactoptions_t {} rocksdb_compactoptions_t;
+#else
+typedef struct rocksdb_compactoptions_t rocksdb_compactoptions_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_block_based_table_options_t {} rocksdb_block_based_table_options_t;
+#else
+typedef struct rocksdb_block_based_table_options_t rocksdb_block_based_table_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_block_cache_trace_options_t {} rocksdb_block_cache_trace_options_t;
+#else
+typedef struct rocksdb_block_cache_trace_options_t rocksdb_block_cache_trace_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_block_cache_trace_writer_options_t {} rocksdb_block_cache_trace_writer_options_t;
+#else
+typedef struct rocksdb_block_cache_trace_writer_options_t rocksdb_block_cache_trace_writer_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_cuckoo_table_options_t {} rocksdb_cuckoo_table_options_t;
+#else
+typedef struct rocksdb_cuckoo_table_options_t rocksdb_cuckoo_table_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_randomfile_t {} rocksdb_randomfile_t;
+#else
+typedef struct rocksdb_randomfile_t rocksdb_randomfile_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_readoptions_t {} rocksdb_readoptions_t;
+#else
+typedef struct rocksdb_readoptions_t rocksdb_readoptions_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_seqfile_t {} rocksdb_seqfile_t;
+#else
+typedef struct rocksdb_seqfile_t rocksdb_seqfile_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_slicetransform_t {} rocksdb_slicetransform_t;
+#else
+typedef struct rocksdb_slicetransform_t rocksdb_slicetransform_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_snapshot_t {} rocksdb_snapshot_t;
+#else
+typedef struct rocksdb_snapshot_t rocksdb_snapshot_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_writablefile_t {} rocksdb_writablefile_t;
+#else
+typedef struct rocksdb_writablefile_t rocksdb_writablefile_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_writebatch_t {} rocksdb_writebatch_t;
+#else
+typedef struct rocksdb_writebatch_t rocksdb_writebatch_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_writebatch_wi_t {} rocksdb_writebatch_wi_t;
+#else
+typedef struct rocksdb_writebatch_wi_t rocksdb_writebatch_wi_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_writeoptions_t {} rocksdb_writeoptions_t;
+#else
+typedef struct rocksdb_writeoptions_t rocksdb_writeoptions_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_universal_compaction_options_t {} rocksdb_universal_compaction_options_t;
+#else
+typedef struct rocksdb_universal_compaction_options_t rocksdb_universal_compaction_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_livefile_t {} rocksdb_livefile_t;
+#else
+typedef struct rocksdb_livefile_t rocksdb_livefile_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_livefiles_t {} rocksdb_livefiles_t;
+#else
+typedef struct rocksdb_livefiles_t rocksdb_livefiles_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_column_family_handle_t {} rocksdb_column_family_handle_t;
+#else
+typedef struct rocksdb_column_family_handle_t rocksdb_column_family_handle_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_column_family_metadata_t {} rocksdb_column_family_metadata_t;
+#else
+typedef struct rocksdb_column_family_metadata_t rocksdb_column_family_metadata_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_import_column_family_options_t {} rocksdb_import_column_family_options_t;
+#else
+typedef struct rocksdb_import_column_family_options_t rocksdb_import_column_family_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_export_import_files_metadata_t {} rocksdb_export_import_files_metadata_t;
+#else
+typedef struct rocksdb_export_import_files_metadata_t rocksdb_export_import_files_metadata_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_level_metadata_t {} rocksdb_level_metadata_t;
+#else
+typedef struct rocksdb_level_metadata_t rocksdb_level_metadata_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_sst_file_metadata_t {} rocksdb_sst_file_metadata_t;
+#else
+typedef struct rocksdb_sst_file_metadata_t rocksdb_sst_file_metadata_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_column_family_metadata_options_t {} rocksdb_column_family_metadata_options_t;
+#else
+typedef struct rocksdb_column_family_metadata_options_t rocksdb_column_family_metadata_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_envoptions_t {} rocksdb_envoptions_t;
+#else
+typedef struct rocksdb_envoptions_t rocksdb_envoptions_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_ingestexternalfileoptions_t {} rocksdb_ingestexternalfileoptions_t;
+#else
+typedef struct rocksdb_ingestexternalfileoptions_t rocksdb_ingestexternalfileoptions_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_trace_options_t {} rocksdb_trace_options_t;
+#else
+typedef struct rocksdb_trace_options_t rocksdb_trace_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_trace_reader_t {} rocksdb_trace_reader_t;
+#else
+typedef struct rocksdb_trace_reader_t rocksdb_trace_reader_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_replay_options_t {} rocksdb_replay_options_t;
+#else
+typedef struct rocksdb_replay_options_t rocksdb_replay_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_replayer_t {} rocksdb_replayer_t;
+#else
+typedef struct rocksdb_replayer_t rocksdb_replayer_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_size_approximation_options_t {} rocksdb_size_approximation_options_t;
+#else
+typedef struct rocksdb_size_approximation_options_t rocksdb_size_approximation_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_livefiles_storage_info_options_t {} rocksdb_livefiles_storage_info_options_t;
+#else
+typedef struct rocksdb_livefiles_storage_info_options_t rocksdb_livefiles_storage_info_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_livefiles_storage_info_t {} rocksdb_livefiles_storage_info_t;
+#else
+typedef struct rocksdb_livefiles_storage_info_t rocksdb_livefiles_storage_info_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_sstfilewriter_t {} rocksdb_sstfilewriter_t;
+#else
+typedef struct rocksdb_sstfilewriter_t rocksdb_sstfilewriter_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_ratelimiter_t {} rocksdb_ratelimiter_t;
+#else
+typedef struct rocksdb_ratelimiter_t rocksdb_ratelimiter_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_perfcontext_t {} rocksdb_perfcontext_t;
+#else
+typedef struct rocksdb_perfcontext_t rocksdb_perfcontext_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_pinnableslice_t {} rocksdb_pinnableslice_t;
+#else
+typedef struct rocksdb_pinnableslice_t rocksdb_pinnableslice_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_transactiondb_options_t {} rocksdb_transactiondb_options_t;
+#else
+typedef struct rocksdb_transactiondb_options_t rocksdb_transactiondb_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_transactiondb_t {} rocksdb_transactiondb_t;
+#else
+typedef struct rocksdb_transactiondb_t rocksdb_transactiondb_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_transaction_options_t {} rocksdb_transaction_options_t;
+#else
+typedef struct rocksdb_transaction_options_t rocksdb_transaction_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_optimistictransactiondb_t {} rocksdb_optimistictransactiondb_t;
+#else
+typedef struct rocksdb_optimistictransactiondb_t rocksdb_optimistictransactiondb_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_optimistictransactiondb_options_t {} rocksdb_optimistictransactiondb_options_t;
+#else
+typedef struct rocksdb_optimistictransactiondb_options_t rocksdb_optimistictransactiondb_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_optimistictransactiondb_lock_buckets_t {} rocksdb_optimistictransactiondb_lock_buckets_t;
+#else
+typedef struct rocksdb_optimistictransactiondb_lock_buckets_t rocksdb_optimistictransactiondb_lock_buckets_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_optimistictransaction_options_t {} rocksdb_optimistictransaction_options_t;
+#else
+typedef struct rocksdb_optimistictransaction_options_t rocksdb_optimistictransaction_options_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_transaction_t {} rocksdb_transaction_t;
+#else
+typedef struct rocksdb_transaction_t rocksdb_transaction_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_checkpoint_t {} rocksdb_checkpoint_t;
+#else
+typedef struct rocksdb_checkpoint_t rocksdb_checkpoint_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_wal_iterator_t {} rocksdb_wal_iterator_t;
+#else
+typedef struct rocksdb_wal_iterator_t rocksdb_wal_iterator_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_wal_readoptions_t {} rocksdb_wal_readoptions_t;
+#else
+typedef struct rocksdb_wal_readoptions_t rocksdb_wal_readoptions_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_wal_file_t {} rocksdb_wal_file_t;
+#else
+typedef struct rocksdb_wal_file_t rocksdb_wal_file_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_wal_files_t {} rocksdb_wal_files_t;
+#else
+typedef struct rocksdb_wal_files_t rocksdb_wal_files_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_memory_consumers_t {} rocksdb_memory_consumers_t;
+#else
+typedef struct rocksdb_memory_consumers_t rocksdb_memory_consumers_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_memory_usage_t {} rocksdb_memory_usage_t;
+#else
+typedef struct rocksdb_memory_usage_t rocksdb_memory_usage_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_statistics_histogram_data_t {} rocksdb_statistics_histogram_data_t;
+#else
+typedef struct rocksdb_statistics_histogram_data_t rocksdb_statistics_histogram_data_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_wait_for_compact_options_t {} rocksdb_wait_for_compact_options_t;
+#else
+typedef struct rocksdb_wait_for_compact_options_t rocksdb_wait_for_compact_options_t;
+#endif
 
 /* rocksdb_slice_t: Optimized slice type for high-performance C API operations
  * This struct is ABI-compatible with rocksdb::Slice for zero-copy interop.
@@ -179,26 +527,98 @@ typedef struct rocksdb_slice_t {
   const char* data;
   size_t size;
 } rocksdb_slice_t;
+#ifdef C2NIM
 typedef struct rocksdb_flushjobinfo_t {} rocksdb_flushjobinfo_t;
+#else
+typedef struct rocksdb_flushjobinfo_t rocksdb_flushjobinfo_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compactionjobinfo_t {} rocksdb_compactionjobinfo_t;
+#else
+typedef struct rocksdb_compactionjobinfo_t rocksdb_compactionjobinfo_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_subcompactionjobinfo_t {} rocksdb_subcompactionjobinfo_t;
+#else
+typedef struct rocksdb_subcompactionjobinfo_t rocksdb_subcompactionjobinfo_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_externalfileingestioninfo_t {} rocksdb_externalfileingestioninfo_t;
+#else
+typedef struct rocksdb_externalfileingestioninfo_t rocksdb_externalfileingestioninfo_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_table_properties_t {} rocksdb_table_properties_t;
+#else
+typedef struct rocksdb_table_properties_t rocksdb_table_properties_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compaction_job_stats_t {} rocksdb_compaction_job_stats_t;
+#else
+typedef struct rocksdb_compaction_job_stats_t rocksdb_compaction_job_stats_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compaction_file_info_t {} rocksdb_compaction_file_info_t;
+#else
+typedef struct rocksdb_compaction_file_info_t rocksdb_compaction_file_info_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_blob_file_addition_info_t {} rocksdb_blob_file_addition_info_t;
+#else
+typedef struct rocksdb_blob_file_addition_info_t rocksdb_blob_file_addition_info_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_blob_file_garbage_info_t {} rocksdb_blob_file_garbage_info_t;
+#else
+typedef struct rocksdb_blob_file_garbage_info_t rocksdb_blob_file_garbage_info_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_eventlistener_t {} rocksdb_eventlistener_t;
+#else
+typedef struct rocksdb_eventlistener_t rocksdb_eventlistener_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_writestallinfo_t {} rocksdb_writestallinfo_t;
+#else
+typedef struct rocksdb_writestallinfo_t rocksdb_writestallinfo_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_writestallcondition_t {} rocksdb_writestallcondition_t;
+#else
+typedef struct rocksdb_writestallcondition_t rocksdb_writestallcondition_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_memtableinfo_t {} rocksdb_memtableinfo_t;
+#else
+typedef struct rocksdb_memtableinfo_t rocksdb_memtableinfo_t;
+#endif
 
 // Remote Compaction typedef
+#ifdef C2NIM
 typedef struct rocksdb_compactionservice_scheduleresponse_t {} rocksdb_compactionservice_scheduleresponse_t;
+#else
+typedef struct rocksdb_compactionservice_scheduleresponse_t rocksdb_compactionservice_scheduleresponse_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compactionservice_jobinfo_t {} rocksdb_compactionservice_jobinfo_t;
+#else
+typedef struct rocksdb_compactionservice_jobinfo_t rocksdb_compactionservice_jobinfo_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compactionservice_t {} rocksdb_compactionservice_t;
+#else
+typedef struct rocksdb_compactionservice_t rocksdb_compactionservice_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_compaction_service_options_override_t {} rocksdb_compaction_service_options_override_t;
+#else
+typedef struct rocksdb_compaction_service_options_override_t rocksdb_compaction_service_options_override_t;
+#endif
+#ifdef C2NIM
 typedef struct rocksdb_open_and_compact_options_t {} rocksdb_open_and_compact_options_t;
+#else
+typedef struct rocksdb_open_and_compact_options_t rocksdb_open_and_compact_options_t;
+#endif
 typedef rocksdb_compactionservice_scheduleresponse_t* (
     *rocksdb_compaction_service_schedule_cb)(
     void* state, const rocksdb_compactionservice_jobinfo_t* info,
@@ -4671,7 +5091,11 @@ rocksdb_wait_for_compact_options_get_timeout(
 /* Zero-copy get that returns a handle to pinned data.
    The data remains valid until rocksdb_pinnable_handle_destroy is called.
    Returns NULL on error or not found. Check errptr to distinguish. */
+#ifdef C2NIM
 typedef struct rocksdb_pinnable_handle_t {} rocksdb_pinnable_handle_t;
+#else
+typedef struct rocksdb_pinnable_handle_t rocksdb_pinnable_handle_t;
+#endif
 
 extern ROCKSDB_LIBRARY_API rocksdb_pinnable_handle_t* rocksdb_get_pinned_v2(
     rocksdb_t* db, const rocksdb_readoptions_t* options, const char* key,
