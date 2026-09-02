@@ -65,6 +65,11 @@ sed -i ':a;N;$!ba;s/#ifdef _WIN32\
 #  endif\
 #endif/g' ${OUTPUT_HEADER_FILE}
 
+# RocksDb declares its handle types as `typedef struct rocksdb_x_t rocksdb_x_t;` forward
+# declarations, which c2nim drops silently - it does translate an empty struct though, so rewrite
+# them into one.
+sed -i -E ':a;N;$!ba; s/typedef struct ([A-Za-z0-9_]+)[[:space:]]+\1;/#ifdef C2NIM\ntypedef struct \1 {} \1;\n#else\ntypedef struct \1 \1;\n#endif/g' ${OUTPUT_HEADER_FILE}
+
 # generate nim wrapper
 c2nim ${OUTPUT_HEADER_FILE} --out:"${C2NIM_GENERATED_WRAPPER}"
 

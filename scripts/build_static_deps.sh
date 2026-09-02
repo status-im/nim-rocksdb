@@ -16,8 +16,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")"/..
 REPO_DIR="${PWD}"
 ROCKSDB_LIB_DIR="${REPO_DIR}/vendor/rocksdb"
 BUILD_DEST="${REPO_DIR}/build"
-LZ4_VERSION=1.10.0
-ZSTD_VERSION=1.5.7
 LIBURING_VERSION=2.14
 LIBURING_DIR="${ROCKSDB_LIB_DIR}/liburing-liburing-${LIBURING_VERSION}"
 
@@ -27,6 +25,14 @@ LIBURING_DIR="${ROCKSDB_LIB_DIR}/liburing-liburing-${LIBURING_VERSION}"
 
 git submodule update --init
 
+LZ4_VERSION=$(sed -nE 's/^LZ4_VER[[:space:]]*\?=[[:space:]]*([0-9.]+)[[:space:]]*$/\1/p' "${ROCKSDB_LIB_DIR}/Makefile")
+ZSTD_VERSION=$(sed -nE 's/^ZSTD_VER[[:space:]]*\?=[[:space:]]*([0-9.]+)[[:space:]]*$/\1/p' "${ROCKSDB_LIB_DIR}/Makefile")
+
+if [[ -z "${LZ4_VERSION}" || -z "${ZSTD_VERSION}" ]]; then
+  echo "error: could not read LZ4_VER/ZSTD_VER from ${ROCKSDB_LIB_DIR}/Makefile" >&2
+  exit 1
+fi
+
 export DISABLE_WARNING_AS_ERROR=1
 export ROCKSDB_DISABLE_SNAPPY=1
 export ROCKSDB_DISABLE_ZLIB=1
@@ -34,6 +40,7 @@ export ROCKSDB_DISABLE_BZIP=1
 export PORTABLE=1
 export DEBUG_LEVEL=0
 #export USE_LTO=1
+export ALLOW_BUILD_PARAMETER_CHANGE=1
 
 build_liburing() {
   if [ ! -f "${LIBURING_DIR}/src/liburing.a" ]; then

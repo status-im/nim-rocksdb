@@ -36,14 +36,22 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - os: linux
+          - os: linux-ubuntu-26.04
             cpu: amd64
             platform: x64
-            builder: ubuntu-latest
-          - os: linux-gcc-14 # This is to use ubuntu 24 and install gcc 14. Should be removed when ubuntu-latest is 26.04
+            builder: ubuntu-26.04
+          - os: linux-ubuntu-24.04
             cpu: amd64
             platform: x64
             builder: ubuntu-24.04
+          - os: linux-ubuntu-22.04 # Oldest supported Ubuntu LTS. Ships gcc 11, which is RocksDb's minimum for C++20
+            cpu: amd64
+            platform: x64
+            builder: ubuntu-22.04
+          - os: linux-ubuntu-24.04
+            cpu: arm64
+            platform: arm64
+            builder: ubuntu-24.04-arm
           - os: windows
             cpu: amd64
             platform: x64
@@ -53,10 +61,6 @@ jobs:
           #   cpu: i386
           #   platform: x86
           #   builder: ubuntu-latest
-          - os: macos
-            cpu: amd64
-            platform: x64
-            builder: macos-15-intel
           - os: macos
             cpu: arm64
             platform: arm64
@@ -95,15 +99,6 @@ jobs:
           EOF
           chmod 755 external/bin/gcc external/bin/g++
           echo '${{ github.workspace }}/external/bin' >> $GITHUB_PATH
-
-      - name: Use gcc 14
-        # Should be removed when ubuntu-latest is 26.04
-        if: ${{ matrix.target.os == 'linux-gcc-14' }}
-        run: |
-          # Add GCC-14 to alternatives
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 14
-          # Set GCC-14 as the default
-          sudo update-alternatives --set gcc /usr/bin/gcc-14
 
 
 
