@@ -1,0 +1,136 @@
+name: RocksDb upgrade test
+
+# Simulates upgrading an existing checkout to a newer RocksDb version:
+# build the static libs at an older submodule revision, then move the working
+# tree forward (leaving the old build artifacts in place, as `git pull` would)
+# and rebuild. Verifies that build_static_deps.sh detects the version change,
+# cleans the stale artifacts and produces genuinely new libraries.
+
+on:
+  workflow_dispatch:
+    inputs:
+      old-ref:
+        description: 'Commit to build first. Defaults to the previous RocksDb version bump.'
+        required: false
+        default: ''
+  # Runs on every branch push, so it can be exercised without merging to master.
+  push:
+
+concurrency:
+  group: upgrade-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upgrade:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos
+            cpu: arm64
+            builder: macos-latest
+          # - os: linux
+          #   cpu: amd64
+          #   builder: ubuntu-24.04
+
+    name: 'upgrade ${{ matrix.os }}-${{ matrix.cpu }}'
+    runs-on: ${{ matrix.builder }}
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Resolve refs
+        run: |
+          NEW_REF=$(git rev-parse HEAD)
+          OLD_REF='${{ inputs.old-ref }}'
+          if [[ -z "${OLD_REF}" ]]; then
+            # The commit of the previous RocksDb version bump.
+            OLD_REF=$(git log --format=%H -n 2 -- vendor/rocksdb | tail -1)
+          fi
+          OLD_REF=$(git rev-parse "${OLD_REF}")
+          if [[ "${OLD_REF}" == "${NEW_REF}" ]]; then
+            echo "error: old and new refs are identical (${NEW_REF})" >&2
+            exit 1
+          fi
+          echo "OLD_REF=${OLD_REF}" >> $GITHUB_ENV
+          echo "NEW_REF=${NEW_REF}" >> $GITHUB_ENV
+          echo "Upgrading from ${OLD_REF} to ${NEW_REF}"
+
+      - name: Build the old RocksDb version
+        run: |
+          git checkout --detach "${OLD_REF}"
+          git submodule update --init --recursive --force
+          ./scripts/build_static_deps.sh
+          ls -l build
+          cp build/version.txt "${RUNNER_TEMP}/old_version.txt"
+          shasum -a 256 build/librocksdb.a | cut -d' ' -f1 > "${RUNNER_TEMP}/old_lib.sha"
+          echo "Built $(cat "${RUNNER_TEMP}/old_version.txt")"
+
+      - name: Upgrade the working tree and rebuild
+        run: |
+          # Deliberately no clean: build/ and vendor/rocksdb/*.o are gitignored
+          # in both repos, so they survive, exactly like a `git pull` upgrade.
+          git checkout --detach "${NEW_REF}"
+          git submodule update --init --recursive --force
+          ./scripts/build_static_deps.sh
+          ls -l build
+
+      - name: Verify the rebuild
+        run: |
+          OLD_VERSION=$(cat "${RUNNER_TEMP}/old_version.txt")
+          OLD_SHA=$(cat "${RUNNER_TEMP}/old_lib.sha")
+          NEW_VERSION=$(cat build/version.txt)
+          NEW_SHA=$(shasum -a 256 build/librocksdb.a | cut -d' ' -f1)
+          EXPECTED=$(cd vendor/rocksdb && ./build_tools/version.sh full)
+
+          echo "version: ${OLD_VERSION} -> ${NEW_VERSION} (expected ${EXPECTED})"
+          echo "librocksdb.a: ${OLD_SHA} -> ${NEW_SHA}"
+
+          rc=0
+          if [[ "${NEW_VERSION}" != "${EXPECTED}" ]]; then
+            echo "error: build/version.txt is '${NEW_VERSION}', expected '${EXPECTED}'" >&2
+            rc=1
+          fi
+          if [[ "${NEW_VERSION}" == "${OLD_VERSION}" ]]; then
+            echo "error: version.txt was not updated by the upgrade" >&2
+            rc=1
+          fi
+          if [[ "${NEW_SHA}" == "${OLD_SHA}" ]]; then
+            echo "error: librocksdb.a is unchanged - stale library kept after upgrade" >&2
+            rc=1
+          fi
+          for lib in librocksdb.a liblz4.a libzstd.a; do
+            [[ -f "build/${lib}" ]] || { echo "error: build/${lib} missing" >&2; rc=1; }
+          done
+          exit $rc
+
+      - name: Verify a re-run is a no-op
+        run: |
+          BEFORE=$(shasum -a 256 build/librocksdb.a | cut -d' ' -f1)
+          ./scripts/build_static_deps.sh | tee "${RUNNER_TEMP}/rerun.log"
+          AFTER=$(shasum -a 256 build/librocksdb.a | cut -d' ' -f1)
+
+          rc=0
+          grep -q "Skipping build" "${RUNNER_TEMP}/rerun.log" || {
+            echo "error: the second run rebuilt instead of skipping" >&2; rc=1; }
+          [[ "${BEFORE}" == "${AFTER}" ]] || {
+            echo "error: librocksdb.a changed on a no-op run" >&2; rc=1; }
+          exit $rc
+
+      - name: Install Nim
+        run: |
+          brew install nim
+          nim --version
+
+      - name: Run tests against the upgraded libraries
+        run: |
+          nimble install -y --depsOnly
+          nimble test

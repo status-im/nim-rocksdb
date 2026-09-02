@@ -47,7 +47,7 @@ build_liburing() {
     curl -sSL "https://github.com/axboe/liburing/archive/refs/tags/liburing-${LIBURING_VERSION}.tar.gz" | \
       tar xz -C "${ROCKSDB_LIB_DIR}"
     (cd "${LIBURING_DIR}" && ./configure > /dev/null && \
-      ${MAKE} -j${NPROC} -C src liburing.a > /dev/null 2>&1)
+      ${MAKE} -j${NPROC} -C src liburing.a > /dev/null)
   fi
   export CPATH="${LIBURING_DIR}/src/include${CPATH:+:${CPATH}}"
   export LIBRARY_PATH="${LIBURING_DIR}/src${LIBRARY_PATH:+:${LIBRARY_PATH}}"
@@ -84,7 +84,7 @@ if ${MAKE} -C "${ROCKSDB_LIB_DIR}" -q unity.a; then
   [[ "$(uname)" != "Linux" ]] || build_liburing
 
   cd ${REPO_DIR}/vendor/rocksdb
-  ${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full > "${BUILD_DEST}/version.txt" 2>&1
+  ${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full > "${BUILD_DEST}/version.txt"
   cd ${REPO_DIR}
 
   exit 0
@@ -95,12 +95,12 @@ fi
 
 [[ "$(uname)" != "Linux" ]] || build_liburing
 
-${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" liblz4.a libzstd.a --no-print-directory > /dev/null 2>&1
+${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" liblz4.a libzstd.a --no-print-directory > /dev/null
 
 export EXTRA_CFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-${LZ4_VERSION}/lib -I${ROCKSDB_LIB_DIR}/zstd-${ZSTD_VERSION}/lib -DLZ4 -DZSTD"
 export EXTRA_CXXFLAGS="-fpermissive -Wno-error -w -I${ROCKSDB_LIB_DIR}/lz4-${LZ4_VERSION}/lib -I${ROCKSDB_LIB_DIR}/zstd-${ZSTD_VERSION}/lib -DLZ4 -DZSTD"
 
-${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" unity.a --no-print-directory > /dev/null 2>&1
+${MAKE} -j${NPROC} -C "${ROCKSDB_LIB_DIR}" unity.a --no-print-directory > /dev/null
 
 #cat "${REPO_DIR}/vendor/rocksdb/make_config.mk"
 
@@ -117,5 +117,5 @@ cp "${ROCKSDB_LIB_DIR}/libzstd.a" "${BUILD_DEST}/"
 cp "${ROCKSDB_LIB_DIR}/unity.a" "${BUILD_DEST}/librocksdb.a"
 
 cd ${REPO_DIR}/vendor/rocksdb
-${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full > "${BUILD_DEST}/version.txt" 2>&1
+${REPO_DIR}/vendor/rocksdb/build_tools/version.sh full > "${BUILD_DEST}/version.txt"
 cd ${REPO_DIR}
