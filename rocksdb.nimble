@@ -1,5 +1,5 @@
 packageName = "rocksdb"
-version = "11.1.2.0"
+version = "11.8.1.0"
 author = "Status Research & Development GmbH"
 description =
   "A wrapper for Facebook's RocksDB, an embeddable, persistent key-value store for fast storage"
