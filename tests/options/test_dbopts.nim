@@ -39,6 +39,8 @@ suite "DbOptionsRef Tests":
     dbOpts.trackAndVerifyWalsInManifest = true
     dbOpts.writeDbidToManifest = true
     dbOpts.writeIdentityFile = false
+    dbOpts.readIoExecutorThreads = 4
+    dbOpts.avoidUnnecessaryBlockingIo = true
 
     check:
       dbOpts.openFilesAsync
@@ -50,6 +52,8 @@ suite "DbOptionsRef Tests":
       dbOpts.trackAndVerifyWalsInManifest
       dbOpts.writeDbidToManifest
       not dbOpts.writeIdentityFile
+      dbOpts.readIoExecutorThreads == 4
+      dbOpts.avoidUnnecessaryBlockingIo
 
     dbOpts.dumpMallocStats = true
     dbOpts.dbLogDir = "."

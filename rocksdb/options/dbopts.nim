@@ -82,6 +82,7 @@ opt openFilesAsync, bool, uint8
 opt infoLogLevel, InfoLogLevel, cint
 opt maxOpenFiles, int, cint
 opt maxFileOpeningThreads, int, cint
+opt readIoExecutorThreads, int, cint
 opt maxTotalWalSize, int, uint64
 opt useFsync, bool, cint
 opt deleteObsoleteFilesPeriodMicros, int, uint64
@@ -176,6 +177,10 @@ proc defaultDbOptions*(autoClose = false): DbOptionsRef =
   # https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning#other-general-options
 
   dbOpts.bytesPerSync = 1048576
+
+  # Move obsolete file deletion and superversion cleanup off the calling thread
+  # and onto a background job, to avoid latency spikes.
+  dbOpts.avoidUnnecessaryBlockingIo = true
 
   dbOpts
 
