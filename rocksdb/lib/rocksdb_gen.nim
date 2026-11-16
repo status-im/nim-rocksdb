@@ -184,6 +184,8 @@ type
 
   rocksdb_pinnableslice_t* = object
 
+  rocksdb_pinnable_multi_get_t* = object
+
   rocksdb_transactiondb_options_t* = object
 
   rocksdb_transactiondb_t* = object
@@ -859,6 +861,18 @@ proc rocksdb_get*(
   errptr: cstringArray,
 ): cstring {.cdecl.}
 
+proc rocksdb_get_with_metadata*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  key: cstring,
+  keylen: csize_t,
+  vallen: ptr csize_t,
+  timestamp: cstringArray,
+  timestamp_len: ptr csize_t,
+  newer_version_present: ptr uint8,
+  errptr: cstringArray,
+): cstring {.cdecl.}
+
 proc rocksdb_get_with_ts*(
   db: ptr rocksdb_t,
   options: ptr rocksdb_readoptions_t,
@@ -877,6 +891,19 @@ proc rocksdb_get_cf*(
   key: cstring,
   keylen: csize_t,
   vallen: ptr csize_t,
+  errptr: cstringArray,
+): cstring {.cdecl.}
+
+proc rocksdb_get_cf_with_metadata*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  column_family: ptr rocksdb_column_family_handle_t,
+  key: cstring,
+  keylen: csize_t,
+  vallen: ptr csize_t,
+  timestamp: cstringArray,
+  timestamp_len: ptr csize_t,
+  newer_version_present: ptr uint8,
   errptr: cstringArray,
 ): cstring {.cdecl.}
 
@@ -921,6 +948,20 @@ proc rocksdb_multi_get*(
   errs: cstringArray,
 ) {.cdecl.}
 
+proc rocksdb_multi_get_with_metadata*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  num_keys: csize_t,
+  keys_list: cstringArray,
+  keys_list_sizes: ptr csize_t,
+  values_list: cstringArray,
+  values_list_sizes: ptr csize_t,
+  timestamp_list: cstringArray,
+  timestamp_list_sizes: ptr csize_t,
+  newer_version_present: ptr uint8,
+  errs: cstringArray,
+) {.cdecl.}
+
 proc rocksdb_multi_get_with_ts*(
   db: ptr rocksdb_t,
   options: ptr rocksdb_readoptions_t,
@@ -943,6 +984,21 @@ proc rocksdb_multi_get_cf*(
   keys_list_sizes: ptr csize_t,
   values_list: cstringArray,
   values_list_sizes: ptr csize_t,
+  errs: cstringArray,
+) {.cdecl.}
+
+proc rocksdb_multi_get_cf_with_metadata*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  column_families: ptr ptr rocksdb_column_family_handle_t,
+  num_keys: csize_t,
+  keys_list: cstringArray,
+  keys_list_sizes: ptr csize_t,
+  values_list: cstringArray,
+  values_list_sizes: ptr csize_t,
+  timestamp_list: cstringArray,
+  timestamp_list_sizes: ptr csize_t,
+  newer_version_present: ptr uint8,
   errs: cstringArray,
 ) {.cdecl.}
 
@@ -1013,6 +1069,63 @@ proc rocksdb_batched_multi_get_cf_slice*(
   values: ptr ptr rocksdb_pinnableslice_t,
   errs: cstringArray,
   sorted_input: bool,
+) {.cdecl.}
+
+##
+##  Result states returned by rocksdb_pinnable_multi_get_result().
+##
+
+const
+  rocksdb_pinnable_multi_get_not_found* = 0
+  rocksdb_pinnable_multi_get_found* = 1
+  rocksdb_pinnable_multi_get_error* = 2
+  rocksdb_pinnable_multi_get_out_of_bounds* = 3
+
+##
+##  Runs a batched MultiGet for one column family and returns one owner for all
+##  pinned values and error messages. Result indexes match the input key order,
+##  including duplicate keys.
+##
+##  If sorted_input is nonzero, keys must be sorted using the column family's
+##  comparator.
+##
+
+proc rocksdb_batched_multi_get_pinned_cf*(
+  db: ptr rocksdb_t,
+  options: ptr rocksdb_readoptions_t,
+  column_family: ptr rocksdb_column_family_handle_t,
+  num_keys: csize_t,
+  keys: ptr rocksdb_slice_t,
+  sorted_input: uint8,
+): ptr rocksdb_pinnable_multi_get_t {.cdecl.}
+
+proc rocksdb_pinnable_multi_get_count*(
+  multi_get: ptr rocksdb_pinnable_multi_get_t
+): csize_t {.cdecl.}
+
+##
+##  Returns the result state at index. For a found value, value and value_size
+##  describe borrowed value bytes. For an error, error and error_size describe a
+##  borrowed null-terminated error message. The borrowed data remains valid until
+##  rocksdb_pinnable_multi_get_destroy() is called. The batch must be destroyed
+##  before closing the DB used to create it.
+##
+##  Unused outputs are set to NULL and zero. An index greater than or equal to
+##  rocksdb_pinnable_multi_get_count() returns
+##  rocksdb_pinnable_multi_get_out_of_bounds.
+##
+
+proc rocksdb_pinnable_multi_get_result*(
+  multi_get: ptr rocksdb_pinnable_multi_get_t,
+  index: csize_t,
+  value: cstringArray,
+  value_size: ptr csize_t,
+  error: cstringArray,
+  error_size: ptr csize_t,
+): cint {.cdecl.}
+
+proc rocksdb_pinnable_multi_get_destroy*(
+  multi_get: ptr rocksdb_pinnable_multi_get_t
 ) {.cdecl.}
 
 ##  The value is only allocated (using malloc) and returned if it is found and
@@ -2444,6 +2557,10 @@ proc rocksdb_table_properties_column_family_id*(
   props: ptr rocksdb_table_properties_t
 ): uint64 {.cdecl.}
 
+proc rocksdb_table_properties_oldest_ancestor_time*(
+  props: ptr rocksdb_table_properties_t
+): uint64 {.cdecl.}
+
 proc rocksdb_table_properties_creation_time*(
   props: ptr rocksdb_table_properties_t
 ): uint64 {.cdecl.}
@@ -2465,10 +2582,6 @@ proc rocksdb_table_properties_slow_compression_estimated_data_size*(
 ): uint64 {.cdecl.}
 
 proc rocksdb_table_properties_fast_compression_estimated_data_size*(
-  props: ptr rocksdb_table_properties_t
-): uint64 {.cdecl.}
-
-proc rocksdb_table_properties_external_sst_file_global_seqno_offset*(
   props: ptr rocksdb_table_properties_t
 ): uint64 {.cdecl.}
 
@@ -2497,6 +2610,10 @@ proc rocksdb_table_properties_index_block_restart_interval*(
 ): uint64 {.cdecl.}
 
 proc rocksdb_table_properties_separate_key_value_in_data_block*(
+  props: ptr rocksdb_table_properties_t
+): uint64 {.cdecl.}
+
+proc rocksdb_table_properties_lsm_info_at_creation*(
   props: ptr rocksdb_table_properties_t
 ): uint64 {.cdecl.}
 
@@ -4687,12 +4804,28 @@ proc rocksdb_cache_get_table_address_count*(
 proc rocksdb_cache_get_occupancy_count*(cache: ptr rocksdb_cache_t): csize_t {.cdecl.}
 ##  WriteBufferManager
 
+const
+  rocksdb_write_buffer_manager_flush_policy_oldest* = 0
+  rocksdb_write_buffer_manager_flush_policy_largest* = 1
+  rocksdb_write_buffer_manager_flush_policy_largest_across_dbs* = 2
+
 proc rocksdb_write_buffer_manager_create*(
   buffer_size: csize_t, allow_stall: bool
 ): ptr rocksdb_write_buffer_manager_t {.cdecl.}
 
+proc rocksdb_write_buffer_manager_create_with_policy*(
+  buffer_size: csize_t, allow_stall: bool, flush_policy: cint
+): ptr rocksdb_write_buffer_manager_t {.cdecl.}
+
 proc rocksdb_write_buffer_manager_create_with_cache*(
   buffer_size: csize_t, cache: ptr rocksdb_cache_t, allow_stall: bool
+): ptr rocksdb_write_buffer_manager_t {.cdecl.}
+
+proc rocksdb_write_buffer_manager_create_with_cache_and_policy*(
+  buffer_size: csize_t,
+  cache: ptr rocksdb_cache_t,
+  allow_stall: bool,
+  flush_policy: cint,
 ): ptr rocksdb_write_buffer_manager_t {.cdecl.}
 
 proc rocksdb_write_buffer_manager_destroy*(
@@ -4729,6 +4862,14 @@ proc rocksdb_write_buffer_manager_set_buffer_size*(
 
 proc rocksdb_write_buffer_manager_set_allow_stall*(
   wbm: ptr rocksdb_write_buffer_manager_t, new_allow_stall: bool
+) {.cdecl.}
+
+proc rocksdb_write_buffer_manager_flush_policy*(
+  wbm: ptr rocksdb_write_buffer_manager_t
+): cint {.cdecl.}
+
+proc rocksdb_write_buffer_manager_set_flush_policy*(
+  wbm: ptr rocksdb_write_buffer_manager_t, flush_policy: cint
 ) {.cdecl.}
 
 ##  SstFileManager
@@ -6960,6 +7101,14 @@ proc rocksdb_options_get_background_close_inactive_wals*(
   opt: ptr rocksdb_options_t
 ): uint8 {.cdecl.}
 
+proc rocksdb_options_set_track_options_file_number_in_manifest*(
+  opt: ptr rocksdb_options_t, v: uint8
+) {.cdecl.}
+
+proc rocksdb_options_get_track_options_file_number_in_manifest*(
+  opt: ptr rocksdb_options_t
+): uint8 {.cdecl.}
+
 proc rocksdb_options_set_prefix_seek_opt_in_only*(
   opt: ptr rocksdb_options_t, v: uint8
 ) {.cdecl.}
@@ -7013,6 +7162,22 @@ proc rocksdb_options_get_db_host_id*(
   opt: ptr rocksdb_options_t, size: ptr csize_t
 ): cstring {.cdecl.}
 
+proc rocksdb_options_set_remote_compaction_manifest_floor*(
+  opt: ptr rocksdb_options_t, v: uint8
+) {.cdecl.}
+
+proc rocksdb_options_get_remote_compaction_manifest_floor*(
+  opt: ptr rocksdb_options_t
+): uint8 {.cdecl.}
+
+proc rocksdb_options_set_use_session_tmp_dir_for_remote_compaction*(
+  opt: ptr rocksdb_options_t, v: uint8
+) {.cdecl.}
+
+proc rocksdb_options_get_use_session_tmp_dir_for_remote_compaction*(
+  opt: ptr rocksdb_options_t
+): uint8 {.cdecl.}
+
 proc rocksdb_options_set_lowest_used_cache_tier*(
   opt: ptr rocksdb_options_t, v: cint
 ) {.cdecl.}
@@ -7036,6 +7201,14 @@ proc rocksdb_options_set_daily_offpeak_time_utc*(
 proc rocksdb_options_get_daily_offpeak_time_utc*(
   opt: ptr rocksdb_options_t, size: ptr csize_t
 ): cstring {.cdecl.}
+
+proc rocksdb_options_set_periodic_compaction_phase_recovery_percent*(
+  opt: ptr rocksdb_options_t, v: cint
+) {.cdecl.}
+
+proc rocksdb_options_get_periodic_compaction_phase_recovery_percent*(
+  opt: ptr rocksdb_options_t
+): cint {.cdecl.}
 
 proc rocksdb_options_set_follower_refresh_catchup_period_ms*(
   opt: ptr rocksdb_options_t, v: uint64
@@ -7178,6 +7351,14 @@ proc rocksdb_options_set_preserve_internal_time_seconds*(
 ) {.cdecl.}
 
 proc rocksdb_options_get_preserve_internal_time_seconds*(
+  opt: ptr rocksdb_options_t
+): uint64 {.cdecl.}
+
+proc rocksdb_options_set_blob_file_writable_file_max_buffer_size*(
+  opt: ptr rocksdb_options_t, v: uint64
+) {.cdecl.}
+
+proc rocksdb_options_get_blob_file_writable_file_max_buffer_size*(
   opt: ptr rocksdb_options_t
 ): uint64 {.cdecl.}
 
@@ -7629,14 +7810,6 @@ proc rocksdb_ingestexternalfileoptions_get_ingest_behind*(
   opt: ptr rocksdb_ingestexternalfileoptions_t
 ): uint8 {.cdecl.}
 
-proc rocksdb_ingestexternalfileoptions_set_write_global_seqno*(
-  opt: ptr rocksdb_ingestexternalfileoptions_t, v: uint8
-) {.cdecl.}
-
-proc rocksdb_ingestexternalfileoptions_get_write_global_seqno*(
-  opt: ptr rocksdb_ingestexternalfileoptions_t
-): uint8 {.cdecl.}
-
 proc rocksdb_ingestexternalfileoptions_set_verify_checksums_before_ingest*(
   opt: ptr rocksdb_ingestexternalfileoptions_t, v: uint8
 ) {.cdecl.}
@@ -7698,6 +7871,14 @@ proc rocksdb_ingestexternalfileoptions_get_file_opening_threads*(
 ): cint {.cdecl.}
 
 ##  OpenAndCompactOptions
+
+proc rocksdb_open_and_compact_options_set_max_secondary_open_retries*(
+  opt: ptr rocksdb_open_and_compact_options_t, v: uint32
+) {.cdecl.}
+
+proc rocksdb_open_and_compact_options_get_max_secondary_open_retries*(
+  opt: ptr rocksdb_open_and_compact_options_t
+): uint32 {.cdecl.}
 
 proc rocksdb_open_and_compact_options_get_allow_resumption*(
   opt: ptr rocksdb_open_and_compact_options_t
@@ -8014,6 +8195,14 @@ proc rocksdb_block_based_options_set_uniform_cv_threshold*(
 proc rocksdb_block_based_options_get_uniform_cv_threshold*(
   opt: ptr rocksdb_block_based_table_options_t
 ): cdouble {.cdecl.}
+
+proc rocksdb_block_based_options_set_optimize_key_common_prefix*(
+  opt: ptr rocksdb_block_based_table_options_t, v: cint
+) {.cdecl.}
+
+proc rocksdb_block_based_options_get_optimize_key_common_prefix*(
+  opt: ptr rocksdb_block_based_table_options_t
+): cint {.cdecl.}
 
 proc rocksdb_block_based_options_set_enable_index_compression*(
   opt: ptr rocksdb_block_based_table_options_t, v: uint8
